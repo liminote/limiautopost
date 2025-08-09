@@ -52,4 +52,10 @@ export function findUserByEmail(email: string): AppUser | undefined {
   return getUsers().find(u => u.email === e)
 }
 
+export function ensureUser(email: string, password: string, expiresAt?: string) {
+  const existing = findUserByEmail(email)
+  if (existing) return existing
+  return createUser({ email, password, expiresAt, mustChangePassword: false })
+}
+
 

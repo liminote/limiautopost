@@ -9,6 +9,11 @@ const LS_KEY = 'limiautopost:session'
 const ADMIN_EMAILS: string[] = [
   'vannyma@gmail.com',
 ]
+// 開發期：確保管理者帳號存在（預設密碼可稍後修改）
+import { ensureUser } from './users'
+if (typeof window !== 'undefined') {
+  try { ensureUser('vannyma@gmail.com', 'admin123') } catch {}
+}
 
 export function signIn(email: string): Session {
   const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase().trim())
