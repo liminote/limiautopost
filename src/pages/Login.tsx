@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { signIn } from '../auth/auth'
+import { findUserByEmail } from '../auth/users'
 import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
@@ -11,7 +12,8 @@ export default function Login() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) { setError('請輸入 Email'); return }
-    // Demo：不驗密碼；之後可串 API
+    const u = findUserByEmail(email)
+    if (!u || u.password !== password) { setError('帳號或密碼錯誤'); return }
     const s = signIn(email)
     if (s.roles.includes('admin')) nav('/admin')
     else nav('/app')

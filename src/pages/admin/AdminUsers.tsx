@@ -1,20 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { createUser, getUsers, updateUser, AppUser } from '../../auth/users'
 
-type UserRow = {
-  id: string
-  email: string
-  createdAt: string
-  expiresAt?: string
-}
-
-// 暫時使用本地 state 模擬，之後可接後端 API
-const seed: UserRow[] = [
-  { id: 'u_001', email: 'admin@example.com', createdAt: '2025-08-01', expiresAt: '2026-08-01' },
-  { id: 'u_002', email: 'user@example.com', createdAt: '2025-08-02' },
-]
+type UserRow = Pick<AppUser, 'id'|'email'|'createdAt'|'expiresAt'>
 
 export default function AdminUsers() {
-  const [rows, setRows] = useState<UserRow[]>(seed)
+  const [rows, setRows] = useState<UserRow[]>([])
+  useEffect(()=>{ setRows(getUsers()) }, [])
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; row?: UserRow } | null>(null)
 
   const sorted = useMemo(() => [...rows].sort((a, b) => a.createdAt.localeCompare(b.createdAt)), [rows])
@@ -61,9 +52,11 @@ export default function AdminUsers() {
           onClose={() => setModal(null)}
           onSave={(payload) => {
             if (modal.mode === 'create') {
-              setRows(prev => [{ id: crypto.randomUUID(), ...payload, createdAt: new Date().toISOString().slice(0,10) }, ...prev])
+              const u = createUser(payload)
+              setRows(prev => [u, ...prev])
             } else if (modal.mode === 'edit' && modal.row) {
-              setRows(prev => prev.map(r => r.id === modal.row!.id ? { ...r, ...payload } : r))
+              const u = updateUser(modal.row.id, payload as any)
+              if (u) setRows(prev => prev.map(r => r.id === u.id ? u : r))
             }
             setModal(null)
           }}
@@ -73,9 +66,11 @@ export default function AdminUsers() {
   )
 }
 
-function UserModal({ mode, row, onClose, onSave }: { mode: 'create' | 'edit'; row?: UserRow; onClose: () => void; onSave: (p: { email: string; expiresAt?: string }) => void }){
+function UserModal({ mode, row, onClose, onSave }: { mode: 'create' | 'edit'; row?: UserRow; onClose: () => void; onSave: (p: { email: string; password: string; expiresAt?: string; mustChangePassword?: boolean }) => void }){
   const [email, setEmail] = useState(row?.email ?? '')
+  const [password, setPassword] = useState('')
   const [expiresAt, setExpiresAt] = useState(row?.expiresAt ?? '')
+  const [mustChange, setMustChange] = useState(true)
   const title = mode === 'create' ? '新增使用者' : '編輯使用者'
 
   return (
@@ -87,17 +82,29 @@ function UserModal({ mode, row, onClose, onSave }: { mode: 'create' | 'edit'; ro
             <label className="block text-sm text-gray-600">Email</label>
             <input className="mt-1 w-full rounded border px-3 py-2" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com" />
           </div>
+          {mode === 'create' && (
+            <div>
+              <label className="block text-sm text-gray-600">初始密碼</label>
+              <input className="mt-1 w-full rounded border px-3 py-2" type="text" value={password} onChange={e=>setPassword(e.target.value)} placeholder="至少 8 碼" />
+            </div>
+          )}
           <div>
             <label className="block text-sm text-gray-600">使用期限</label>
             <input className="mt-1 w-full rounded border px-3 py-2" type="date" value={expiresAt} onChange={e=>setExpiresAt(e.target.value)} />
           </div>
+          {mode === 'create' && (
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" className="size-4" checked={mustChange} onChange={e=>setMustChange(e.target.checked)} />
+              首次登入需更改密碼
+            </label>
+          )}
         </div>
         <div className="px-4 py-3 border-t flex justify-end gap-2">
           <button className="px-3 py-2 rounded border" onClick={onClose}>取消</button>
           <button
             className="px-3 py-2 rounded bg-black text-white"
-            onClick={()=> onSave({ email, expiresAt: expiresAt || undefined })}
-            disabled={!email}
+            onClick={()=> onSave({ email, password, expiresAt: expiresAt || undefined, mustChangePassword: mustChange })}
+            disabled={!email || (mode==='create' && !password)}
           >儲存</button>
         </div>
       </div>
