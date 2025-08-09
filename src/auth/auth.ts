@@ -7,7 +7,7 @@ const LS_KEY = 'limiautopost:session'
 
 // 簡易設定：在前端定義管理者清單。之後可改為由後端/資料庫提供
 const ADMIN_EMAILS: string[] = [
-  'admin@example.com',
+  'vannyma@gmail.com',
 ]
 
 export function signIn(email: string): Session {
