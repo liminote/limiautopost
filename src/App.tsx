@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import AdminUsers from './pages/admin/AdminUsers'
+import Login from './pages/Login'
+import { getSession, hasRole } from './auth/auth'
 
 function App() {
   return (
@@ -15,8 +17,10 @@ function App() {
         </header>
         <main className="max-w-6xl mx-auto px-4 py-6">
           <Routes>
-            <Route path="/admin" element={<AdminUsers />} />
-            <Route path="*" element={<Navigate to="/admin" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/admin" element={hasRole('admin', getSession()) ? <AdminUsers /> : <Navigate to="/login" replace />} />
+            <Route path="/app" element={<div>生成器主介面（稍後實作）</div>} />
+            <Route path="*" element={<Navigate to={getSession() ? (hasRole('admin') ? '/admin' : '/app') : '/login'} replace />} />
           </Routes>
         </main>
       </div>
