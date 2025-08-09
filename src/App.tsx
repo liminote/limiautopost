@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom'
 import AdminUsers from './pages/admin/AdminUsers'
 import Login from './pages/Login'
+import Generator from './pages/app/Generator'
 import { getSession, hasRole, signOut } from './auth/auth'
 
 function TopNav() {
@@ -47,7 +48,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={hasRole('admin', getSession()) ? <AdminUsers /> : <Navigate to="/login" replace />} />
-            <Route path="/app" element={<div>生成器主介面（稍後實作）</div>} />
+            <Route path="/app" element={<Generator />} />
             <Route path="*" element={<Navigate to={getSession() ? (hasRole('admin') ? '/admin' : '/app') : '/login'} replace />} />
           </Routes>
         </main>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createUser, getUsers, updateUser, AppUser } from '../../auth/users'
+import { createUser, getUsers, updateUser, type AppUser } from '../../auth/users'
 
 type UserRow = Pick<AppUser, 'id'|'email'|'createdAt'|'expiresAt'>
 
