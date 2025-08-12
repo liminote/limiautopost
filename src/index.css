@@ -92,7 +92,7 @@ h1,h2,h3,.heading-serif{font-family:'Noto Serif TC', serif}
 .btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid var(--ui-border);border-radius:12px;background:#fff;cursor:pointer}
 .btn:hover{background:#f9fafb}
 .input{height:40px;padding:10px 14px;border:1px solid var(--ui-border);border-radius:12px}
-.textarea{padding:12px 14px;border:1px solid var(--ui-border);border-radius:12px;overflow:hidden}
+.textarea{padding:12px 14px;border:1px solid var(--ui-border);border-radius:12px;overflow:auto;resize:vertical}
 .select{height:40px;padding:8px 12px;border:1px solid var(--ui-border);border-radius:10px;background:#fff}
 
 /* 更小的數字輸入（寬 48px）→ 讚／留言／分享／儲存 用這個 */
