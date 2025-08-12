@@ -110,6 +110,19 @@ export function changeCurrentUserPassword(newPassword: string): AppUser | null {
   return updateUser(u.id, { password: newPassword, mustChangePassword: false })
 }
 
+/**
+ * 讓使用者自行修改密碼（需輸入原密碼以驗證）。
+ * 失敗時會丟出 Error，呼叫端負責顯示訊息。
+ */
+export function changeCurrentUserPasswordWithVerify(currentPassword: string, newPassword: string): AppUser | null {
+  const u = getCurrentUser()
+  if (!u) throw new Error('尚未登入')
+  if (!currentPassword) throw new Error('請輸入目前密碼')
+  if (u.password !== currentPassword) throw new Error('目前密碼不正確')
+  if (!newPassword || newPassword.length < 8) throw new Error('新密碼至少 8 碼')
+  return updateUser(u.id, { password: newPassword, mustChangePassword: false })
+}
+
 export function signOut() {
   localStorage.removeItem(LS_KEY)
   // 廣播變更事件

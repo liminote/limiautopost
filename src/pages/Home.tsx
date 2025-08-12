@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import { getSession, hasRole } from '../auth/auth'
+import { useSession, hasRole } from '../auth/auth'
 
 export default function Home(){
-  const session = getSession()
+  const session = useSession()
   const isAdmin = hasRole('admin', session)
   return (
     <div className="mx-auto max-w-3xl">

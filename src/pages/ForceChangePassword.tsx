@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { changeCurrentUserPassword, useSession } from '../auth/auth'
+import { changeCurrentUserPasswordWithVerify, useSession } from '../auth/auth'
 import { useNavigate } from 'react-router-dom'
 
 export default function ForceChangePassword() {
+  const [pwd0, setPwd0] = useState('')
   const [pwd1, setPwd1] = useState('')
   const [pwd2, setPwd2] = useState('')
   const [err, setErr] = useState<string | null>(null)
@@ -16,11 +17,16 @@ export default function ForceChangePassword() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pwd1 || pwd1.length < 8) { setErr('密碼至少 8 碼'); return }
+    if (!pwd0) { setErr('請輸入目前密碼'); return }
+    if (!pwd1 || pwd1.length < 8) { setErr('新密碼至少 8 碼'); return }
     if (pwd1 !== pwd2) { setErr('兩次輸入不一致'); return }
-    const u = changeCurrentUserPassword(pwd1)
-    if (u) nav('/app', { replace: true })
-    else setErr('變更失敗，請稍後再試')
+    try {
+      const u = changeCurrentUserPasswordWithVerify(pwd0, pwd1)
+      if (u) nav('/app', { replace: true })
+      else setErr('變更失敗，請稍後再試')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : '變更失敗，請稍後再試')
+    }
   }
 
   return (
@@ -28,6 +34,10 @@ export default function ForceChangePassword() {
       <form onSubmit={onSubmit} className="w-full max-w-sm bg-white rounded-lg shadow p-6 space-y-4">
         <h1 className="text-xl font-semibold">首次登入請更改密碼</h1>
         {session && <div className="text-sm text-gray-500">目前帳號：{session.email}</div>}
+        <div>
+          <label className="block text-sm text-gray-600">目前密碼</label>
+          <input className="mt-1 w-full rounded border px-3 py-2" type="password" value={pwd0} onChange={e=>setPwd0(e.target.value)} placeholder="輸入目前密碼" />
+        </div>
         <div>
           <label className="block text-sm text-gray-600">新密碼</label>
           <input className="mt-1 w-full rounded border px-3 py-2" type="password" value={pwd1} onChange={e=>setPwd1(e.target.value)} placeholder="至少 8 碼" />
