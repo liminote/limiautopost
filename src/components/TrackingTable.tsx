@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import TagInput from './TagInput'
 import { getTracked, removeTracked, updateTracked, type TrackedPost } from '../tracking/tracking'
+import { mockFetchMetrics, mockPublishToThreads } from '../api/threads'
 
 export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; setRows: (r: TrackedPost[]) => void }){
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -131,9 +132,20 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
                     </button>
                   </div>
                 ) : (
-                  <button className="icon-btn" title="新增連結" onClick={()=> setPermalink(r.id)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button className="icon-btn" title="新增連結" onClick={()=> setPermalink(r.id)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                    </button>
+                    <button className="icon-btn" title="發佈到 Threads（模擬）" onClick={async ()=>{
+                      try {
+                        const { id, permalink } = await mockPublishToThreads(r.content || '')
+                        updateTracked(r.id, { threadsPostId: id, permalink })
+                        setRows(rows.map(x=> x.id===r.id? { ...x, threadsPostId: id, permalink }: x))
+                      } catch { alert('模擬發佈失敗') }
+                    }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h16"/><path d="M12 4v16"/></svg>
+                    </button>
+                  </div>
                 )}
               </td>
               <td className="px-3 py-2 border-t">
@@ -179,6 +191,17 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
               <td className="px-3 py-2 border-t align-top">{formatLocal(r.createdAt)}</td>
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex gap-1 justify-end">
+                  {r.threadsPostId && (
+                    <button className="icon-btn" title="同步互動數（模擬）" onClick={async ()=>{
+                      try {
+                        const m = await mockFetchMetrics(r.threadsPostId!)
+                        updateTracked(r.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves })
+                        setRows(rows.map(x=> x.id===r.id? { ...x, likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves }: x))
+                      } catch { alert('同步失敗') }
+                    }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
+                    </button>
+                  )}
                   <button className="icon-btn icon-ghost" title="移除" onClick={()=> { if (confirm('刪除後無法復原，你確定要刪除？')) { removeTracked(r.id); setRows(rows.filter(x=>x.id!==r.id)) } }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
                   </button>

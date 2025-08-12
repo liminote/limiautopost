@@ -11,6 +11,7 @@ export type TrackedPost = {
   platform: 'Threads' | 'Instagram' | 'Facebook'
 
   // 管理欄位
+  threadsPostId?: string
   permalink?: string
   publishDate?: string // YYYY-MM-DD
   likes?: number
