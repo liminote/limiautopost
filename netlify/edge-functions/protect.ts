@@ -48,7 +48,8 @@ export default async function handler(request: Request, context: any) {
   if (!required) return context.next()
 
   const expected = await sha256Hex(required)
-  const token = context.cookies.get(COOKIE_NAME)?.value
+  const got = (context as any).cookies?.get?.(COOKIE_NAME)
+  const token = typeof got === 'string' ? got : (got?.value ?? undefined)
 
   if (token === expected) {
     return context.next()
@@ -59,7 +60,7 @@ export default async function handler(request: Request, context: any) {
       const form = await request.formData()
       const password = String(form.get('password') || '')
       if (password === required) {
-        context.cookies.set({
+        ;(context as any).cookies?.set?.({
           name: COOKIE_NAME,
           value: expected,
           httpOnly: true,
