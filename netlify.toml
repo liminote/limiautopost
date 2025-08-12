@@ -14,11 +14,8 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 
-[edge_functions]
-  directory = "netlify/edge-functions"
-
-[[edge_functions.mounts]]
-  function = "protect"
+[[edge_functions]]
   path = "/*"
+  function = "protect"
 
 

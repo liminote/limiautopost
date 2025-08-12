@@ -40,7 +40,10 @@ function renderForm(message?: string): Response {
 }
 
 export default async function handler(request: Request, context: any) {
-  const required = (globalThis as any).Deno?.env?.get('SITE_LOCK_PASSWORD') || ''
+  // 兼容不同執行環境：優先從 context.env，其次從 Deno.env 讀取
+  const required = (context as any)?.env?.SITE_LOCK_PASSWORD
+    || (globalThis as any).Deno?.env?.get?.('SITE_LOCK_PASSWORD')
+    || ''
   // If not configured, pass-through
   if (!required) return context.next()
 
