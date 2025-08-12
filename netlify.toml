@@ -8,4 +8,17 @@
   to = "/index.html"
   status = 200
 
+# 若暫時不想被搜尋引擎收錄，可加自動回應標頭（非強保護）：
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[edge_functions]
+  directory = "netlify/edge-functions"
+
+[[edge_functions.mounts]]
+  function = "protect"
+  path = "/*"
+
 

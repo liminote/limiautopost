@@ -20,6 +20,20 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
   try { ensureUser('operatic@gmail.com', 'operatic123') } catch {}
 }
 
+// 部署環境：若提供 Vite 環境變數，建立正式管理者帳號（注意：純前端原型，僅供內部測試）
+// 使用方式：在 Netlify 設定環境變數 VITE_SEED_ADMIN_EMAIL / VITE_SEED_ADMIN_PASSWORD 後重新部署
+if (typeof window !== 'undefined') {
+  const seedEmail = (import.meta as any).env?.VITE_SEED_ADMIN_EMAIL as string | undefined
+  const seedPassword = (import.meta as any).env?.VITE_SEED_ADMIN_PASSWORD as string | undefined
+  if (seedEmail && seedPassword) {
+    try {
+      ensureUser(seedEmail, seedPassword)
+      const e = seedEmail.toLowerCase().trim()
+      if (!ADMIN_EMAILS.includes(e)) ADMIN_EMAILS.push(e)
+    } catch {}
+  }
+}
+
 export function signIn(email: string): Session {
   // 登入前檢查啟用與到期
   try {
