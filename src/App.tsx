@@ -16,6 +16,7 @@ function TopNav() {
   const active = (to: string) => loc.pathname.startsWith(to)
   const session = useSession()
   const username = session?.email?.split('@')[0] || ''
+  const ver = (import.meta as any).env?.VITE_APP_VERSION as string | undefined
 
   return (
     <header className="nav">
@@ -54,6 +55,7 @@ function TopNav() {
           ) : (
             <Link to="/login">登入</Link>
           )}
+          {ver && (<span className="text-xs text-muted">v{ver}</span>)}
         </nav>
       </div>
     </header>
