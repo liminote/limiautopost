@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { execSync } from 'node:child_process'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -8,11 +7,10 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(
       (() => {
-        try {
-          const hash = execSync('git rev-parse --short HEAD').toString().trim()
-          const ts = new Date().toISOString().slice(0,16).replace('T',' ')
-          return `${hash} · ${ts}`
-        } catch { return '' }
+        // 優先使用部署平台提供的 commit 變數（Netlify: COMMIT_REF）
+        const hash = (process.env.VITE_GIT_SHA || process.env.COMMIT_REF || '').toString().slice(0, 7)
+        const ts = new Date().toISOString().slice(0, 16).replace('T', ' ')
+        return hash ? `${hash} · ${ts}` : ts
       })()
     ),
   },
