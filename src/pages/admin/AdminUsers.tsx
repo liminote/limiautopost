@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createUser, getUsers, updateUser, deleteUser, type AppUser } from '../../auth/users'
 
-type UserRow = Pick<AppUser, 'id'|'email'|'createdAt'|'expiresAt'|'notes'|'enabled'>
+type UserRow = Pick<AppUser, 'id'|'email'|'createdAt'|'validFrom'|'validTo'|'notes'|'enabled'|'logs'>
 
 export default function AdminUsers() {
   const [rows, setRows] = useState<UserRow[]>([])
@@ -13,7 +13,7 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-base font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>管理者後台 · 使用者</h1>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--yinmn-blue)' }}>管理者後台 · 使用者</h1>
         <button
           className="btn btn-primary text-sm"
           onClick={() => setModal({ mode: 'create' })}
@@ -37,7 +37,7 @@ export default function AdminUsers() {
               <tr key={r.id}>
                 <td className="px-3 py-2 border-t">{r.email}</td>
                 <td className="px-3 py-2 border-t">{r.createdAt}</td>
-                <td className="px-3 py-2 border-t">{r.expiresAt ?? '-'}</td>
+                <td className="px-3 py-2 border-t">{(r.validFrom || '-') + ' ~ ' + (r.validTo || '-')}</td>
                 <td className="px-3 py-2 border-t">{r.notes?.trim() ? r.notes : '-'}</td>
                 <td className="px-3 py-2 border-t">
                   <input type="checkbox" className="size-4" checked={r.enabled !== false}
@@ -72,7 +72,7 @@ export default function AdminUsers() {
           onClose={() => setModal(null)}
           onSave={(payload) => {
             if (modal.mode === 'create') {
-              const u = createUser(payload as { email: string; password: string; expiresAt?: string; mustChangePassword?: boolean; notes?: string })
+              const u = createUser(payload as any)
               setRows(prev => [u, ...prev])
             } else if (modal.mode === 'edit' && modal.row) {
               const u = updateUser(modal.row.id, payload as any)
@@ -86,10 +86,11 @@ export default function AdminUsers() {
   )
 }
 
-function UserModal({ mode, row, onClose, onSave }: { mode: 'create' | 'edit'; row?: UserRow; onClose: () => void; onSave: (p: { email: string; password?: string; expiresAt?: string; mustChangePassword?: boolean; notes?: string; enabled?: boolean }) => void }){
+function UserModal({ mode, row, onClose, onSave }: { mode: 'create' | 'edit'; row?: UserRow; onClose: () => void; onSave: (p: { email: string; password?: string; validFrom?: string; validTo?: string; mustChangePassword?: boolean; notes?: string; enabled?: boolean }) => void }){
   const [email, setEmail] = useState(row?.email ?? '')
   const [password, setPassword] = useState('')
-  const [expiresAt, setExpiresAt] = useState(row?.expiresAt ?? '')
+  const [validFrom, setValidFrom] = useState(row?.validFrom ?? '')
+  const [validTo, setValidTo] = useState(row?.validTo ?? '')
   const [mustChange, setMustChange] = useState(true)
   const [notes, setNotes] = useState(row?.notes ?? '')
   const [enabled, setEnabled] = useState(row?.enabled ?? true)
@@ -110,9 +111,15 @@ function UserModal({ mode, row, onClose, onSave }: { mode: 'create' | 'edit'; ro
               <input className="mt-1 input" type="text" value={password} onChange={e=>setPassword(e.target.value)} placeholder="至少 8 碼" />
             </div>
           )}
-          <div>
-            <label className="block text-sm text-gray-600">使用期限</label>
-            <input className="mt-1 input" type="date" value={expiresAt} onChange={e=>setExpiresAt(e.target.value)} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm text-gray-600">起</label>
+              <input className="mt-1 input" type="date" value={validFrom} onChange={e=>setValidFrom(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600">迄</label>
+              <input className="mt-1 input" type="date" value={validTo} onChange={e=>setValidTo(e.target.value)} />
+            </div>
           </div>
           <div>
             <label className="block text-sm text-gray-600">備註</label>
@@ -136,7 +143,8 @@ function UserModal({ mode, row, onClose, onSave }: { mode: 'create' | 'edit'; ro
             onClick={()=> onSave({
               email,
               ...(mode === 'create' ? { password } : {}),
-              expiresAt: expiresAt || undefined,
+              validFrom: validFrom || undefined,
+              validTo: validTo || undefined,
               ...(mode === 'create' ? { mustChangePassword: mustChange } : {}),
               notes: notes || '',
               enabled
@@ -144,6 +152,20 @@ function UserModal({ mode, row, onClose, onSave }: { mode: 'create' | 'edit'; ro
             disabled={!email || (mode==='create' && !password)}
           >儲存</button>
         </div>
+        {mode==='edit' && row?.logs?.length ? (
+          <div className="px-4 py-3 border-t">
+            <div className="text-sm text-muted mb-2">變更記錄</div>
+            <ul className="text-xs space-y-1 max-h-40 overflow-auto">
+              {row.logs!.slice().reverse().map((l, i) => (
+                <li key={i} className="text-gray-600">
+                  <span className="text-gray-500">{l.at.replace('T',' ').slice(0,16)}</span>
+                  <span className="mx-2">{l.actor}</span>
+                  <span>{Object.keys(l.changes).map(k=>`${k}→${(l.changes as any)[k]||'-'}`).join(', ')}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </div>
   )

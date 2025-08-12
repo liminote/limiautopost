@@ -1,13 +1,25 @@
+import { getSession } from './auth'
+
 export type AppUser = {
   id: string
   email: string
   password: string // NOTE: prototype only; replace with proper hashing in production
   createdAt: string
+  // 新版：有效起訖
+  validFrom?: string // YYYY-MM-DD
+  validTo?: string   // YYYY-MM-DD
+  // 舊版：僅結束日（保留以便讀舊資料）
   expiresAt?: string
   mustChangePassword?: boolean
   notes?: string
   enabled?: boolean
   lastLoginAt?: string
+  // 變更紀錄
+  logs?: Array<{
+    at: string // ISO
+    actor: string // email 或 system
+    changes: Partial<Pick<AppUser, 'validFrom' | 'validTo' | 'notes' | 'enabled' | 'password' | 'mustChangePassword'>>
+  }>
 }
 
 const LS_KEY = 'limiautopost:users'
@@ -15,7 +27,15 @@ const LS_KEY = 'limiautopost:users'
 export function getUsers(): AppUser[] {
   try {
     const raw = localStorage.getItem(LS_KEY)
-    return raw ? (JSON.parse(raw) as AppUser[]) : []
+    const list: AppUser[] = raw ? (JSON.parse(raw) as AppUser[]) : []
+    // 一次性遷移：將舊的 expiresAt 搬到 validTo
+    let migrated = false
+    for (const u of list) {
+      if (!u.validFrom) u.validFrom = u.createdAt
+      if (!u.validTo && u.expiresAt) { u.validTo = u.expiresAt; migrated = true }
+    }
+    if (migrated) setUsers(list)
+    return list
   } catch {
     return []
   }
@@ -25,7 +45,7 @@ function setUsers(users: AppUser[]) {
   localStorage.setItem(LS_KEY, JSON.stringify(users))
 }
 
-export function createUser(payload: { email: string; password: string; expiresAt?: string; mustChangePassword?: boolean; notes?: string; enabled?: boolean }): AppUser {
+export function createUser(payload: { email: string; password: string; validFrom?: string; validTo?: string; expiresAt?: string; mustChangePassword?: boolean; notes?: string; enabled?: boolean }): AppUser {
   const now = new Date()
   const u: AppUser = {
     id: crypto.randomUUID(),
@@ -33,7 +53,8 @@ export function createUser(payload: { email: string; password: string; expiresAt
     password: payload.password,
     // 使用本地時區的日期 YYYY-MM-DD
     createdAt: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
-    expiresAt: payload.expiresAt,
+    validFrom: payload.validFrom,
+    validTo: payload.validTo ?? payload.expiresAt,
     mustChangePassword: payload.mustChangePassword ?? true,
     notes: payload.notes?.trim() || ''
     ,enabled: payload.enabled ?? true
@@ -48,7 +69,19 @@ export function updateUser(id: string, changes: Partial<AppUser>): AppUser | nul
   const list = getUsers()
   const idx = list.findIndex(u => u.id === id)
   if (idx === -1) return null
-  const merged = { ...list[idx], ...changes }
+  const prev = list[idx]
+  const merged: AppUser = { ...prev, ...changes }
+  // 寫入變更紀錄（只記錄關鍵欄位）
+  const keys: Array<keyof AppUser> = ['validFrom','validTo','notes','enabled','password','mustChangePassword']
+  const diff: any = {}
+  for (const k of keys) {
+    if ((prev as any)[k] !== (merged as any)[k]) diff[k] = (merged as any)[k]
+  }
+  if (Object.keys(diff).length) {
+    const actor = getSession()?.email || 'system'
+    const log = { at: new Date().toISOString(), actor, changes: diff }
+    merged.logs = [...(prev.logs || []), log]
+  }
   list[idx] = merged
   setUsers(list)
   return merged
