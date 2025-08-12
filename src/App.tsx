@@ -1,37 +1,58 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom'
 import AdminUsers from './pages/admin/AdminUsers'
+import TrackingPage from './pages/app/Tracking'
 import Login from './pages/Login'
-import Generator from './pages/app/Generator'
-import { getSession, hasRole, signOut } from './auth/auth'
+import Generator from './pages/app/Generator.tsx'
+import { hasRole, signOut, mustChangePassword, useSession } from './auth/auth'
+import ForceChangePassword from './pages/ForceChangePassword'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminSettings from './pages/admin/AdminSettings'
+import Home from './pages/Home'
+import ErrorBoundary from './components/ErrorBoundary'
 
 function TopNav() {
   const loc = useLocation()
   const nav = useNavigate()
   const active = (to: string) => loc.pathname.startsWith(to)
-  const session = getSession()
+  const session = useSession()
+  const username = session?.email?.split('@')[0] || ''
 
   return (
-    <header className="border-b bg-white">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link to={hasRole('admin', session) ? '/admin' : '/app'} className="font-semibold">
-          隙音自動貼文生成器 · 管理者
+    <header className="nav">
+      <div className="container-app h-16 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3">
+          <span className="text-2xl font-bold" style={{ fontFamily: 'Noto Serif TC, serif', color: 'var(--yinmn-blue)' }}>隙音貼文生成器</span>
         </Link>
-        <nav className="text-sm text-gray-600 flex items-center gap-4">
+        <nav className="text-sm flex items-center gap-4">
           {hasRole('admin', session) && (
-            <Link
-              to="/admin"
-              className={active('/admin') ? 'text-black font-semibold border-b-2 border-black pb-0.5' : 'hover:text-black'}
-            >使用者</Link>
+            <>
+              <span className="nav-label">管理</span>
+              <Link to="/admin" className={`admin-link ${active('/admin') && !active('/admin/settings') && !active('/admin/users') ? 'active' : ''}`}>總覽</Link>
+              <Link to="/admin/users" className={`admin-link ${active('/admin/users') ? 'active' : ''}`}>使用者</Link>
+              <Link to="/admin/settings" className={`admin-link ${active('/admin/settings') ? 'active' : ''}`}>設定</Link>
+              <span className="nav-divider" />
+            </>
           )}
+          {session ? (
+          <>
           <Link
             to="/app"
-            className={active('/app') ? 'text-black font-semibold border-b-2 border-black pb-0.5' : 'hover:text-black'}
-          >回到生成器</Link>
+            className={active('/app') ? 'active' : ''}
+          >貼文生成器</Link>
+          <Link
+            to="/tracking"
+            className={active('/tracking') ? 'active' : ''}
+          >追蹤列表</Link>
+          {username && <span className="text-sm text-muted">hi {username}</span>}
           {session && (
             <button
-              className="ml-2 px-3 py-1.5 rounded border hover:bg-gray-50"
+              className="ml-2 btn btn-ghost"
               onClick={() => { signOut(); nav('/login', { replace: true }) }}
             >登出</button>
+          )}
+          </>
+          ) : (
+            <Link to="/login">登入</Link>
           )}
         </nav>
       </div>
@@ -40,19 +61,30 @@ function TopNav() {
 }
 
 function App() {
+  const session = useSession()
+  const isAdmin = hasRole('admin', session)
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
-        <TopNav />
-        <main className="max-w-6xl mx-auto px-4 py-6">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={hasRole('admin', getSession()) ? <AdminUsers /> : <Navigate to="/login" replace />} />
-            <Route path="/app" element={<Generator />} />
-            <Route path="*" element={<Navigate to={getSession() ? (hasRole('admin') ? '/admin' : '/app') : '/login'} replace />} />
-          </Routes>
-        </main>
-      </div>
+      <ErrorBoundary>
+        <div className="min-h-screen">
+          <TopNav />
+          <main className="container-app py-8">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={session ? <Navigate to="/app" replace /> : <Login />} />
+              {/* Admin */}
+              <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/login" replace />} />
+              <Route path="/admin/users" element={isAdmin ? <AdminUsers /> : <Navigate to="/login" replace />} />
+              <Route path="/admin/settings" element={isAdmin ? <AdminSettings /> : <Navigate to="/login" replace />} />
+              {/* User */}
+              <Route path="/force-change-password" element={<ForceChangePassword />} />
+              <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <TrackingPage />)} />
+              <Route path="/app" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <Generator />)} />
+              <Route path="*" element={<Navigate to={session ? (isAdmin ? '/admin' : '/app') : '/'} replace />} />
+            </Routes>
+          </main>
+        </div>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

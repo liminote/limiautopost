@@ -1,3 +1,99 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+/* Heptabase/Ghost-like minimal theme */
+:root{
+  /* Base */
+  --ui-bg:#ffffff; --ui-fg:#4d4d4d; --ui-border:#d7d3d3; --ui-chip:#f3f5f8;
+  --ui-shadow:0 8px 24px rgba(15, 23, 42, .06);
+  /* Brand palette (from user) */
+  --yinmn-blue:#6e9aad;       /* primary */
+  --yinmn-blue-600:#90b9ca;   /* hover/active */
+  --yinmn-blue-300:#b2ccd6;   /* subtle bg */
+  --muted:#6b7280;
+  /* Utility surface */
+  --surface:#f1f1f1;
+  /* Table */
+  --table-zebra:#f2f6f9;
+  /* Legacy card colors kept for generator preview */
+  --cool-gray:#8e9aaf; --thistle:#cbc0d3; --misty-rose:#efd3d7; --pale-purple:#feeafa; --lavender-web:#dee2ff;
+  /* Generator card tints (brand-based, soft) */
+  --card-tint-1: color-mix(in oklab, var(--yinmn-blue) 10%, white);
+  --card-tint-2: color-mix(in oklab, var(--yinmn-blue-600) 12%, white);
+  --card-tint-3: color-mix(in oklab, var(--yinmn-blue-300) 18%, white);
+  --card-tint-4: color-mix(in oklab, var(--surface) 100%, white);
+}
+/* Admin accent for visual separation */
+:root{ --admin-accent:#6b8da1; --admin-accent-600:#5e7e90; }
+.fix-scrollbar-layout-shift html, .fix-scrollbar-layout-shift body{ height:100%; }
+html{ overflow-y: scroll; }
+body{ min-height:100%; scrollbar-gutter: stable; background:var(--surface); color:var(--ui-fg); font-family:'Noto Sans TC', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
+.ui-12{font-size:12px;}
+.table.ui-compact thead th{padding:6px 8px;position:sticky;top:0;background:var(--table-zebra);z-index:10;box-shadow:0 1px 0 var(--ui-border)}
+.table.ui-compact tbody td{padding:6px 8px;}
+/* 追蹤列表：內容列一律置頂（thead 不受影響） */
+.table.ui-compact tbody td{vertical-align: top;}
+
+/* 追蹤列表：斑馬紋 */
+/* 斑馬紋（加深淺灰藍色） */
+.table.ui-compact tbody tr:nth-child(even) > td{background:var(--table-zebra) !important}
+
+.ui-input-sm,.ui-select-sm{height:28px;padding:3px 8px;font-size:12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-bg);}
+.ui-input-sm{width:80px;}
+.ui-select-sm{width:auto;min-width:6ch;padding-right:14px;}
+.ui-date-sm{height:28px;padding:3px 8px;font-size:12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-bg);width:115px;}
+
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+.ui-gap-x>*+*{margin-left:6px}
+
+.ui-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:0;border-radius:6px;background:var(--ui-chip);font-size:11px;line-height:18px;}
+.ui-chip .ui-close{opacity:0;transition:opacity .15s}
+.ui-chip:hover .ui-close{opacity:.8}
+
+.ui-tooltip{background:var(--ui-bg);border:1px solid var(--ui-border);box-shadow:var(--ui-shadow);border-radius:8px;}
+.ui-tooltip.notes{max-width:24ch;white-space:pre-wrap}
+
+/* Blue-accented components */
+.btn{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border:1px solid var(--ui-border);border-radius:12px;background:#fff;cursor:pointer;transition:all .15s ease}
+.btn:hover{background:#f9fafb}
+.btn.btn-primary{background:var(--yinmn-blue);color:#fff;border:1px solid var(--yinmn-blue)}
+.btn.btn-primary:hover{background:var(--yinmn-blue-600);border-color:var(--yinmn-blue-600);filter:saturate(1.02)}
+.btn.btn-outline{border:1px solid var(--yinmn-blue);color:var(--yinmn-blue);background:#fff}
+.btn.btn-outline:hover{background:#f4f7fb}
+.btn.btn-ghost{color:var(--muted)}
+/* compact icon button */
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;height:26px;width:26px;padding:0;border:1px solid var(--ui-border);border-radius:6px;background:#fff;cursor:pointer}
+.icon-btn:hover{background:#f9fafb}
+.icon-btn.icon-ghost{border:0;color:var(--muted)}
+.icon-btn svg{width:14px;height:14px;display:block}
+.card{border:1px solid var(--ui-border);border-radius:16px;background:#fff;box-shadow:0 4px 16px rgba(2,6,23,.06)}
+.card:hover{box-shadow:0 8px 20px rgba(2,6,23,.10)}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--ui-border)}
+.card-body{padding:18px 20px}
+.input,.textarea,.select{border:1px solid var(--ui-border);border-radius:12px;background:#fff}
+.input:focus,.textarea:focus,.select:focus{outline:2px solid rgba(44,92,197,.25)}
+h1,h2,h3,.heading-serif{font-family:'Noto Serif TC', serif}
+
+/* Navigation */
+.nav{background:#fff;border-bottom:1px solid var(--ui-border);margin-bottom:24px}
+.container-app{max-width:1200px;margin:0 auto;padding:0 16px;}
+.nav a{padding:6px 2px;border-bottom:2px solid transparent}
+.nav a.active{border-bottom-color:var(--yinmn-blue-600)}
+.nav .admin-link{color:var(--admin-accent)}
+.nav .admin-link.active{border-bottom-color:var(--admin-accent-600);color:var(--admin-accent-600)}
+.nav .nav-divider{width:1px;height:18px;background:var(--ui-border);margin:0 8px}
+.nav .nav-label{font-size:12px;color:var(--muted);margin-right:4px}
+
+/* Form labels */
+.form-label{display:block;font-size:12px;color:var(--muted)}
+.text-muted{color:var(--muted)}
+
+/* Base components */
+.container-app{max-width:1100px;margin:0 auto;padding:0 20px;}
+.btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid var(--ui-border);border-radius:12px;background:#fff;cursor:pointer}
+.btn:hover{background:#f9fafb}
+.input{height:40px;padding:10px 14px;border:1px solid var(--ui-border);border-radius:12px}
+.textarea{padding:12px 14px;border:1px solid var(--ui-border);border-radius:12px;overflow:hidden}
+.select{height:40px;padding:8px 12px;border:1px solid var(--ui-border);border-radius:10px;background:#fff}
+
+/* 更小的數字輸入（寬 48px）→ 讚／留言／分享／儲存 用這個 */
+.ui-input-xs{height:28px;padding:3px 6px;font-size:12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-bg);width:48px;}
