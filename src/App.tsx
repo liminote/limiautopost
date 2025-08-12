@@ -19,6 +19,12 @@ function TopNav() {
   const ver = (import.meta as any).env?.VITE_APP_VERSION as string | undefined
 
   return (
+    <>
+    {ver && (
+      <div className="container-app" style={{ paddingTop: '6px' }}>
+        <div className="text-xs text-muted" style={{ lineHeight: 1, textAlign: 'right' }}>v{ver}</div>
+      </div>
+    )}
     <header className="nav">
       <div className="container-app h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
@@ -55,10 +61,10 @@ function TopNav() {
           ) : (
             <Link to="/login">登入</Link>
           )}
-          {ver && (<span className="text-xs text-muted">v{ver}</span>)}
         </nav>
       </div>
     </header>
+    </>
   )
 }
 
