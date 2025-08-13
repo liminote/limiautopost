@@ -18,7 +18,11 @@ export const handler: Handler = async (event) => {
     const data = await res.json()
     // 儲存 token（prototype：以 threads user_id 當 key）
     try {
-      const store = getStore({ name: 'threads_tokens' })
+      const store = getStore(
+        process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
+          ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
+          : { name: 'threads_tokens' }
+      )
       const key = `threads:${data.user_id}`
       await store.set(key, JSON.stringify({ ...data, savedAt: new Date().toISOString() }))
     } catch {}

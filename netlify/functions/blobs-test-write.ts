@@ -3,7 +3,11 @@ import { getStore } from '@netlify/blobs'
 
 export const handler: Handler = async () => {
   try {
-    const store = getStore({ name: 'threads_tokens' })
+    const store = getStore(
+      process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
+        ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
+        : { name: 'threads_tokens' }
+    )
     const key = 'debug:ping'
     const payload = { ok: true, ts: new Date().toISOString() }
     await store.set(key, JSON.stringify(payload))
