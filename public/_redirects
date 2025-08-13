@@ -1,6 +1,9 @@
-#/api 應先導到 Functions，再做 SPA 回退
-/api/*   /.netlify/functions/:splat   200
-/.netlify/functions/*   /.netlify/functions/:splat   200
+# API → Functions（明確列出，避免錯誤的 :splat 路徑）
+/api/threads/oauth/start      /.netlify/functions/threads-oauth-start      200
+/api/threads/oauth/callback   /.netlify/functions/threads-oauth-callback   200
+/api/ping                     /.netlify/functions/ping                      200
+
+# SPA fallback
 /*    /index.html   200
 
 
