@@ -2,6 +2,12 @@
   command = "npm run build"
   publish = "dist"
 
+# API routes must come before SPA fallback
+[[redirects]]
+  from = "/api/threads/oauth/*"
+  to = "/.netlify/functions/threads-oauth/:splat"
+  status = 200
+
 # 單頁應用：所有路由回退到 index.html
 [[redirects]]
   from = "/*"
