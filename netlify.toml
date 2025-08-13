@@ -8,6 +8,11 @@
   to = "/.netlify/functions/threads-oauth/:splat"
   status = 200
 
+[[redirects]]
+  from = "/api/ping"
+  to = "/.netlify/functions/ping"
+  status = 200
+
 # 單頁應用：所有路由回退到 index.html
 [[redirects]]
   from = "/*"
