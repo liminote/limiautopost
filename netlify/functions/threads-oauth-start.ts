@@ -2,7 +2,8 @@ import type { Handler } from '@netlify/functions'
 
 const APP_ID = process.env.THREADS_APP_ID || ''
 const REDIRECT = process.env.THREADS_REDIRECT_URL || ''
-const AUTH_HOST = 'https://graph.threads.net'
+// Authorize 應導到 www.threads.net，非 graph 網域
+const AUTH_HOST = 'https://www.threads.net'
 
 export const handler: Handler = async () => {
   if (!APP_ID || !REDIRECT) {
