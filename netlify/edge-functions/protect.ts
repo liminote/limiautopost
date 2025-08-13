@@ -40,6 +40,11 @@ function renderForm(message?: string): Response {
 }
 
 export default async function handler(request: Request, context: any) {
+  const pathname = new URL(request.url).pathname
+  // 不保護 API 路徑，讓函式和 OAuth 正常運作
+  if (pathname.startsWith('/api/')) {
+    return context.next()
+  }
   // 兼容不同執行環境：優先從 context.env，其次從 Deno.env 讀取
   const required = (context as any)?.env?.SITE_LOCK_PASSWORD
     || (globalThis as any).Deno?.env?.get?.('SITE_LOCK_PASSWORD')
