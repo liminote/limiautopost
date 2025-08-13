@@ -15,7 +15,7 @@ export default function AdminSettings() {
       } catch {}
       // 2) 向後端查詢權威狀態
       try {
-        const r = await fetch('/api/threads/linked', { cache: 'no-store' })
+        const r = await fetch('/.netlify/functions/threads-linked', { cache: 'no-store', headers: { 'accept': 'application/json' } })
         const j = await r.json()
         if (typeof j.linked === 'boolean') {
           setLinked(j.linked)
