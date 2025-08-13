@@ -8,8 +8,13 @@
 
 # API routes must come before SPA fallback
 [[redirects]]
-  from = "/api/threads/oauth/*"
-  to = "/.netlify/functions/threads-oauth/:splat"
+  from = "/api/threads/oauth/start"
+  to = "/.netlify/functions/threads-oauth-start"
+  status = 200
+
+[[redirects]]
+  from = "/api/threads/oauth/callback"
+  to = "/.netlify/functions/threads-oauth-callback"
   status = 200
 
 [[redirects]]
