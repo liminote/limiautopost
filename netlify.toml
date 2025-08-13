@@ -32,6 +32,16 @@
   to = "/.netlify/functions/blobs-test-write"
   status = 200
 
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
+  status = 200
+
+[[redirects]]
+  from = "/api/threads/status"
+  to = "/.netlify/functions/threads-status"
+  status = 200
+
 # 單頁應用：所有路由回退到 index.html
 [[redirects]]
   from = "/*"

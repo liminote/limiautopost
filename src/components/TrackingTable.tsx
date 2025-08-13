@@ -72,6 +72,7 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
             <th>平台</th>
             <th>原文標題</th>
             <th>內容</th>
+            <th>狀態</th>
             <th>標籤</th>
             <th>連結</th>
             <th>發佈日期</th>
@@ -103,6 +104,11 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
                   <option value="Facebook">FB</option>
                 </select>
               </td>
+              <td className="px-3 py-2 border-t align-top">
+                <span className="ui-chip" title={r.publishError || ''}>
+                  {r.status === 'published' ? '已發佈' : r.status === 'scheduled' ? '已排程' : r.status === 'publishing' ? '發佈中' : r.status === 'failed' ? '失敗' : '草稿'}
+                </span>
+              </td>
               <td className="px-3 py-2 border-t align-top" style={{ minWidth: '14ch' }}>{r.articleTitle || '（無標題）'}</td>
               <td className="px-3 py-2 border-t text-gray-600 align-top" style={{ minWidth: '14ch' }}>
                 <div
@@ -127,6 +133,7 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
                     <button className="icon-btn" title="開啟連結" onClick={()=> window.open(r.permalink!, '_blank')}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
                     </button>
+                    <span className="text-xs text-muted">{r.permalinkSource === 'manual' || r.permalinkSource === 'locked-manual' ? '手動' : '自動'}</span>
                     <button className="icon-btn icon-ghost" title="編輯連結" onClick={()=> setPermalink(r.id)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                     </button>
@@ -139,8 +146,8 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
                     <button className="icon-btn" title="發佈到 Threads（模擬）" onClick={async ()=>{
                       try {
                         const { id, permalink } = await mockPublishToThreads(r.content || '')
-                        updateTracked(r.id, { threadsPostId: id, permalink })
-                        setRows(rows.map(x=> x.id===r.id? { ...x, threadsPostId: id, permalink }: x))
+                        updateTracked(r.id, { threadsPostId: id, permalink, permalinkSource: 'auto', status: 'published' })
+                        setRows(rows.map(x=> x.id===r.id? { ...x, threadsPostId: id, permalink, permalinkSource: 'auto', status: 'published' }: x))
                       } catch { alert('模擬發佈失敗') }
                     }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h16"/><path d="M12 4v16"/></svg>

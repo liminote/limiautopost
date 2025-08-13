@@ -13,11 +13,18 @@ export type TrackedPost = {
   // 管理欄位
   threadsPostId?: string
   permalink?: string
+  permalinkSource?: 'auto' | 'manual' | 'locked-manual'
   publishDate?: string // YYYY-MM-DD
   likes?: number
   comments?: number
   shares?: number
   saves?: number
+  status?: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed'
+  scheduledAt?: string // ISO
+  jobId?: string
+  platformAccountId?: string
+  platformUsername?: string
+  publishError?: string
   notes?: string
   tags?: string[]
   createdAt: string
@@ -133,6 +140,8 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       branchCode: branchCode!,
       postId: `${resolvedArticleId}-${branchCode}`,
       ownerEmail: email,
+      status: 'draft',
+      permalinkSource: undefined,
     }
     return record
   })
