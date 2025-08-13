@@ -4,11 +4,26 @@ export default function AdminSettings() {
   const [linked, setLinked] = useState(false)
   useEffect(() => {
     const run = async () => {
+      // 1) 先讀 URL 提示（剛完成授權時）
       try {
-        const r = await fetch('/api/threads/linked')
+        const qs = new URLSearchParams(location.search)
+        if (qs.get('threads') === 'linked') {
+          setLinked(true)
+          try { localStorage.setItem('threads:linked', '1') } catch {}
+        }
+      } catch {}
+      // 2) 向後端查詢權威狀態
+      try {
+        const r = await fetch('/api/threads/linked', { cache: 'no-store' })
         const j = await r.json()
-        setLinked(!!j.linked)
-      } catch { setLinked(false) }
+        if (typeof j.linked === 'boolean') {
+          setLinked(j.linked)
+          try { localStorage.setItem('threads:linked', j.linked ? '1' : '0') } catch {}
+          return
+        }
+      } catch {}
+      // 3) 後援：讀本機快取
+      try { setLinked(localStorage.getItem('threads:linked') === '1') } catch {}
     }
     run()
   }, [])
