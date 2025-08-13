@@ -20,8 +20,9 @@ export const handler: Handler = async (event) => {
         const key = first.key
         // 以 JSON 方式讀取（避免 ArrayBuffer 需手動轉型）
         const data = await store.get(key, { type: 'json' }) as { user_id?: string; access_token?: string } | null
-        if (data?.user_id && data?.access_token) {
-          const resp = await fetch(`https://graph.threads.net/v1.0/${data.user_id}?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
+        if (data?.access_token) {
+          // 使用 /me 端點讀取目前授權帳號的 username，比 user_id 直接查更穩定
+          const resp = await fetch(`https://graph.threads.net/v1.0/me?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
           if (resp.ok) {
             const j = await resp.json() as { username?: string }
             username = j.username
