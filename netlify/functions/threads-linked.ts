@@ -14,8 +14,8 @@ export const handler: Handler = async (event) => {
       if (linked) {
         const first = listed!.blobs![0]
         const key = first.key
-        const raw = await store.get(key)
-        const data = raw ? JSON.parse(String(raw)) as { user_id: string; access_token: string } : null
+        // 以 JSON 方式讀取（避免 ArrayBuffer 需手動轉型）
+        const data = await store.get(key, { type: 'json' }) as { user_id?: string; access_token?: string } | null
         if (data?.user_id && data?.access_token) {
           const resp = await fetch(`https://graph.threads.net/v1.0/${data.user_id}?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
           if (resp.ok) {
