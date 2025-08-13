@@ -22,6 +22,11 @@
   to = "/.netlify/functions/ping"
   status = 200
 
+[[redirects]]
+  from = "/api/threads/linked"
+  to = "/.netlify/functions/threads-linked"
+  status = 200
+
 # 單頁應用：所有路由回退到 index.html
 [[redirects]]
   from = "/*"

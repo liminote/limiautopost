@@ -1,5 +1,17 @@
+import { useEffect, useState } from 'react'
+
 export default function AdminSettings() {
-  const linked = typeof window !== 'undefined' && new URLSearchParams(location.search).get('threads') === 'linked'
+  const [linked, setLinked] = useState(false)
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const r = await fetch('/api/threads/linked')
+        const j = await r.json()
+        setLinked(!!j.linked)
+      } catch { setLinked(false) }
+    }
+    run()
+  }, [])
   return (
     <div className="space-y-4">
       <h1 className="text-base font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>系統設定（占位）</h1>
@@ -7,7 +19,6 @@ export default function AdminSettings() {
         <div>未來可在此管理：平台前綴、字數建議、模型 API key、使用者通知、報表匯出等。</div>
         <div className="flex gap-2">
           <a className="btn btn-primary" href="/api/threads/oauth/start">連結 Threads（OAuth）</a>
-          <a className="btn" href="/admin">返回</a>
         </div>
         {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號</div>}
       </div>
