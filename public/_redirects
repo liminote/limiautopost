@@ -1,3 +1,6 @@
+#/api 應先導到 Functions，再做 SPA 回退
+/api/*   /.netlify/functions/:splat   200
+/.netlify/functions/*   /.netlify/functions/:splat   200
 /*    /index.html   200
 
 
