@@ -18,4 +18,9 @@
   path = "/*"
   function = "protect"
 
+[[redirects]]
+  from = "/api/threads/oauth/*"
+  to = "/.netlify/functions/threads-oauth/:splat"
+  status = 200
+
 
