@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 export default function AdminSettings() {
   const [linked, setLinked] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
   useEffect(() => {
     const run = async () => {
       // 1) 先讀 URL 提示（剛完成授權時）
@@ -18,6 +19,7 @@ export default function AdminSettings() {
         const j = await r.json()
         if (typeof j.linked === 'boolean') {
           setLinked(j.linked)
+          if (j.username) setUsername(j.username as string)
           try { localStorage.setItem('threads:linked', j.linked ? '1' : '0') } catch {}
           return
         }
@@ -35,7 +37,7 @@ export default function AdminSettings() {
         <div className="flex gap-2">
           <a className="btn btn-primary" href="/api/threads/oauth/start">{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
         </div>
-        {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號</div>}
+        {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
       </div>
     </div>
   )
