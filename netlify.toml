@@ -27,6 +27,11 @@
   to = "/.netlify/functions/threads-linked"
   status = 200
 
+[[redirects]]
+  from = "/api/debug/blobs-write"
+  to = "/.netlify/functions/blobs-test-write"
+  status = 200
+
 # 單頁應用：所有路由回退到 index.html
 [[redirects]]
   from = "/*"
