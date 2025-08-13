@@ -1,4 +1,5 @@
 import type { Handler } from '@netlify/functions'
+import { getStore } from '@netlify/blobs'
 
 const APP_ID = process.env.THREADS_APP_ID || ''
 const APP_SECRET = process.env.THREADS_APP_SECRET || ''
@@ -15,7 +16,14 @@ export const handler: Handler = async (event) => {
       body: new URLSearchParams({ client_id: APP_ID, client_secret: APP_SECRET, redirect_uri: REDIRECT, grant_type: 'authorization_code', code }).toString()
     })
     const data = await res.json()
-    return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, received: Object.keys(data) }) }
+    // 儲存 token（prototype：以 threads user_id 當 key）
+    try {
+      const store = getStore({ name: 'threads_tokens' })
+      const key = `threads:${data.user_id}`
+      await store.set(key, JSON.stringify({ ...data, savedAt: new Date().toISOString() }))
+    } catch {}
+    // 導回設定頁顯示成功
+    return { statusCode: 302, headers: { Location: '/admin/settings?threads=linked' }, body: '' }
   } catch (e) {
     return { statusCode: 500, body: String(e) }
   }

@@ -1,4 +1,5 @@
 export default function AdminSettings() {
+  const linked = typeof window !== 'undefined' && new URLSearchParams(location.search).get('threads') === 'linked'
   return (
     <div className="space-y-4">
       <h1 className="text-base font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>系統設定（占位）</h1>
@@ -8,6 +9,7 @@ export default function AdminSettings() {
           <a className="btn btn-primary" href="/api/threads/oauth/start">連結 Threads（OAuth）</a>
           <a className="btn" href="/admin">返回</a>
         </div>
+        {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號</div>}
       </div>
     </div>
   )
