@@ -143,11 +143,10 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
                     <button className="icon-btn" title="新增連結" onClick={()=> setPermalink(r.id)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                     </button>
-                    <button className="icon-btn" title="發佈到 Threads（模擬）" onClick={async ()=>{
+                    <button className="icon-btn" title="模擬發佈（不回填連結）" onClick={async ()=>{
                       try {
-                        const { id, permalink } = await mockPublishToThreads(r.content || '')
-                        updateTracked(r.id, { threadsPostId: id, permalink, permalinkSource: 'auto', status: 'published' })
-                        setRows(rows.map(x=> x.id===r.id? { ...x, threadsPostId: id, permalink, permalinkSource: 'auto', status: 'published' }: x))
+                        await mockPublishToThreads(r.content || '')
+                        alert('已完成模擬發佈（不回填連結、不變更狀態）')
                       } catch { alert('模擬發佈失敗') }
                     }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h16"/><path d="M12 4v16"/></svg>
