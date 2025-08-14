@@ -144,7 +144,7 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
                       {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
                     </button>
-                    <button className="icon-btn" title="自動發佈（目前為模擬，不回填）" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue') }} onClick={async ()=>{
+                    <button className="icon-btn" title="自動發佈（目前為模擬，不回填）" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} onClick={async ()=>{
                       try {
                         await mockPublishToThreads(r.content || '')
                         alert('已完成模擬發佈（不回填連結、不變更狀態）')
