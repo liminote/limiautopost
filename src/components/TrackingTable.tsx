@@ -140,16 +140,18 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
-                    <button className="icon-btn" title="新增連結" onClick={()=> setPermalink(r.id)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                    <button className="icon-btn" title="手動貼上連結" onClick={()=> setPermalink(r.id)}>
+                      {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
                     </button>
-                    <button className="icon-btn" title="模擬發佈（不回填連結）" onClick={async ()=>{
+                    <button className="icon-btn" title="自動發佈（目前為模擬，不回填）" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue') }} onClick={async ()=>{
                       try {
                         await mockPublishToThreads(r.content || '')
                         alert('已完成模擬發佈（不回填連結、不變更狀態）')
                       } catch { alert('模擬發佈失敗') }
                     }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h16"/><path d="M12 4v16"/></svg>
+                      {/* 紙飛機圖示，代表自動發佈 */}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                     </button>
                   </div>
                 )}
