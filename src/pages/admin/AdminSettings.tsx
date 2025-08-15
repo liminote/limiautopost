@@ -5,6 +5,17 @@ export default function AdminSettings() {
   const [username, setUsername] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  async function fetchJSONFallback(paths: string[]) {
+    let lastErr: any
+    for (const p of paths) {
+      try {
+        const r = await fetch(p, { cache: 'no-store' })
+        if (!r.ok) { lastErr = new Error(`HTTP ${r.status}`); continue }
+        return await r.json()
+      } catch (e) { lastErr = e }
+    }
+    throw lastErr || new Error('All endpoints failed')
+  }
   useEffect(() => {
     const run = async () => {
       // 0) 健康檢查
@@ -23,8 +34,7 @@ export default function AdminSettings() {
       } catch {}
       // 2) 向後端查詢狀態
       try {
-        const r = await fetch('/api/threads/status', { cache: 'no-store' })
-        const j = await r.json()
+        const j = await fetchJSONFallback(['/api/threads/status', '/.netlify/functions/threads-status'])
         if (j.status === 'linked') { setLinked(true); setUsername(j.username || null); try { localStorage.setItem('threads:username', j.username || '') } catch {} }
         else { setLinked(false); setStatusMsg(j.reasonCode ? `未連結：${j.reasonCode}` : '未連結') }
         try { localStorage.setItem('threads:linked', j.status === 'linked' ? '1' : '0') } catch {}
@@ -54,8 +64,10 @@ export default function AdminSettings() {
               onClick={async ()=>{
                 try {
                   setBusy(true)
-                  const r = await fetch('/api/threads/disconnect', { method: 'POST' })
-                  const j = await r.json()
+                  const j = await (async () => {
+                    try { return await (await fetch('/api/threads/disconnect', { method: 'POST' })).json() } catch {}
+                    return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json()
+                  })()
                   if (j.ok) {
                     setLinked(false); setUsername(null); setStatusMsg('已斷開連結')
                     try { localStorage.setItem('threads:linked', '0'); localStorage.removeItem('threads:username') } catch {}
