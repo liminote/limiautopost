@@ -1,5 +1,6 @@
 import { getAdminDashboardStats } from '../../auth/auth'
 import DevProgress from '../../components/DevProgress'
+import HealthStatus from '../../components/HealthStatus'
 
 export default function AdminDashboard() {
   const { total, activeThisMonth, soonExpiring } = getAdminDashboardStats()
@@ -20,6 +21,7 @@ export default function AdminDashboard() {
           <div className="text-2xl font-semibold">{soonExpiring}</div>
         </div>
       </div>
+      <HealthStatus />
       <DevProgress />
     </div>
   )
