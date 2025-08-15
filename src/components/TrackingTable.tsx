@@ -254,9 +254,28 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                           alert('發佈失敗：' + t)
                           return
                         }
-                        updateTracked(r.id, { status: 'published', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined })
-                        setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource }: x))
-                        alert(`已發佈（ID: ${j.id || '未知'}）`)
+                        const confirmed = (j as any).confirmed === true || !!j.permalink
+                        updateTracked(r.id, { status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined })
+                        setRows(rows.map(x=> x.id===r.id? { ...x, status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource }: x))
+                        if (confirmed) {
+                          alert(`已發佈（ID: ${j.id || '未知'}）`)
+                        } else {
+                          // 背景輪詢補確認
+                          const start = Date.now()
+                          try {
+                            while (Date.now() - start < 12_000) {
+                              const latest = await fetch('/api/threads/latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
+                              const link = latest?.permalink
+                              const pid = latest?.id
+                              if (pid && link && (!j.id || String(pid) === String(j.id))) {
+                                updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto' })
+                                setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto' }: x))
+                                break
+                              }
+                              await sleep(1200)
+                            }
+                          } catch {}
+                        }
                       } catch { alert('發佈失敗：網路錯誤') }
                       finally { setPublishingId(null) }
                     }}>

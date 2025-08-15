@@ -60,16 +60,33 @@ export const handler: Handler = async (event) => {
     }
 
     let permalink: string | undefined
+    let confirmed = false
     if (postId && data.access_token) {
       try {
         const info = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(postId)}?fields=permalink,permalink_url,link,url&access_token=${encodeURIComponent(data.access_token)}`)
         if (info.ok) {
           const d = await info.json() as any
           permalink = d.permalink || d.permalink_url || d.link || d.url
+          confirmed = true
         }
       } catch {}
     }
     // 若 API 無法直接給 permalink，嘗試以已存的 username 推導（備援）
+    if (!confirmed && postId) {
+      // 次要驗證：讀最新一篇，若與 postId 相符則視為已上架
+      try {
+        const latest = await fetch(`https://graph.threads.net/v1.0/me/threads?fields=id,permalink,permalink_url,link,url&limit=1&access_token=${encodeURIComponent(data.access_token)}`)
+        if (latest.ok) {
+          const lj = await latest.json() as any
+          const node = lj?.data?.[0]
+          if (node?.id && String(node.id) === String(postId)) {
+            permalink = node.permalink || node.permalink_url || node.link || node.url || permalink
+            confirmed = true
+          }
+        }
+      } catch {}
+    }
+
     if (!permalink && postId) {
       try {
         const store = getStore(
@@ -90,7 +107,7 @@ export const handler: Handler = async (event) => {
       } catch {}
     }
 
-    return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, id: postId, permalink }) }
+    return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, id: postId, permalink, confirmed }) }
   } catch (e) {
     return { statusCode: 500, body: String(e) }
   }
