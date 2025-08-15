@@ -27,7 +27,8 @@ export const handler: Handler = async (event) => {
     const resp = await fetch('https://graph.threads.net/v1.0/me/threads', {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ text, access_token: data.access_token }).toString(),
+      // Threads 需要指定 media_type，文字貼文用 TEXT
+      body: new URLSearchParams({ media_type: 'TEXT', text, access_token: data.access_token }).toString(),
     })
     if (!resp.ok) {
       const txt = await resp.text()
