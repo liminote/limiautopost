@@ -132,9 +132,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
           <col className="w-8ch" /> {/* 1 原文編號 */}
-          <col /> {/* 2 識別碼 */}
-          <col /> {/* 3 平台 */}
-          <col /> {/* 4 狀態 */}
+          <col className="w-8ch" /> {/* 2 識別碼 */}
+          <col className="w-8ch" /> {/* 3 平台 */}
+          <col className="w-8ch" /> {/* 4 狀態 */}
           <col /> {/* 5 原文標題 */}
           <col /> {/* 6 內容 */}
           <col /> {/* 7 標籤 */}
