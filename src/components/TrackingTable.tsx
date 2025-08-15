@@ -236,10 +236,10 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 })()}
               </td>
               <td className="px-3 py-2 border-t align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.articleTitle || '（無標題）'); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
-                <div className="w-12ch" style={{ overflow: 'hidden', display: 'block' }}>{r.articleTitle || '（無標題）'}</div>
+                <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
               <td className="px-3 py-2 border-t text-gray-600 align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
-                <div className="w-12ch" style={{ overflow: 'hidden', display: 'block' }}>
+                <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
                   {(r.content || '').slice(0, 36)}{(r.content || '').length > 36 ? '…' : ''}
                 </div>
               </td>
