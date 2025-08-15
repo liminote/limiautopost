@@ -92,6 +92,10 @@ export function getTracked(): TrackedPost[] {
 
 export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'createdAt' | 'likes' | 'comments' | 'shares' | 'saves' | 'tags' | 'branchCode'> & { branchCode?: string }>): TrackedPost[] {
   const list = getTracked()
+  // 去重規則：同一使用者底下，若「標題 + 內容 + 平台」完全相同，視為同一筆，不再新增
+  const normalize = (s: string | undefined) => (s || '').trim().replace(/\s+/g, ' ')
+  const dedupeKey = (t: string, c: string, p: TrackedPost['platform']) => `${normalize(t)}|${normalize(c)}|${p}`
+  const existingKeys = new Set(list.map(x => dedupeKey(x.articleTitle, x.content, x.platform)))
   // 準備序號累計：以 articleId + 平台字母 為 key，避免新增多筆時重複
   const counters = new Map<string, number>()
   const normLetter = (platform: TrackedPost['platform']): 'T' | 'G' | 'F' => (
@@ -110,6 +114,9 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
 
   const email = getSession()?.email || ''
   const created = items.map(it => {
+    // 如果與現有資料重複，跳過新增
+    const keyForCheck = dedupeKey(it.articleTitle, it.content, it.platform)
+    if (existingKeys.has(keyForCheck)) return null as unknown as TrackedPost
     // 若標題相同，沿用既有的 articleId（同一篇原文不換編號）
     const titleKey = (it.articleTitle || '').trim()
     const foundSameTitle = titleKey
@@ -143,9 +150,10 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       status: 'draft',
       permalinkSource: undefined,
     }
+    existingKeys.add(keyForCheck)
     return record
   })
-  const newList = [...created, ...list]
+  const newList = [...created.filter(Boolean), ...list]
   const key = currentUserKey(LS_PREFIX)
   localStorage.setItem(key, JSON.stringify(newList))
   return newList
