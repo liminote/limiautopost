@@ -62,6 +62,25 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     setRows(rows.map(x => x.id === id ? { ...x, notes: note } : x))
   }
 
+  async function ensurePermalinkAndOpen(row: TrackedPost) {
+    try {
+      let link = row.permalink || ''
+      const needFetch = !link || !/^https?:\/\//i.test(link) || !/threads\.net/i.test(link)
+      if (needFetch && row.threadsPostId) {
+        const resp = await fetch(`/api/threads/permalink?id=${encodeURIComponent(row.threadsPostId)}`)
+        if (resp.ok) {
+          const j = (await resp.json()) as { ok?: boolean; permalink?: string }
+          if (j.ok && j.permalink) {
+            link = j.permalink
+            updateTracked(row.id, { permalink: link, permalinkSource: 'auto' })
+            setRows(rows.map(x=> x.id===row.id? { ...x, permalink: link, permalinkSource: 'auto' }: x))
+          }
+        }
+      }
+      if (link) window.open(link, '_blank', 'noopener,noreferrer')
+    } catch {}
+  }
+
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
   async function publishWithRetry(text: string): Promise<{ ok: boolean; id?: string; permalink?: string; errorText?: string }>{
     // 先打 Functions 直連，較少遇到部署切換時的 404/HTML 回應
@@ -171,14 +190,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 {r.permalink ? (
                   <div className="flex items-center gap-1">
-                    {/* Threads icon */}
-                    <button className="icon-btn" title="開啟 Threads" onClick={()=> window.open(r.permalink!, '_blank')}>
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2Zm3.9 9.1c-.148-.89-.719-1.76-2.1-1.76-1.012 0-1.741.515-1.741 1.26 0 .64.49 1.003 1.298 1.23l1.072.302c2.013.567 3.007 1.648 3.007 3.253 0 2.095-1.854 3.615-4.51 3.615-2.678 0-4.285-1.383-4.51-3.49l2.098-.316c.148 1.2 1.003 1.9 2.412 1.9 1.19 0 2.1-.59 2.1-1.465 0-.69-.49-1.072-1.436-1.326l-1.07-.302c-1.93-.528-2.847-1.554-2.847-3.14 0-2.013 1.825-3.417 4.195-3.417 2.47 0 3.85 1.383 4.078 3.26l-2.146.136Z"/></svg>
+                    {/* 外連 icon（更通用的連結意涵） */}
+                    <button className="icon-btn" title="開啟連結" onClick={()=> ensurePermalinkAndOpen(r)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
                     </button>
                     <span className="text-xs text-muted">{r.permalinkSource === 'manual' || r.permalinkSource === 'locked-manual' ? '手動' : '自動'}</span>
-                    <button className="icon-btn icon-ghost" title="編輯連結" onClick={()=> setPermalink(r.id)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
-                    </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
