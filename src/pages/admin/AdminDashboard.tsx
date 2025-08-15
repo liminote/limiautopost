@@ -7,27 +7,12 @@ export default function AdminDashboard() {
   const { total, activeThisMonth, soonExpiring } = getAdminDashboardStats()
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-base font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>管理者總覽</h1>
-      </div>
       {/* Sub header tabs appear only inside Admin Mode */}
       <AdminSubnav />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card card-body">
-          <div className="text-base text-gray-600 font-semibold">使用者總數</div>
-          <div className="text-2xl font-semibold">{total}</div>
-        </div>
-        <div className="card card-body">
-          <div className="text-base text-gray-600 font-semibold">本月活躍</div>
-          <div className="text-2xl font-semibold">{activeThisMonth}</div>
-        </div>
-        <div className="card card-body">
-          <div className="text-base text-gray-600 font-semibold">即將到期</div>
-          <div className="text-2xl font-semibold">{soonExpiring}</div>
-        </div>
+      {/* 以使用者列表樣式作為總覽內容 */}
+      <div className="card card-body text-sm text-gray-600">
+        總覽已切換為與「使用者」頁一致的操作風格。請使用上方子導覽進入「使用者」或「管理者設定」。
       </div>
-      <HealthStatus />
-      <DevProgress />
     </div>
   )
 }
