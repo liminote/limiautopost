@@ -26,10 +26,7 @@ export const handler: Handler = async (event) => {
       }
     } catch {}
 
-    if (!permalink) {
-      if ((data as any)?.username) permalink = `https://www.threads.net/@${(data as any).username}/post/${id}`
-      else permalink = `https://www.threads.net/t/${id}`
-    }
+    // 不再猜測 permalink 格式，若 API 無回應則交由前端稍後重試
 
     return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, permalink }) }
   } catch (e) {

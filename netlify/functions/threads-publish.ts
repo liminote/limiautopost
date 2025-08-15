@@ -87,25 +87,7 @@ export const handler: Handler = async (event) => {
       } catch {}
     }
 
-    if (!permalink && postId) {
-      try {
-        const store = getStore(
-          process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
-            ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
-            : { name: 'threads_tokens' }
-        )
-        const listed = await store.list({ prefix: 'threads:' })
-        const key = listed?.blobs?.[0]?.key
-        if (key) {
-          const tok = await store.get(key, { type: 'json' }) as { username?: string } | null
-          if (tok?.username) {
-            permalink = `https://www.threads.net/@${tok.username}/post/${postId}`
-          } else {
-            permalink = `https://www.threads.net/t/${postId}`
-          }
-        }
-      } catch {}
-    }
+    // 不再猜測 permalink 格式，避免產生錯誤連結
 
     return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, id: postId, permalink, confirmed }) }
   } catch (e) {

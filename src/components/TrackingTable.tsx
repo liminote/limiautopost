@@ -46,6 +46,12 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
 
+  const nowYMDHM = (): string => {
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
   const setPermalink = (id: string) => {
     const current = rows.find(x => x.id === id)?.permalink || ''
     const url = window.prompt('輸入貼文連結（含 https://）', current)
@@ -84,8 +90,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           if (latest?.permalink) link = latest.permalink
         } catch {}
       }
-      // 最後後援：有 id 則推導網址格式
-      if (!link && row.threadsPostId) link = `https://www.threads.net/t/${row.threadsPostId}`
+      // 不再以 threadsPostId 猜測網址格式（避免錯誤連結）
       if (link) window.open(link, '_blank', 'noopener,noreferrer')
       else alert('目前尚未取得連結，請稍後重試')
     } catch {}
@@ -130,9 +135,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             <th>原文編號</th>
             <th>識別碼</th>
             <th>平台</th>
+            <th>狀態</th>
             <th>原文標題</th>
             <th>內容</th>
-            <th>狀態</th>
             <th>標籤</th>
             <th>連結</th>
             <th>發佈日期</th>
@@ -174,10 +179,18 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   <option value="Facebook">FB</option>
                 </select>
               </td>
-              <td className="px-3 py-2 border-t align-top">
-                <span className="ui-chip" title={r.publishError || ''}>
-                  {r.status === 'published' ? '已發佈' : r.status === 'scheduled' ? '已排程' : r.status === 'publishing' ? '發佈中' : r.status === 'failed' ? '失敗' : '草稿'}
-                </span>
+              <td className="px-3 py-2 border-t align-top" style={{ minWidth: '8ch' }}>
+                {(() => {
+                  const statusText = r.status === 'failed' ? '失敗' : (r.status === 'published' ? '成功' : '草稿')
+                  const style = r.status === 'failed'
+                    ? { color: '#f59e0b', background: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)' }
+                    : r.status === 'published'
+                      ? { color: '#0ea5a1', background: 'rgba(14,165,160,0.10)', borderColor: 'rgba(14,165,160,0.30)' }
+                      : { color: '#6b7280', background: 'rgba(107,114,128,0.10)', borderColor: 'rgba(107,114,128,0.20)' }
+                  return (
+                    <span className="ui-chip" title={r.publishError || ''} style={style as any}>{statusText}</span>
+                  )
+                })()}
               </td>
               <td className="px-3 py-2 border-t align-top" style={{ minWidth: '14ch' }}>{r.articleTitle || '（無標題）'}</td>
               <td className="px-3 py-2 border-t text-gray-600 align-top" style={{ minWidth: '14ch' }}>
@@ -200,14 +213,16 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 {r.permalink ? (
                   <div className="flex items-center gap-1">
+                    {/* 「自動/手動」在有連結時顯示，字級較小 */}
+                    <span className="text-muted" style={{ fontSize: '11px' }}>{r.permalinkSource === 'manual' || r.permalinkSource === 'locked-manual' ? '手動' : '自動'}</span>
                     {/* 連結 icon：雙鏈節，語意更直覺 */}
                     <button className="icon-btn" title="開啟連結" onClick={()=> ensurePermalinkAndOpen(r)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7-7l1 1"/><path d="M14 11a5 5 0 0 1-7 7l-1-1"/><path d="M8 12l8 0"/></svg>
                     </button>
-                    <span className="text-xs text-muted">{r.permalinkSource === 'manual' || r.permalinkSource === 'locked-manual' ? '手動' : '自動'}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
+                    {/* 無連結時隱藏「自動/手動」 */}
                     <button className="icon-btn" title="手動貼上連結" onClick={()=> setPermalink(r.id)}>
                       {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
@@ -250,8 +265,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                                 const link = latest?.permalink
                                 const pid = latest?.id
                                 if (link && pid) {
-                                  updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto' })
-                                  setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto' }: x))
+                                  const publishedAt = r.publishDate || nowYMDHM()
+                                  updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt })
+                                  setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt }: x))
                                   return
                                 }
                                 await sleep(1200)
@@ -265,8 +281,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                           return
                         }
                         const confirmed = (j as any).confirmed === true || !!j.permalink
-                        updateTracked(r.id, { status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined })
-                        setRows(rows.map(x=> x.id===r.id? { ...x, status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource }: x))
+                        const publishedAt = confirmed ? (r.publishDate || nowYMDHM()) : undefined
+                        updateTracked(r.id, { status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined, publishDate: publishedAt })
+                        setRows(rows.map(x=> x.id===r.id? { ...x, status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource, publishDate: publishedAt ?? x.publishDate }: x))
                         if (confirmed) {
                           alert(`已發佈（ID: ${j.id || '未知'}）`)
                         } else {
@@ -278,8 +295,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                               const link = latest?.permalink
                               const pid = latest?.id
                               if (pid && link && (!j.id || String(pid) === String(j.id))) {
-                                updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto' })
-                                setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto' }: x))
+                                const publishedAt2 = r.publishDate || nowYMDHM()
+                                updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt2 })
+                                setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt2 }: x))
                                 break
                               }
                               await sleep(1200)
@@ -292,6 +310,20 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       {/* 紙飛機圖示，代表自動發佈 */}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                     </button>
+                    {import.meta.env.DEV && (
+                      <button
+                        className="icon-btn icon-ghost"
+                        title="模擬成功（本機測試）"
+                        onClick={()=>{
+                          const pid = `dev-${Date.now()}`
+                          const publishedAt = r.publishDate || nowYMDHM()
+                          updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: `https://www.threads.net/t/${pid}` , permalinkSource: 'auto', publishDate: publishedAt })
+                          setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: `https://www.threads.net/t/${pid}`, permalinkSource: 'auto', publishDate: publishedAt }: x))
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                      </button>
+                    )}
                   </div>
                 )}
               </td>
