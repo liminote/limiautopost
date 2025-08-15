@@ -99,7 +99,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
   async function publishWithRetry(text: string): Promise<{ ok: boolean; id?: string; permalink?: string; errorText?: string }>{
     // 先打 Functions 直連，較少遇到部署切換時的 404/HTML 回應
-    const endpoints = ['/.netlify/functions/threads-publish', '/api/threads/publish']
+    const ts = Date.now()
+    const endpoints = [
+      `/.netlify/functions/threads-publish?ts=${ts}`,
+      `/api/threads/publish?ts=${ts}`,
+    ]
     const delays = [400, 800, 1600, 3200]
     for (let i = 0; i < delays.length; i++) {
       for (const url of endpoints) {
@@ -123,6 +127,20 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
         }
       }
     }
+    // 最後嘗試：狀態檢查與最新貼文確認
+    try {
+      const st = await fetch('/api/threads/status').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
+      if (st && st.status !== 'linked') {
+        const reason = st.reasonCode ? ` (${st.reasonCode})` : ''
+        return { ok: false, errorText: `Threads 未連結${reason}` }
+      }
+    } catch {}
+    try {
+      const latest = await fetch('/api/threads/latest').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
+      if (latest?.id && latest?.permalink) {
+        return { ok: true, id: latest.id, permalink: latest.permalink }
+      }
+    } catch {}
     return { ok: false, errorText: 'Service temporarily unavailable, please retry.' }
   }
 
