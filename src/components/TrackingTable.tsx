@@ -64,7 +64,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
   async function publishWithRetry(text: string): Promise<{ ok: boolean; id?: string; permalink?: string; errorText?: string }>{
-    const endpoints = ['/api/threads/publish', '/.netlify/functions/threads-publish']
+    // 先打 Functions 直連，較少遇到部署切換時的 404/HTML 回應
+    const endpoints = ['/.netlify/functions/threads-publish', '/api/threads/publish']
     const delays = [400, 800, 1600, 3200]
     for (let i = 0; i < delays.length; i++) {
       for (const url of endpoints) {
@@ -212,6 +213,12 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         const j = await publishWithRetry(text)
                         if (!j.ok) {
                           const t = j.errorText || 'unknown'
+                          // 若是部署切換造成的暫時性錯誤，改為保持「發佈中」並不彈失敗
+                          if (/deployment failed/i.test(t)) {
+                            updateTracked(r.id, { status: 'publishing', publishError: undefined })
+                            setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing', publishError: undefined }: x))
+                            return
+                          }
                           updateTracked(r.id, { status: 'failed', publishError: t })
                           setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: t }: x))
                           alert('發佈失敗：' + t)
