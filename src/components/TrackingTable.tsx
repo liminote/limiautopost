@@ -190,7 +190,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   className="ui-select-sm ui-select-xxs"
                   value={(r.platform ?? (r.articleId?.toUpperCase().includes('IG') ? 'Instagram' : 'Threads')) as TrackedPost['platform']}
                   onChange={(e)=>{ const v = e.target.value as TrackedPost['platform']; updateTracked(r.id, { platform: v }); setRows(rows.map(x=> x.id===r.id? { ...x, platform: v }: x)); }}
-                  style={{ width: '100%' }}
+                  style={{ width: 'auto' }}
                 >
                   <option value="Threads">TD</option>
                   <option value="Instagram">IG</option>
