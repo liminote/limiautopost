@@ -129,7 +129,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   return (
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
-      <table className="table ui-compact">
+      <table className="table ui-compact" style={{ tableLayout: 'fixed' }}>
         <colgroup>
           <col style={{ width: '12ch' }} />
           <col />
