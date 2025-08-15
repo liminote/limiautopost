@@ -49,7 +49,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const nowYMDHM = (): string => {
     const d = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
 
   const setPermalink = (id: string) => {
@@ -327,7 +327,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </div>
                 )}
               </td>
-              <td className="px-3 py-2 border-t align-top" style={{ minWidth: '16ch' }}>
+              <td className="px-3 py-2 border-t align-top" style={{ whiteSpace: 'nowrap' }}>
                 <span className="text-gray-700">{r.publishDate || '-'}</span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x">
