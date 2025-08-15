@@ -38,8 +38,8 @@ export const handler: Handler = async (event) => {
     } catch {}
     // 設置 cookie 作為前端快速檢查（7 天）
     const cookie = `threads_linked=1; Path=/; Max-Age=${7*24*60*60}; SameSite=Lax; Secure; HttpOnly`
-    // 導回設定頁顯示成功
-    return { statusCode: 302, headers: { Location: '/admin/settings?threads=linked', 'Set-Cookie': cookie }, body: '' }
+    // 導回「使用者設定」頁顯示成功（避免導去管理者設定）
+    return { statusCode: 302, headers: { Location: '/settings?threads=linked', 'Set-Cookie': cookie }, body: '' }
   } catch (e) {
     return { statusCode: 500, body: String(e) }
   }

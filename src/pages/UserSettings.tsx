@@ -13,6 +13,18 @@ export default function UserSettings(){
         setLinked(j.status === 'linked')
         if (j.username) setUsername(j.username)
       } catch {}
+      // 若剛從 OAuth 回來，帶 threads=linked 時立即顯示成功訊息並清掉參數
+      try {
+        const qs = new URLSearchParams(location.search)
+        if (qs.get('threads') === 'linked') {
+          setLinked(true)
+          setStatusMsg(null)
+          // 清除 query 以避免重新整理又出現
+          const url = new URL(location.href)
+          url.searchParams.delete('threads')
+          history.replaceState({}, '', url.toString())
+        }
+      } catch {}
     }
     run()
   }, [])
