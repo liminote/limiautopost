@@ -132,7 +132,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       <table className="table ui-compact">
         <thead style={{ fontSize: '14px', position: 'sticky', top: 0, background: 'var(--ui-bg)', zIndex: 5, boxShadow: '0 1px 0 var(--ui-border)' }}>
           <tr>
-            <th>原文編號</th>
+            <th style={{ width: '16ch' }}>原文編號</th>
             <th>識別碼</th>
             <th>平台</th>
             <th>狀態</th>
@@ -140,13 +140,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             <th>內容</th>
             <th>標籤</th>
             <th>連結</th>
-            <th>發佈日期</th>
+            <th style={{ width: '16ch' }}>發佈日期</th>
             <th>讚</th>
             <th>留言</th>
             <th>分享</th>
             <th>儲存</th>
             <th>備註</th>
-            <th>建立時間</th>
+            <th style={{ width: '16ch' }}>建立時間</th>
             <th>操作</th>
           </tr>
         </thead>
