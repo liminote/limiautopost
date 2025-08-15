@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useSession } from '../auth/auth'
 
 export default function UserSettings(){
-  const session = useSession()
   const [linked, setLinked] = useState(false)
   const [username, setUsername] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
