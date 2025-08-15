@@ -130,6 +130,24 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
       <table className="table ui-compact">
+        <colgroup>
+          <col style={{ width: '12ch' }} />
+          <col />
+          <col />
+          <col />
+          <col />
+          <col />
+          <col />
+          <col />
+          <col style={{ width: '12ch' }} />
+          <col />
+          <col />
+          <col />
+          <col />
+          <col />
+          <col style={{ width: '12ch' }} />
+          <col />
+        </colgroup>
         <thead style={{ fontSize: '14px', position: 'sticky', top: 0, background: 'var(--ui-bg)', zIndex: 5, boxShadow: '0 1px 0 var(--ui-border)' }}>
           <tr>
             <th style={{ width: '12ch' }}>原文編號</th>
