@@ -78,8 +78,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             if (j?.ok) return { ok: true, id: j.id, permalink: j.permalink }
             return { ok: false, errorText: 'unknown' }
           }
-          const bodyText = isJson ? '' : await resp.text().catch(()=>'')
-          if (/deployment failed/i.test(bodyText) || resp.status >= 500) {
+          const bodyText = isJson ? '' : await resp.text().catch(()=> '')
+          if (/deployment failed/i.test(bodyText) || /<html/i.test(bodyText) || /page not found/i.test(bodyText) || resp.status >= 500) {
             await sleep(delays[i])
             continue
           }
