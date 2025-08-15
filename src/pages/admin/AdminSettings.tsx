@@ -55,17 +55,8 @@ export default function AdminSettings() {
       } catch {}
     }
     run()
-    // 定時輪詢一次，協助在授權後幾秒內補上 username
-    const id = window.setInterval(() => {
-      fetchJSONFallback(['/api/threads/status', '/.netlify/functions/threads-status']).then(j => {
-        if (j.status === 'linked') {
-          setLinked(true)
-          if (j.username) { setUsername(j.username); try { localStorage.setItem('threads:username', j.username) } catch {} }
-        }
-      }).catch(()=>{})
-    }, 5000)
-    setTimeout(()=> clearInterval(id), 60_000)
-    return () => clearInterval(id)
+    // 管理者頁不需要輪詢 Threads 狀態
+    return () => {}
   }, [])
   return (
     <div className="space-y-4">
@@ -73,8 +64,7 @@ export default function AdminSettings() {
       <div className="card card-body text-sm text-gray-600 space-y-2">
         <div>站點層設定（平台前綴、模型 API key、通知、報表等）。</div>
         {statusMsg && <div className="text-red-600 text-sm">{statusMsg}</div>}
-        {/* 管理者畫面不再顯示 Threads 連結按鈕（搬到使用者設定） */}
-        {linked && <div className="text-green-700 text-sm">目前站點已存在 Threads 連結紀錄{username ? `（${username}）` : ''}。若需變更，請至「設定」頁由個人帳號重新連結。</div>}
+        {/* 管理者畫面完全不顯示 Threads 連結資訊，請改由使用者在「設定」頁操作 */}
       </div>
     </div>
   )
