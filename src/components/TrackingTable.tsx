@@ -327,7 +327,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </div>
                 )}
               </td>
-              <td className="px-3 py-2 border-t align-top" style={{ whiteSpace: 'nowrap' }}>
+              <td className="px-3 py-2 border-t align-top">
                 <span className="text-gray-700">{r.publishDate || '-'}</span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x">
