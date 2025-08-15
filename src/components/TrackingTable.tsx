@@ -65,7 +65,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   async function ensurePermalinkAndOpen(row: TrackedPost) {
     try {
       let link = row.permalink || ''
-      const needFetch = !link || !/^https?:\/\//i.test(link) || !/threads\.net/i.test(link)
+      const needFetch = !link || !/^https?:\/\//i.test(link)
       if (needFetch && row.threadsPostId) {
         const resp = await fetch(`/api/threads/permalink?id=${encodeURIComponent(row.threadsPostId)}`)
         if (resp.ok) {
@@ -77,7 +77,17 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           }
         }
       }
+      // 後援：若仍無連結，查最新一篇
+      if (!link) {
+        try {
+          const latest = await fetch('/api/threads/latest').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
+          if (latest?.permalink) link = latest.permalink
+        } catch {}
+      }
+      // 最後後援：有 id 則推導網址格式
+      if (!link && row.threadsPostId) link = `https://www.threads.net/t/${row.threadsPostId}`
       if (link) window.open(link, '_blank', 'noopener,noreferrer')
+      else alert('目前尚未取得連結，請稍後重試')
     } catch {}
   }
 
@@ -190,9 +200,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 {r.permalink ? (
                   <div className="flex items-center gap-1">
-                    {/* 外連 icon：箭頭離開方框 */}
+                    {/* 連結 icon：雙鏈節，語意更直覺 */}
                     <button className="icon-btn" title="開啟連結" onClick={()=> ensurePermalinkAndOpen(r)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7-7l1 1"/><path d="M14 11a5 5 0 0 1-7 7l-1-1"/><path d="M8 12l8 0"/></svg>
                     </button>
                     <span className="text-xs text-muted">{r.permalinkSource === 'manual' || r.permalinkSource === 'locked-manual' ? '手動' : '自動'}</span>
                   </div>
