@@ -7,6 +7,7 @@ import { hasRole, signOut, mustChangePassword, useSession } from './auth/auth'
 import ForceChangePassword from './pages/ForceChangePassword'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminSettings from './pages/admin/AdminSettings'
+import UserSettings from './pages/UserSettings'
 import Home from './pages/Home'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -86,8 +87,8 @@ function App() {
               <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/login" replace />} />
               <Route path="/admin/users" element={isAdmin ? <AdminUsers /> : <Navigate to="/login" replace />} />
               <Route path="/admin/settings" element={isAdmin ? <AdminSettings /> : <Navigate to="/login" replace />} />
-              {/* User Settings: 將原本的 Threads 連結區塊搬到這裡共用 */}
-              <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : <AdminSettings />} />
+              {/* User Settings: 個人 Threads 連結與偏好設定 */}
+              <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : <UserSettings />} />
               {/* User */}
               <Route path="/force-change-password" element={<ForceChangePassword />} />
               <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <TrackingPage />)} />

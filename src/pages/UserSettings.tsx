@@ -1,0 +1,54 @@
+import { useEffect, useState } from 'react'
+
+export default function UserSettings(){
+  const [linked, setLinked] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [statusMsg, setStatusMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const j = await fetch('/api/threads/status', { cache: 'no-store' }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
+        setLinked(j.status === 'linked')
+        if (j.username) setUsername(j.username)
+      } catch {}
+    }
+    run()
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-base font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>個人設定</h1>
+      <div className="card card-body text-sm text-gray-600 space-y-2">
+        <h2 className="font-semibold">Threads 連結</h2>
+        {statusMsg && <div className="text-red-600 text-sm">{statusMsg}</div>}
+        <div className="flex gap-2">
+          <a className="btn btn-primary" href="/api/threads/oauth/start">{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
+          {linked && (
+            <button
+              className="btn btn-ghost"
+              disabled={busy}
+              onClick={async ()=>{
+                try {
+                  setBusy(true)
+                  const j = await (async () => {
+                    try { return await (await fetch('/api/threads/disconnect', { method: 'POST' })).json() } catch {}
+                    return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json()
+                  })()
+                  if (j.ok) {
+                    setLinked(false); setUsername(null); setStatusMsg('已斷開連結')
+                  } else { setStatusMsg('斷開連結失敗') }
+                } catch { setStatusMsg('斷開連結失敗') }
+                finally { setBusy(false) }
+              }}
+            >斷開連結</button>
+          )}
+        </div>
+        {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
+      </div>
+    </div>
+  )
+}
+
+
