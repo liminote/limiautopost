@@ -42,7 +42,7 @@ body{ min-height:100%; scrollbar-gutter: stable; background:var(--surface); colo
 .ui-input-sm,.ui-select-sm{height:28px;padding:3px 8px;font-size:12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-bg);}
 .ui-input-sm{width:80px;}
 .ui-select-sm{width:auto;min-width:6ch;padding-right:14px;}
-.ui-select-xxs{width:auto;min-width:6ch;max-width:100%;padding-right:8px}
+.ui-select-xxs{width:auto;min-width:3ch;max-width:100%;padding-right:8px;text-align:center}
 .ui-date-sm{height:28px;padding:3px 8px;font-size:12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-bg);width:115px;}
 
 input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
