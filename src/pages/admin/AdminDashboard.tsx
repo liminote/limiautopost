@@ -1,10 +1,7 @@
-import { getAdminDashboardStats } from '../../auth/auth'
-import DevProgress from '../../components/DevProgress'
-import HealthStatus from '../../components/HealthStatus'
+// 總覽頁簡化，不再展示統計與健康檢查卡片
 import AdminSubnav from '../../components/AdminSubnav'
 
 export default function AdminDashboard() {
-  const { total, activeThisMonth, soonExpiring } = getAdminDashboardStats()
   return (
     <div className="space-y-4">
       {/* Sub header tabs appear only inside Admin Mode */}
