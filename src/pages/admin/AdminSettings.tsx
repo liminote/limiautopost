@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 
 export default function AdminSettings() {
-  const [linked, setLinked] = useState(false)
-  const [username, setUsername] = useState<string | null>(null)
+  // 管理者頁不再需要 Threads 連結狀態
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   async function fetchJSONFallback(paths: string[]) {
@@ -28,23 +27,11 @@ export default function AdminSettings() {
       // 1) 先讀 URL 提示（剛完成授權時）
       try {
         const qs = new URLSearchParams(location.search)
-        if (qs.get('threads') === 'linked') {
-          setLinked(true)
-          try { localStorage.setItem('threads:linked', '1') } catch {}
-        }
+        // 忽略 threads 引導參數（只在使用者設定頁處理）
       } catch {}
       // 2) 向後端查詢狀態
       try {
-        const j = await fetchJSONFallback(['/api/threads/status', '/.netlify/functions/threads-status'])
-        if (j.status === 'linked') {
-          setLinked(true)
-          if (j.username) setUsername(j.username)
-          try { if (j.username) localStorage.setItem('threads:username', j.username) } catch {}
-          if (j.reasonCode === 'me_fetch_failed' && !j.username) setStatusMsg('已連結，但暫時無法取得 username（稍後自動再試）')
-        } else {
-          setLinked(false); setStatusMsg(j.reasonCode ? `未連結：${j.reasonCode}` : '未連結')
-        }
-        try { localStorage.setItem('threads:linked', j.status === 'linked' ? '1' : '0') } catch {}
+        // 管理者頁不查詢使用者 Threads 狀態
         return
       } catch {}
       // 3) 後援：讀本機快取
