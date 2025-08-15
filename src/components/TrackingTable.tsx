@@ -133,11 +133,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
         <colgroup>
           <col className="w-8ch" /> {/* 1 原文編號 */}
           <col className="w-8ch" /> {/* 2 識別碼 */}
-          <col className="w-8ch" /> {/* 3 平台 */}
+          <col className="w-9ch" /> {/* 3 平台 */}
           <col className="w-8ch" /> {/* 4 狀態 */}
-          <col /> {/* 5 原文標題 */}
-          <col /> {/* 6 內容 */}
-          <col /> {/* 7 標籤 */}
+          <col className="w-12ch" /> {/* 5 原文標題 */}
+          <col className="w-12ch" /> {/* 6 內容 */}
+          <col className="w-12ch" /> {/* 7 標籤 */}
           <col /> {/* 8 連結 */}
           <col className="w-8ch" /> {/* 9 發佈日期 */}
           <col /> {/* 10 讚 */}
@@ -210,19 +210,17 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   )
                 })()}
               </td>
-              <td className="px-3 py-2 border-t align-top" style={{ minWidth: '14ch' }}>{r.articleTitle || '（無標題）'}</td>
-              <td className="px-3 py-2 border-t text-gray-600 align-top" style={{ minWidth: '14ch' }}>
-                <div
-                  className="max-w-64"
-                  onMouseEnter={(e) => { clearHideTimer(); const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); anchorRectRef.current = rect; setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }}
-                  onMouseLeave={hideTooltipLater}
-                >
-                  <span>{(r.content || '').slice(0, 14)}{(r.content || '').length > 14 ? '…' : ''}</span>
+              <td className="px-3 py-2 border-t align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.articleTitle || '（無標題）'); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
+                <div className="w-12ch" style={{ overflow: 'hidden', display: 'block' }}>{r.articleTitle || '（無標題）'}</div>
+              </td>
+              <td className="px-3 py-2 border-t text-gray-600 align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
+                <div className="w-12ch" style={{ overflow: 'hidden', display: 'block' }}>
+                  {(r.content || '').slice(0, 36)}{(r.content || '').length > 36 ? '…' : ''}
                 </div>
               </td>
               <td className="px-3 py-2 border-t align-top" style={{ width: '14ch' }}>
                 <TagInput
-                  className="min-w-full"
+                  className="w-12ch"
                   value={r.tags || []}
                   onChange={(tags)=>{ updateTracked(r.id,{ tags }); setRows(rows.map(x=> x.id===r.id? { ...x, tags }: x)); }}
                   suggestions={Array.from(new Set(getTracked().flatMap(x => x.tags || [])))}

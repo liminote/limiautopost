@@ -33,6 +33,7 @@ body{ min-height:100%; scrollbar-gutter: stable; background:var(--surface); colo
 .table.ui-compact tbody td{vertical-align: top;}
 /* 移除 nth-child 欄寬規則，統一由 colgroup 控制（更穩定） */
 .w-12ch{width:12ch;min-width:12ch;max-width:12ch}
+.w-9ch{width:9ch;min-width:9ch;max-width:9ch}
 .w-8ch{width:8ch;min-width:8ch;max-width:8ch}
 
 /* 追蹤列表：斑馬紋 */
