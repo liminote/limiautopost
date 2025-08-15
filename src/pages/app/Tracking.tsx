@@ -106,7 +106,7 @@ export default function TrackingPage() {
           {import.meta.env.DEV && (
             <>
               <button className="btn btn-ghost text-xs" onClick={refresh}>重新整理</button>
-              <button className="btn btn-ghost text-xs" onClick={() => { if (confirm('清空目前帳號的所有追蹤資料？')) { clearTracked(); refresh() } }}>清空我的資料</button>
+              <button className="btn btn-ghost text-xs" onClick={() => { if (confirm('【高風險操作】清空目前帳號的所有追蹤資料？此動作無法復原。\n請再次確認：確定清空？')) { clearTracked(); refresh() } }}>清空我的資料</button>
             </>
           )}
         </div>

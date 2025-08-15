@@ -52,7 +52,7 @@ export default function AdminUsers() {
                   <button
                     className="btn btn-ghost text-red-600"
                     onClick={() => {
-                      if (confirm('確定要刪除這位使用者嗎？此動作無法復原。')) {
+                      if (confirm('【高風險操作】確定要刪除這位使用者嗎？此動作無法復原。\n請再次確認：確定要刪除？')) {
                         const ok = deleteUser(r.id)
                         if (ok) setRows(prev => prev.filter(x => x.id !== r.id))
                       }
