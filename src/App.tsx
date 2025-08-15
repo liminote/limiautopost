@@ -51,8 +51,10 @@ function TopNav() {
             to="/tracking"
             className={active('/tracking') ? 'active' : ''}
           >追蹤列表</Link>
-          {/* 使用者可見的設定（搬移 Threads 連結設定） */}
-          <Link to="/settings" className={active('/settings') ? 'active' : ''}>設定</Link>
+          {/* 使用者可見的設定（搬移 Threads 連結設定）；管理者不顯示此入口 */}
+          {!hasRole('admin', session) && (
+            <Link to="/settings" className={active('/settings') ? 'active' : ''}>設定</Link>
+          )}
           {username && <span className="text-sm text-muted">hi {username}</span>}
           {session && (
             <button
@@ -87,8 +89,8 @@ function App() {
               <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/login" replace />} />
               <Route path="/admin/users" element={isAdmin ? <AdminUsers /> : <Navigate to="/login" replace />} />
               <Route path="/admin/settings" element={isAdmin ? <AdminSettings /> : <Navigate to="/login" replace />} />
-              {/* User Settings: 個人 Threads 連結與偏好設定 */}
-              <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : <UserSettings />} />
+              {/* User Settings: 個人 Threads 連結與偏好設定（若為管理者則導回管理設定） */}
+              <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : (isAdmin ? <Navigate to="/admin/settings" replace /> : <UserSettings />)} />
               {/* User */}
               <Route path="/force-change-password" element={<ForceChangePassword />} />
               <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <TrackingPage />)} />
