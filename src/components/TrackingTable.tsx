@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import TagInput from './TagInput'
 import { getTracked, removeTracked, updateTracked, type TrackedPost } from '../tracking/tracking'
-import { mockFetchMetrics, mockPublishToThreads } from '../api/threads'
+import { mockFetchMetrics } from '../api/threads'
 
 export default function TrackingTable({ rows, setRows, loading }: { rows: TrackedPost[]; setRows: (r: TrackedPost[]) => void; loading?: boolean }){
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -154,11 +154,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
                     </button>
-                    <button className="icon-btn" title="自動發佈（目前為模擬，不回填）" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} onClick={async ()=>{
+                    <button className="icon-btn" title="發佈到 Threads" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} onClick={async ()=>{
+                      const text = (r.content || '').trim()
+                      if (!text) { alert('內容為空，無法發佈'); return }
                       try {
-                        await mockPublishToThreads(r.content || '')
-                        alert('已完成模擬發佈（不回填連結、不變更狀態）')
-                      } catch { alert('模擬發佈失敗') }
+                        const resp = await fetch('/api/threads/publish', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) })
+                        if (!resp.ok) { const t = await resp.text(); alert('發佈失敗：' + t); return }
+                        const j = await resp.json() as { ok?: boolean; id?: string }
+                        alert(j.ok ? `已發佈（ID: ${j.id || '未知'}）` : '發佈失敗')
+                      } catch { alert('發佈失敗：網路錯誤') }
                     }}>
                       {/* 紙飛機圖示，代表自動發佈 */}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
