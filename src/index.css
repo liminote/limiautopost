@@ -31,10 +31,7 @@ body{ min-height:100%; scrollbar-gutter: stable; background:var(--surface); colo
 .table.ui-compact tbody td{padding:6px 8px;}
 /* 追蹤列表：內容列一律置頂（thead 不受影響） */
 .table.ui-compact tbody td{vertical-align: top;}
-/* 追蹤列表：統一欄寬（第1、9、15欄） */
-.table.ui-compact col:nth-child(1), .table.ui-compact th:nth-child(1), .table.ui-compact td:nth-child(1),
-.table.ui-compact col:nth-child(9), .table.ui-compact th:nth-child(9), .table.ui-compact td:nth-child(9),
-.table.ui-compact col:nth-child(15), .table.ui-compact th:nth-child(15), .table.ui-compact td:nth-child(15){ width:12ch; }
+/* 移除 nth-child 欄寬規則，統一由 colgroup 控制（更穩定） */
 
 /* 追蹤列表：斑馬紋 */
 /* 斑馬紋（加深淺灰藍色） */

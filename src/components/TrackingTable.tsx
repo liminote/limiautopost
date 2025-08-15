@@ -131,26 +131,26 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
       <table className="table ui-compact" style={{ tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: '12ch' }} />
-          <col />
-          <col />
-          <col />
-          <col />
-          <col />
-          <col />
-          <col />
-          <col style={{ width: '12ch' }} />
-          <col />
-          <col />
-          <col />
-          <col />
-          <col />
-          <col style={{ width: '12ch' }} />
-          <col />
+          <col style={{ width: '12ch' }} /> {/* 1 原文編號 */}
+          <col /> {/* 2 識別碼 */}
+          <col /> {/* 3 平台 */}
+          <col /> {/* 4 狀態 */}
+          <col /> {/* 5 原文標題 */}
+          <col /> {/* 6 內容 */}
+          <col /> {/* 7 標籤 */}
+          <col /> {/* 8 連結 */}
+          <col style={{ width: '12ch' }} /> {/* 9 發佈日期 */}
+          <col /> {/* 10 讚 */}
+          <col /> {/* 11 留言 */}
+          <col /> {/* 12 分享 */}
+          <col /> {/* 13 儲存 */}
+          <col /> {/* 14 備註 */}
+          <col style={{ width: '12ch' }} /> {/* 15 建立時間 */}
+          <col /> {/* 16 操作 */}
         </colgroup>
         <thead style={{ fontSize: '14px', position: 'sticky', top: 0, background: 'var(--ui-bg)', zIndex: 5, boxShadow: '0 1px 0 var(--ui-border)' }}>
           <tr>
-            <th style={{ width: '12ch' }}>原文編號</th>
+            <th>原文編號</th>
             <th>識別碼</th>
             <th>平台</th>
             <th>狀態</th>
@@ -158,13 +158,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             <th>內容</th>
             <th>標籤</th>
             <th>連結</th>
-            <th style={{ width: '12ch' }}>發佈日期</th>
+            <th>發佈日期</th>
             <th>讚</th>
             <th>留言</th>
             <th>分享</th>
             <th>儲存</th>
             <th>備註</th>
-            <th style={{ width: '12ch' }}>建立時間</th>
+            <th>建立時間</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -183,7 +183,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             <tr><td colSpan={15} className="px-3 py-6 text-center text-gray-500">尚無資料</td></tr>
           ) : rows.map(r => (
             <tr key={r.id}>
-              <td className="px-3 py-2 border-t align-top" style={{ width: '12ch' }}>{r.articleId}</td>
+              <td className="px-3 py-2 border-t align-top">{r.articleId}</td>
               <td className="px-3 py-2 border-t align-top">{r.postId}</td>
               <td className="px-3 py-2 border-t align-top" style={{ minWidth: '6ch' }}>
                 <select
@@ -345,7 +345,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </div>
                 )}
               </td>
-              <td className="px-3 py-2 border-t align-top" style={{ width: '12ch' }}>
+              <td className="px-3 py-2 border-t align-top">
                 <span className="text-gray-700">{r.publishDate || '-'}</span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x">
@@ -384,7 +384,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </button>
                 )}
               </td>
-              <td className="px-3 py-2 border-t align-top" style={{ width: '12ch' }}>{formatLocal(r.createdAt)}</td>
+              <td className="px-3 py-2 border-t align-top">{formatLocal(r.createdAt)}</td>
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex gap-1 justify-end">
                   {r.threadsPostId && (
