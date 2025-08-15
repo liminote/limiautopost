@@ -50,6 +50,8 @@ function TopNav() {
             to="/tracking"
             className={active('/tracking') ? 'active' : ''}
           >追蹤列表</Link>
+          {/* 使用者可見的設定（搬移 Threads 連結設定） */}
+          <Link to="/settings" className={active('/settings') ? 'active' : ''}>設定</Link>
           {username && <span className="text-sm text-muted">hi {username}</span>}
           {session && (
             <button
@@ -84,6 +86,8 @@ function App() {
               <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/login" replace />} />
               <Route path="/admin/users" element={isAdmin ? <AdminUsers /> : <Navigate to="/login" replace />} />
               <Route path="/admin/settings" element={isAdmin ? <AdminSettings /> : <Navigate to="/login" replace />} />
+              {/* User Settings: 將原本的 Threads 連結區塊搬到這裡共用 */}
+              <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : <AdminSettings />} />
               {/* User */}
               <Route path="/force-change-password" element={<ForceChangePassword />} />
               <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <TrackingPage />)} />
