@@ -158,8 +158,12 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       const text = (r.content || '').trim()
                       if (!text) { alert('內容為空，無法發佈'); return }
                       try {
-                        const resp = await fetch('/api/threads/publish', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) })
-                        if (!resp.ok) {
+                        // 先打 /api 路由，失敗時改打 /.netlify/functions 直連
+                        const tryPublish = async (url: string) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) })
+                        let resp = await tryPublish('/api/threads/publish')
+                        if (!resp.ok) resp = await tryPublish('/.netlify/functions/threads-publish')
+                        const ct = resp.headers.get('content-type') || ''
+                        if (!resp.ok || !ct.includes('application/json')) {
                           const t = await resp.text();
                           updateTracked(r.id, { status: 'failed', publishError: t });
                           setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: t }: x))
