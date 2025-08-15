@@ -24,9 +24,12 @@ export const handler: Handler = async (event) => {
     if (!data?.access_token) return { statusCode: 401, body: 'Missing access token' }
 
     // Minimal publish call. Threads Graph API expects x-www-form-urlencoded
+    // 加入 UA 與超時，避免偶發連線掛起
     const resp = await fetch('https://graph.threads.net/v1.0/me/threads', {
       method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'limiautopost/1.0' },
+      // @ts-ignore Node 18 fetch 支援 signal timeout via AbortController polyfill
+      signal: AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined as any,
       // Threads 需要指定 media_type，文字貼文用 TEXT
       body: new URLSearchParams({ media_type: 'TEXT', text, access_token: data.access_token }).toString(),
     })
@@ -40,7 +43,7 @@ export const handler: Handler = async (event) => {
     if (postId && data.access_token) {
       try {
         const pub1 = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(postId)}/publish`, {
-          method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ access_token: data.access_token }).toString()
+          method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'limiautopost/1.0' }, body: new URLSearchParams({ access_token: data.access_token }).toString()
         })
         if (pub1.ok) {
           const p = await pub1.json() as { id?: string }
@@ -48,7 +51,7 @@ export const handler: Handler = async (event) => {
         } else {
           // 後援：以 creation_id 方式 publish（類似 IG Graph API）
           const pub2 = await fetch('https://graph.threads.net/v1.0/me/threads_publish', {
-            method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+            method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'limiautopost/1.0' },
             body: new URLSearchParams({ creation_id: postId, access_token: data.access_token }).toString()
           })
           if (pub2.ok) {

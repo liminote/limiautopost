@@ -104,7 +104,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       `/.netlify/functions/threads-publish?ts=${ts}`,
       `/api/threads/publish?ts=${ts}`,
     ]
-    const delays = [400, 800, 1600, 3200]
+    const delays = [700, 1200, 2200, 4200, 8200]
+    let lastError: string | undefined
     for (let i = 0; i < delays.length; i++) {
       for (const url of endpoints) {
         try {
@@ -118,11 +119,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           }
           const bodyText = isJson ? '' : await resp.text().catch(()=> '')
           if (/deployment failed/i.test(bodyText) || /<html/i.test(bodyText) || /page not found/i.test(bodyText) || resp.status >= 500) {
+            lastError = bodyText || `HTTP ${resp.status}`
             await sleep(delays[i])
             continue
           }
           return { ok: false, errorText: bodyText || `HTTP ${resp.status}` }
         } catch {
+          lastError = 'network error'
           await sleep(delays[i])
         }
       }
@@ -136,12 +139,16 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       }
     } catch {}
     try {
-      const latest = await fetch('/api/threads/latest').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
-      if (latest?.id && latest?.permalink) {
-        return { ok: true, id: latest.id, permalink: latest.permalink }
+      const start = Date.now()
+      while (Date.now() - start < 18_000) {
+        const latest = await fetch('/api/threads/latest').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
+        if (latest?.id && latest?.permalink) {
+          return { ok: true, id: latest.id, permalink: latest.permalink }
+        }
+        await sleep(1200)
       }
     } catch {}
-    return { ok: false, errorText: 'Service temporarily unavailable, please retry.' }
+    return { ok: false, errorText: lastError ? `Service temporarily unavailable: ${lastError}` : 'Service temporarily unavailable, please retry.' }
   }
 
   return (
@@ -238,7 +245,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               </td>
               <td className="px-3 py-2 border-t align-top" style={{ width: '14ch' }}>
                 <TagInput
-                  className="w-12ch"
+                  className="w-9ch"
                   value={r.tags || []}
                   onChange={(tags)=>{ updateTracked(r.id,{ tags }); setRows(rows.map(x=> x.id===r.id? { ...x, tags }: x)); }}
                   suggestions={Array.from(new Set(getTracked().flatMap(x => x.tags || [])))}

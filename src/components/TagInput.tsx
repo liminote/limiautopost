@@ -29,7 +29,7 @@ export default function TagInput({ value, onChange, suggestions, className }: {
         ))}
       </div>
       <div className="relative">
-        <input className="ui-input-sm" placeholder="輸入後按 Enter 或選擇建議" value={text}
+        <input className="ui-input-sm" placeholder="輸入後按 Enter 或選擇建議" value={text} style={{ width: '100%' }}
           onChange={e=>setText(e.target.value)}
           onKeyDown={e=>{ if (e.key==='Enter') { e.preventDefault(); add(text) } }} />
         {text && filtered.length>0 && (
