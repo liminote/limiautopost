@@ -33,14 +33,7 @@ function TopNav() {
         </Link>
         <nav className="text-sm flex items-center gap-4">
           {hasRole('admin', session) && (
-            <>
-              <span className="nav-label">管理</span>
-              <Link to="/admin" className={`admin-link ${active('/admin') && !active('/admin/settings') && !active('/admin/users') ? 'active' : ''}`}>總覽</Link>
-              <Link to="/admin/users" className={`admin-link ${active('/admin/users') ? 'active' : ''}`}>使用者</Link>
-              <Link to="/admin/settings" className={`admin-link ${active('/admin/settings') ? 'active' : ''}`}>管理者設定</Link>
-              <span className="nav-divider" />
-              <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800">Admin Mode</span>
-            </>
+            <Link to="/admin" className={`admin-link ${active('/admin') ? 'active' : ''}`}>Admin Mode</Link>
           )}
           {session ? (
           <>
@@ -52,7 +45,7 @@ function TopNav() {
             to="/tracking"
             className={active('/tracking') ? 'active' : ''}
           >追蹤列表</Link>
-          {/* 使用者選單：管理者也可見（方便單帳號切換行為） */}
+          {/* 使用者選單 */}
           <Link to="/app" className={active('/app') ? 'active' : ''}>貼文生成器</Link>
           <Link to="/tracking" className={active('/tracking') ? 'active' : ''}>追蹤列表</Link>
           <Link to="/settings" className={active('/settings') ? 'active' : ''}>設定</Link>
