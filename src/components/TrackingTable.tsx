@@ -129,7 +129,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   return (
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
-      <table className="table ui-compact" style={{ tableLayout: 'fixed' }}>
+      <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
           <col className="w-12ch" /> {/* 1 原文編號 */}
           <col /> {/* 2 識別碼 */}
