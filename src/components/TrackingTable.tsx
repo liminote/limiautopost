@@ -210,17 +210,10 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             <tr key={r.id}>
               <td className="px-3 py-2 border-t align-top">{r.articleId}</td>
               <td className="px-3 py-2 border-t align-top">{r.postId}</td>
-              <td className="px-3 py-2 border-t align-top" style={{ minWidth: '6ch' }}>
-                <select
-                  className="ui-select-sm ui-select-xxs"
-                  value={(r.platform ?? (r.articleId?.toUpperCase().includes('IG') ? 'Instagram' : 'Threads')) as TrackedPost['platform']}
-                  onChange={(e)=>{ const v = e.target.value as TrackedPost['platform']; updateTracked(r.id, { platform: v }); setRows(rows.map(x=> x.id===r.id? { ...x, platform: v }: x)); }}
-                  style={{ width: 'auto' }}
-                >
-                  <option value="Threads">TD</option>
-                  <option value="Instagram">IG</option>
-                  <option value="Facebook">FB</option>
-                </select>
+              <td className="px-3 py-2 border-t align-top" style={{ minWidth: '6ch', textAlign: 'center' }}>
+                <span className="ui-chip" style={{ padding: '0 6px' }}>
+                  {r.platform === 'Instagram' ? 'IG' : r.platform === 'Facebook' ? 'FB' : 'TD'}
+                </span>
               </td>
               <td className="px-3 py-2 border-t align-top" style={{ minWidth: '8ch' }}>
                 {(() => {
