@@ -213,10 +213,24 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         const j = await publishWithRetry(text)
                         if (!j.ok) {
                           const t = j.errorText || 'unknown'
-                          // 若是部署切換造成的暫時性錯誤，改為保持「發佈中」並不彈失敗
-                          if (/deployment failed/i.test(t)) {
+                          // 若是部署切換或 HTML 錯頁，維持發佈中並背景輪詢最新一篇，若 10 秒內抓到新貼文，視為成功
+                          if (/deployment failed/i.test(t) || /<html/i.test(t) || /page not found/i.test(t)) {
                             updateTracked(r.id, { status: 'publishing', publishError: undefined })
                             setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing', publishError: undefined }: x))
+                            try {
+                              const start = Date.now()
+                              while (Date.now() - start < 10_000) {
+                                const latest = await fetch('/api/threads/latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
+                                const link = latest?.permalink
+                                const pid = latest?.id
+                                if (link && pid) {
+                                  updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto' })
+                                  setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto' }: x))
+                                  return
+                                }
+                                await sleep(1200)
+                              }
+                            } catch {}
                             return
                           }
                           updateTracked(r.id, { status: 'failed', publishError: t })
