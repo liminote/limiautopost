@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { getTracked, clearTracked, type TrackedPost } from '../../tracking/tracking'
 import TrackingTable from '../../components/TrackingTable'
 
@@ -8,6 +9,11 @@ export default function TrackingPage() {
   const [loading, setLoading] = useState(true)
   const refresh = () => { const data = getTracked(); setRows(data); setAllRows(data); setLoading(false) }
   useEffect(() => { const id = setTimeout(refresh, 300); return () => clearTimeout(id) }, [])
+  useEffect(() => {
+    const onVisibility = () => { if (!document.hidden) refresh() }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [])
 
   const exportCSV = () => {
     if (!rows.length) return
@@ -102,7 +108,18 @@ export default function TrackingPage() {
         setRows(filtered)
       }} />
 
-      <TrackingTable rows={rows} setRows={setRows} loading={loading} />
+      {(!loading && rows.length === 0) ? (
+        <div className="card card-body text-center py-12">
+          <div className="text-base font-medium">目前沒有追蹤資料</div>
+          <div className="text-muted ui-12 mt-1">從生成器建立貼文後即可在此追蹤。</div>
+          <div className="mt-4 flex justify-center gap-2">
+            <Link to="/app" className="btn btn-primary">前往生成器</Link>
+            <button className="btn btn-ghost" onClick={refresh}>重新整理</button>
+          </div>
+        </div>
+      ) : (
+        <TrackingTable rows={rows} setRows={setRows} loading={loading} />
+      )}
     </div>
   )
 }
