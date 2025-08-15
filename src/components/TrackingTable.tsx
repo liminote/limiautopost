@@ -3,7 +3,7 @@ import TagInput from './TagInput'
 import { getTracked, removeTracked, updateTracked, type TrackedPost } from '../tracking/tracking'
 import { mockFetchMetrics, mockPublishToThreads } from '../api/threads'
 
-export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; setRows: (r: TrackedPost[]) => void }){
+export default function TrackingTable({ rows, setRows, loading }: { rows: TrackedPost[]; setRows: (r: TrackedPost[]) => void; loading?: boolean }){
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [hoverPos, setHoverPos] = useState<{ left: number; top: number } | null>(null)
   const [hoverText, setHoverText] = useState<string>('')
@@ -86,7 +86,17 @@ export default function TrackingTable({ rows, setRows }: { rows: TrackedPost[]; 
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <tr key={`s-${i}`}>
+                {Array.from({ length: 15 }).map((__, j) => (
+                  <td key={j} className="px-3 py-2 border-t align-top">
+                    <div className="animate-pulse bg-gray-100 rounded" style={{ height: '14px', width: j % 3 === 0 ? '8ch' : j % 3 === 1 ? '16ch' : '10ch' }} />
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : rows.length === 0 ? (
             <tr><td colSpan={15} className="px-3 py-6 text-center text-gray-500">尚無資料</td></tr>
           ) : rows.map(r => (
             <tr key={r.id}>

@@ -5,8 +5,9 @@ import TrackingTable from '../../components/TrackingTable'
 export default function TrackingPage() {
   const [rows, setRows] = useState<TrackedPost[]>([])
   const [allRows, setAllRows] = useState<TrackedPost[]>([])
-  const refresh = () => { const data = getTracked(); setRows(data); setAllRows(data) }
-  useEffect(() => { refresh() }, [])
+  const [loading, setLoading] = useState(true)
+  const refresh = () => { const data = getTracked(); setRows(data); setAllRows(data); setLoading(false) }
+  useEffect(() => { const id = setTimeout(refresh, 300); return () => clearTimeout(id) }, [])
 
   const exportCSV = () => {
     if (!rows.length) return
@@ -101,7 +102,7 @@ export default function TrackingPage() {
         setRows(filtered)
       }} />
 
-      <TrackingTable rows={rows} setRows={setRows} />
+      <TrackingTable rows={rows} setRows={setRows} loading={loading} />
     </div>
   )
 }
