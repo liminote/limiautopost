@@ -12,6 +12,11 @@ export default function UserSettings(){
         const j = await fetch('/api/threads/status', { cache: 'no-store' }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
         setLinked(j.status === 'linked')
         if (j.username) setUsername(j.username)
+        // 同步快取
+        try {
+          localStorage.setItem('threads:linked', j.status === 'linked' ? '1' : '0')
+          if (j.username) localStorage.setItem('threads:username', j.username)
+        } catch {}
       } catch {}
       // 若剛從 OAuth 回來，帶 threads=linked 時立即顯示成功訊息並清掉參數
       try {
@@ -19,6 +24,8 @@ export default function UserSettings(){
         if (qs.get('threads') === 'linked') {
           setLinked(true)
           setStatusMsg(null)
+          // 讀取本地快取 username
+          try { const u = localStorage.getItem('threads:username'); if (u) setUsername(u) } catch {}
           // 清除 query 以避免重新整理又出現
           const url = new URL(location.href)
           url.searchParams.delete('threads')
