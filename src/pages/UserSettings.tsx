@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useSession, hasRole } from '../auth/auth'
+import { useSession } from '../auth/auth'
 
 export default function UserSettings(){
   const session = useSession()
-  const isAdmin = hasRole('admin', session)
   const [linked, setLinked] = useState(false)
   const [username, setUsername] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
