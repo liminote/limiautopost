@@ -243,7 +243,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   {(r.content || '').slice(0, 36)}{(r.content || '').length > 36 ? '…' : ''}
                 </div>
               </td>
-              <td className="px-3 py-2 border-t align-top" style={{ width: '14ch' }}>
+              <td className="px-3 py-2 border-t align-top" style={{ width: '9ch' }}>
                 <TagInput
                   className="w-9ch"
                   value={r.tags || []}
@@ -285,7 +285,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
                       </button>
                     )}
-                    <button className="icon-btn" title="發佈到 Threads" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id} onClick={async ()=>{
+                    <button className="icon-btn" title={publishingId === r.id ? '發佈中…' : '發佈到 Threads'} style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id} onClick={async ()=>{
                       const text = (r.content || '').trim()
                       if (!text) { alert('內容為空，無法發佈'); return }
                       try {
@@ -348,8 +348,12 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       } catch { alert('發佈失敗：網路錯誤') }
                       finally { setPublishingId(null) }
                     }}>
-                      {/* 紙飛機圖示，代表自動發佈 */}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                      {publishingId === r.id ? (
+                        // 簡易 spinner（無動畫依然可辨識）
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" opacity=".3"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                      )}
                     </button>
                     {import.meta.env.DEV && (
                       <button
