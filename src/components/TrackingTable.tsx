@@ -328,8 +328,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 )}
               </td>
               <td className="px-3 py-2 border-t">
-                <input className="ui-date-sm" type="date" value={r.publishDate || ''}
-                  onChange={e=>{ updateTracked(r.id,{ publishDate: e.target.value }); setRows(rows.map(x=> x.id===r.id? { ...x, publishDate: e.target.value }: x)); }} />
+                <input
+                  className="ui-date-sm"
+                  type="text"
+                  placeholder="YYYY/MM/DD HH:mm"
+                  value={r.publishDate || ''}
+                  onChange={e=>{ const v = e.target.value; updateTracked(r.id,{ publishDate: v }); setRows(rows.map(x=> x.id===r.id? { ...x, publishDate: v }: x)); }}
+                />
               </td>
               <td className="px-3 py-2 border-t ui-gap-x">
                 <input className="ui-input-xs" type="number" min={0} step={1} value={r.likes ?? 0}
