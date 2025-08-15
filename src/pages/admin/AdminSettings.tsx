@@ -18,12 +18,13 @@ export default function AdminSettings() {
   }
   useEffect(() => {
     const run = async () => {
-      // 0) 健康檢查
+      // 0) 健康檢查（不阻塞主流程；在某些站台 Edge 保護下可能返回非 JSON）
       try {
-        const h = await fetch('/api/health', { cache: 'no-store' })
-        const hj = await h.json()
-        if (!hj.ok) { setStatusMsg('系統環境未就緒：請先完成 API/Blobs 設定'); setLinked(false) }
-      } catch { setStatusMsg('系統環境檢查失敗') }
+        const hj = await fetchJSONFallback(['/api/health', '/.netlify/functions/health'])
+        if (!hj.ok) { setStatusMsg('健康檢查未就緒（可能缺環境變數或 Blobs 權限）') }
+      } catch {
+        // 略過：不影響 Threads 連結狀態
+      }
       // 1) 先讀 URL 提示（剛完成授權時）
       try {
         const qs = new URLSearchParams(location.search)
