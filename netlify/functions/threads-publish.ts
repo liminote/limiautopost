@@ -35,18 +35,62 @@ export const handler: Handler = async (event) => {
       return { statusCode: 502, body: `Threads publish failed: ${resp.status} ${txt}` }
     }
     const j = await resp.json() as { id?: string }
-    let permalink: string | undefined
-    // 嘗試查詢貼文資訊以取得連結（欄位名稱以盡最大可能覆蓋）
-    if (j.id && data.access_token) {
+    let postId: string | undefined = j.id
+    // 有些平台需要「先建置容器再 publish」。嘗試補 publish 流程。
+    if (postId && data.access_token) {
       try {
-        const info = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(j.id)}?fields=permalink,permalink_url,link,url&access_token=${encodeURIComponent(data.access_token)}`)
+        const pub1 = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(postId)}/publish`, {
+          method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ access_token: data.access_token }).toString()
+        })
+        if (pub1.ok) {
+          const p = await pub1.json() as { id?: string }
+          if (p?.id) postId = p.id
+        } else {
+          // 後援：以 creation_id 方式 publish（類似 IG Graph API）
+          const pub2 = await fetch('https://graph.threads.net/v1.0/me/threads_publish', {
+            method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ creation_id: postId, access_token: data.access_token }).toString()
+          })
+          if (pub2.ok) {
+            const p2 = await pub2.json() as { id?: string }
+            if (p2?.id) postId = p2.id
+          }
+        }
+      } catch {}
+    }
+
+    let permalink: string | undefined
+    if (postId && data.access_token) {
+      try {
+        const info = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(postId)}?fields=permalink,permalink_url,link,url&access_token=${encodeURIComponent(data.access_token)}`)
         if (info.ok) {
           const d = await info.json() as any
           permalink = d.permalink || d.permalink_url || d.link || d.url
         }
       } catch {}
     }
-    return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, id: j.id, permalink }) }
+    // 若 API 無法直接給 permalink，嘗試以已存的 username 推導（備援）
+    if (!permalink && postId) {
+      try {
+        const store = getStore(
+          process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
+            ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
+            : { name: 'threads_tokens' }
+        )
+        const listed = await store.list({ prefix: 'threads:' })
+        const key = listed?.blobs?.[0]?.key
+        if (key) {
+          const tok = await store.get(key, { type: 'json' }) as { username?: string } | null
+          if (tok?.username) {
+            permalink = `https://www.threads.net/@${tok.username}/post/${postId}`
+          } else {
+            permalink = `https://www.threads.net/t/${postId}`
+          }
+        }
+      } catch {}
+    }
+
+    return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, id: postId, permalink }) }
   } catch (e) {
     return { statusCode: 500, body: String(e) }
   }
