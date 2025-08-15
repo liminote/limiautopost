@@ -16,6 +16,16 @@ export const handler: Handler = async (event) => {
       body: new URLSearchParams({ client_id: APP_ID, client_secret: APP_SECRET, redirect_uri: REDIRECT, grant_type: 'authorization_code', code }).toString()
     })
     const data = await res.json()
+    let username: string | undefined
+    try {
+      if (data?.access_token) {
+        const me = await fetch(`https://graph.threads.net/v1.0/me?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
+        if (me.ok) {
+          const j = await me.json() as { username?: string }
+          username = j.username
+        }
+      }
+    } catch {}
     // 儲存 token（prototype：以 threads user_id 當 key）
     try {
       const store = getStore(
@@ -24,7 +34,7 @@ export const handler: Handler = async (event) => {
           : { name: 'threads_tokens' }
       )
       const key = `threads:${data.user_id}`
-      await store.set(key, JSON.stringify({ ...data, savedAt: new Date().toISOString() }))
+      await store.set(key, JSON.stringify({ ...data, username, savedAt: new Date().toISOString() }))
     } catch {}
     // 設置 cookie 作為前端快速檢查（7 天）
     const cookie = `threads_linked=1; Path=/; Max-Age=${7*24*60*60}; SameSite=Lax; Secure; HttpOnly`

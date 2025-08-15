@@ -19,7 +19,7 @@ export const handler: Handler = async () => {
       status = envOk ? 'ready' : 'not_configured'
     } else {
       const key = listed!.blobs![0].key
-      const data = await store.get(key, { type: 'json' }) as { access_token?: string } | null
+      const data = await store.get(key, { type: 'json' }) as { access_token?: string; username?: string } | null
       if (data?.access_token) {
         const resp = await fetch(`https://graph.threads.net/v1.0/me?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
         if (resp.ok) {
@@ -27,7 +27,9 @@ export const handler: Handler = async () => {
           username = j.username
           status = 'linked'
         } else {
-          status = 'link_failed'; reasonCode = 'me_fetch_failed'
+          // 後援：使用之前回呼時已儲存的 username
+          if (data?.username) { username = data.username; status = 'linked' }
+          else { status = 'link_failed'; reasonCode = 'me_fetch_failed' }
         }
       } else {
         status = 'link_failed'; reasonCode = 'missing_token'
