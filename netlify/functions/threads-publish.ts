@@ -34,7 +34,18 @@ export const handler: Handler = async (event) => {
       return { statusCode: 502, body: `Threads publish failed: ${resp.status} ${txt}` }
     }
     const j = await resp.json() as { id?: string }
-    return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, id: j.id }) }
+    let permalink: string | undefined
+    // 嘗試查詢貼文資訊以取得連結（欄位名稱以盡最大可能覆蓋）
+    if (j.id && data.access_token) {
+      try {
+        const info = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(j.id)}?fields=permalink,permalink_url,link,url&access_token=${encodeURIComponent(data.access_token)}`)
+        if (info.ok) {
+          const d = await info.json() as any
+          permalink = d.permalink || d.permalink_url || d.link || d.url
+        }
+      } catch {}
+    }
+    return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, id: j.id, permalink }) }
   } catch (e) {
     return { statusCode: 500, body: String(e) }
   }

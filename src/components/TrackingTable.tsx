@@ -159,9 +159,22 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       if (!text) { alert('內容為空，無法發佈'); return }
                       try {
                         const resp = await fetch('/api/threads/publish', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) })
-                        if (!resp.ok) { const t = await resp.text(); alert('發佈失敗：' + t); return }
-                        const j = await resp.json() as { ok?: boolean; id?: string }
-                        alert(j.ok ? `已發佈（ID: ${j.id || '未知'}）` : '發佈失敗')
+                        if (!resp.ok) {
+                          const t = await resp.text();
+                          updateTracked(r.id, { status: 'failed', publishError: t });
+                          setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: t }: x))
+                          alert('發佈失敗：' + t); return
+                        }
+                        const j = await resp.json() as { ok?: boolean; id?: string; permalink?: string }
+                        if (j.ok) {
+                          updateTracked(r.id, { status: 'published', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined })
+                          setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource }: x))
+                          alert(`已發佈（ID: ${j.id || '未知'}）`)
+                        } else {
+                          updateTracked(r.id, { status: 'failed', publishError: 'unknown' });
+                          setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: 'unknown' }: x))
+                          alert('發佈失敗')
+                        }
                       } catch { alert('發佈失敗：網路錯誤') }
                     }}>
                       {/* 紙飛機圖示，代表自動發佈 */}
