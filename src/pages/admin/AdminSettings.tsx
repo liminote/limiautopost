@@ -35,8 +35,14 @@ export default function AdminSettings() {
       // 2) 向後端查詢狀態
       try {
         const j = await fetchJSONFallback(['/api/threads/status', '/.netlify/functions/threads-status'])
-        if (j.status === 'linked') { setLinked(true); setUsername(j.username || null); try { localStorage.setItem('threads:username', j.username || '') } catch {} }
-        else { setLinked(false); setStatusMsg(j.reasonCode ? `未連結：${j.reasonCode}` : '未連結') }
+        if (j.status === 'linked') {
+          setLinked(true)
+          if (j.username) setUsername(j.username)
+          try { if (j.username) localStorage.setItem('threads:username', j.username) } catch {}
+          if (j.reasonCode === 'me_fetch_failed' && !j.username) setStatusMsg('已連結，但暫時無法取得 username（稍後自動再試）')
+        } else {
+          setLinked(false); setStatusMsg(j.reasonCode ? `未連結：${j.reasonCode}` : '未連結')
+        }
         try { localStorage.setItem('threads:linked', j.status === 'linked' ? '1' : '0') } catch {}
         return
       } catch {}
@@ -48,6 +54,17 @@ export default function AdminSettings() {
       } catch {}
     }
     run()
+    // 定時輪詢一次，協助在授權後幾秒內補上 username
+    const id = window.setInterval(() => {
+      fetchJSONFallback(['/api/threads/status', '/.netlify/functions/threads-status']).then(j => {
+        if (j.status === 'linked') {
+          setLinked(true)
+          if (j.username) { setUsername(j.username); try { localStorage.setItem('threads:username', j.username) } catch {} }
+        }
+      }).catch(()=>{})
+    }, 5000)
+    setTimeout(()=> clearInterval(id), 60_000)
+    return () => clearInterval(id)
   }, [])
   return (
     <div className="space-y-4">

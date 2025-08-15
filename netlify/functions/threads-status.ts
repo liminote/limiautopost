@@ -19,18 +19,36 @@ export const handler: Handler = async () => {
       status = envOk ? 'ready' : 'not_configured'
     } else {
       const key = listed!.blobs![0].key
-      const data = await store.get(key, { type: 'json' }) as { access_token?: string; username?: string } | null
+      const data = await store.get(key, { type: 'json' }) as { access_token?: string; username?: string; user_id?: string } | null
       if (data?.access_token) {
-        const resp = await fetch(`https://graph.threads.net/v1.0/me?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
-        if (resp.ok) {
-          const j = await resp.json() as { username?: string }
-          username = j.username
-          status = 'linked'
-        } else {
-          // 後援：使用之前回呼時已儲存的 username
-          if (data?.username) { username = data.username; status = 'linked' }
-          else { status = 'link_failed'; reasonCode = 'me_fetch_failed' }
+        // 先嘗試 /me
+        let ok = false
+        try {
+          const resp = await fetch(`https://graph.threads.net/v1.0/me?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
+          if (resp.ok) {
+            const j = await resp.json() as { username?: string }
+            username = j.username
+            status = 'linked'; ok = true
+          }
+        } catch {}
+        // 後援：用 user_id 明確查詢
+        if (!ok && data?.user_id) {
+          try {
+            const resp2 = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(String(data.user_id))}?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
+            if (resp2.ok) {
+              const j2 = await resp2.json() as { username?: string }
+              username = j2.username
+              status = 'linked'; ok = true
+            }
+          } catch {}
         }
+        // 再後援：使用回呼時已儲存的 username
+        if (!ok && data?.username) {
+          username = data.username
+          status = 'linked'; ok = true
+        }
+        // 最後：有 token 但查詢失敗，仍視為 linked（提示原因），避免 UI 阻塞
+        if (!ok) { status = 'linked'; reasonCode = 'me_fetch_failed' }
       } else {
         status = 'link_failed'; reasonCode = 'missing_token'
       }
