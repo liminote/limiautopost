@@ -1,15 +1,30 @@
-// 總覽頁簡化，不再展示統計與健康檢查卡片
+import { getAdminDashboardStats } from '../../auth/auth'
+import DevProgress from '../../components/DevProgress'
+import HealthStatus from '../../components/HealthStatus'
 import AdminSubnav from '../../components/AdminSubnav'
 
 export default function AdminDashboard() {
+  const { total, activeThisMonth, soonExpiring } = getAdminDashboardStats()
   return (
     <div className="space-y-4">
       {/* Sub header tabs appear only inside Admin Mode */}
       <AdminSubnav />
-      {/* 以使用者列表樣式作為總覽內容 */}
-      <div className="card card-body text-sm text-gray-600">
-        總覽已切換為與「使用者」頁一致的操作風格。請使用上方子導覽進入「使用者」或「管理者設定」。
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card card-body">
+          <div className="text-base text-gray-600 font-semibold">使用者總數</div>
+          <div className="text-2xl font-semibold">{total}</div>
+        </div>
+        <div className="card card-body">
+          <div className="text-base text-gray-600 font-semibold">本月活躍</div>
+          <div className="text-2xl font-semibold">{activeThisMonth}</div>
+        </div>
+        <div className="card card-body">
+          <div className="text-base text-gray-600 font-semibold">即將到期</div>
+          <div className="text-2xl font-semibold">{soonExpiring}</div>
+        </div>
       </div>
+      <HealthStatus />
+      <DevProgress />
     </div>
   )
 }

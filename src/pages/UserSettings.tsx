@@ -26,7 +26,8 @@ export default function UserSettings(){
       <div className="card card-body text-sm text-gray-600 space-y-2">
         <h2 className="font-semibold">Threads 連結</h2>
         {statusMsg && <div className="text-red-600 text-sm">{statusMsg}</div>}
-        {!isAdmin ? (
+        {/* 允許管理者也能連結 Threads（單帳號同時具 admin/user 的情境） */}
+        {true ? (
         <div className="flex gap-2">
           <a className="btn btn-primary" href="/api/threads/oauth/start">{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
           {linked && (
@@ -49,10 +50,8 @@ export default function UserSettings(){
             >斷開連結</button>
           )}
         </div>
-        ) : (
-          <div className="text-gray-600">此帳號具管理者權限，僅供使用者一般設定；Threads 連結請由一般使用者帳號操作。</div>
-        )}
-        {linked && !isAdmin && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
+        ) : null}
+        {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
       </div>
     </div>
   )
