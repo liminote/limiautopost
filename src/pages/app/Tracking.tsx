@@ -15,6 +15,25 @@ export default function TrackingPage() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
 
+  // 排序與分頁
+  const [sortKey, setSortKey] = useState<'createdAt'|'likes'|'comments'|'shares'|'saves'>('createdAt')
+  const [sortDir, setSortDir] = useState<'desc'|'asc'>('desc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  useEffect(() => { setPage(1) }, [sortKey, sortDir, pageSize, rows])
+  const displayed = useMemo(() => {
+    const dir = sortDir === 'asc' ? 1 : -1
+    const val = (r: TrackedPost): number => {
+      if (sortKey === 'createdAt') return r.createdAt ? new Date(r.createdAt).getTime() : 0
+      return Number((r as any)[sortKey] ?? 0)
+    }
+    const sorted = [...rows].sort((a,b) => (val(a) - val(b)) * dir)
+    const total = sorted.length
+    const start = Math.max(0, (page - 1) * pageSize)
+    const end = Math.min(total, start + pageSize)
+    return { list: sorted.slice(start, end), total, start: start + 1, end }
+  }, [rows, sortKey, sortDir, page, pageSize])
+
   const exportCSV = () => {
     if (!rows.length) return
     const header = ['postId','articleId','articleTitle','platform','content','permalink','publishDate','likes','comments','shares','saves','notes','createdAt']
@@ -118,7 +137,35 @@ export default function TrackingPage() {
           </div>
         </div>
       ) : (
-        <TrackingTable rows={rows} setRows={setRows} loading={loading} />
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <div className="ui-12 text-muted">共 {displayed.total} 筆</div>
+            <div className="flex items-center gap-2">
+              <select className="ui-select-sm" value={sortKey} onChange={e=> setSortKey(e.target.value as any)}>
+                <option value="createdAt">建立時間</option>
+                <option value="likes">讚數</option>
+                <option value="comments">留言</option>
+                <option value="shares">分享</option>
+                <option value="saves">儲存</option>
+              </select>
+              <select className="ui-select-sm" value={sortDir} onChange={e=> setSortDir(e.target.value as any)}>
+                <option value="desc">由新到舊 / 由高到低</option>
+                <option value="asc">由舊到新 / 由低到高</option>
+              </select>
+              <select className="ui-select-sm" value={pageSize} onChange={e=> setPageSize(Number(e.target.value))}>
+                <option value={10}>每頁 10</option>
+                <option value={20}>每頁 20</option>
+                <option value={50}>每頁 50</option>
+              </select>
+              <div className="flex items-center gap-1">
+                <button className="btn btn-ghost ui-12" onClick={()=> setPage(p=> Math.max(1, p-1))} disabled={displayed.start <= 1}>上一頁</button>
+                <span className="ui-12 text-muted">{displayed.start}-{displayed.end} / {displayed.total}</span>
+                <button className="btn btn-ghost ui-12" onClick={()=> setPage(p=> (displayed.end >= displayed.total ? p : p+1))} disabled={displayed.end >= displayed.total}>下一頁</button>
+              </div>
+            </div>
+          </div>
+          <TrackingTable rows={displayed.list} setRows={setRows} loading={loading} />
+        </>
       )}
     </div>
   )
