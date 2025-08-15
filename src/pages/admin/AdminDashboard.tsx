@@ -1,4 +1,5 @@
 import { getAdminDashboardStats } from '../../auth/auth'
+import DevProgress from '../../components/DevProgress'
 
 export default function AdminDashboard() {
   const { total, activeThisMonth, soonExpiring } = getAdminDashboardStats()
@@ -19,9 +20,7 @@ export default function AdminDashboard() {
           <div className="text-2xl font-semibold">{soonExpiring}</div>
         </div>
       </div>
-      <div className="card card-body text-sm text-gray-600">
-        這裡將放置管理者儀表資訊（之後串接後端/報表時補上）。
-      </div>
+      <DevProgress />
     </div>
   )
 }
