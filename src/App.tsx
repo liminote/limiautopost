@@ -46,7 +46,6 @@ function TopNav() {
             className={active('/tracking') ? 'active' : ''}
           >追蹤列表</Link>
           {/* 使用者選單 */}
-          <Link to="/tracking" className={active('/tracking') ? 'active' : ''}>追蹤列表</Link>
           <Link to="/settings" className={active('/settings') ? 'active' : ''}>設定</Link>
           {username && <span className="text-sm text-muted">hi {username}</span>}
           {session && (
