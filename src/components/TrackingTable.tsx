@@ -327,14 +327,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </div>
                 )}
               </td>
-              <td className="px-3 py-2 border-t">
-                <input
-                  className="ui-date-sm"
-                  type="text"
-                  placeholder="YYYY/MM/DD HH:mm"
-                  value={r.publishDate || ''}
-                  onChange={e=>{ const v = e.target.value; updateTracked(r.id,{ publishDate: v }); setRows(rows.map(x=> x.id===r.id? { ...x, publishDate: v }: x)); }}
-                />
+              <td className="px-3 py-2 border-t align-top" style={{ minWidth: '16ch' }}>
+                <span className="text-gray-700">{r.publishDate || '-'}</span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x">
                 <input className="ui-input-xs" type="number" min={0} step={1} value={r.likes ?? 0}
