@@ -131,7 +131,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
       <table className="table ui-compact" style={{ tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: '12ch' }} /> {/* 1 原文編號 */}
+          <col className="w-12ch" /> {/* 1 原文編號 */}
           <col /> {/* 2 識別碼 */}
           <col /> {/* 3 平台 */}
           <col /> {/* 4 狀態 */}
@@ -139,13 +139,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col /> {/* 6 內容 */}
           <col /> {/* 7 標籤 */}
           <col /> {/* 8 連結 */}
-          <col style={{ width: '12ch' }} /> {/* 9 發佈日期 */}
+          <col className="w-12ch" /> {/* 9 發佈日期 */}
           <col /> {/* 10 讚 */}
           <col /> {/* 11 留言 */}
           <col /> {/* 12 分享 */}
           <col /> {/* 13 儲存 */}
           <col /> {/* 14 備註 */}
-          <col style={{ width: '12ch' }} /> {/* 15 建立時間 */}
+          <col className="w-12ch" /> {/* 15 建立時間 */}
           <col /> {/* 16 操作 */}
         </colgroup>
         <thead style={{ fontSize: '14px', position: 'sticky', top: 0, background: 'var(--ui-bg)', zIndex: 5, boxShadow: '0 1px 0 var(--ui-border)' }}>
