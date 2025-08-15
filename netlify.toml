@@ -52,6 +52,11 @@
   to = "/.netlify/functions/threads-publish"
   status = 200
 
+[[redirects]]
+  from = "/api/threads/permalink"
+  to = "/.netlify/functions/threads-permalink"
+  status = 200
+
 # 單頁應用：所有路由回退到 index.html
 [[redirects]]
   from = "/*"

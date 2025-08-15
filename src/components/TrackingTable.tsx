@@ -139,9 +139,10 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               </td>
               <td className="px-3 py-2 border-t align-top">
                 {r.permalink ? (
-                  <div className="flex flex-col items-start gap-1">
-                    <button className="icon-btn" title="開啟連結" onClick={()=> window.open(r.permalink!, '_blank')}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
+                  <div className="flex items-center gap-1">
+                    {/* Threads icon */}
+                    <button className="icon-btn" title="開啟 Threads" onClick={()=> window.open(r.permalink!, '_blank')}>
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2Zm3.9 9.1c-.148-.89-.719-1.76-2.1-1.76-1.012 0-1.741.515-1.741 1.26 0 .64.49 1.003 1.298 1.23l1.072.302c2.013.567 3.007 1.648 3.007 3.253 0 2.095-1.854 3.615-4.51 3.615-2.678 0-4.285-1.383-4.51-3.49l2.098-.316c.148 1.2 1.003 1.9 2.412 1.9 1.19 0 2.1-.59 2.1-1.465 0-.69-.49-1.072-1.436-1.326l-1.07-.302c-1.93-.528-2.847-1.554-2.847-3.14 0-2.013 1.825-3.417 4.195-3.417 2.47 0 3.85 1.383 4.078 3.26l-2.146.136Z"/></svg>
                     </button>
                     <span className="text-xs text-muted">{r.permalinkSource === 'manual' || r.permalinkSource === 'locked-manual' ? '手動' : '自動'}</span>
                     <button className="icon-btn icon-ghost" title="編輯連結" onClick={()=> setPermalink(r.id)}>
@@ -154,6 +155,23 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
                     </button>
+                    {r.status === 'published' && (
+                      <button className="icon-btn" title="重試抓取連結" onClick={async ()=>{
+                        try {
+                          const resp = await fetch(`/api/threads/permalink?id=${encodeURIComponent(r.threadsPostId || '')}`)
+                          if (!resp.ok) { alert('抓取連結失敗'); return }
+                          const j = await resp.json() as { ok?: boolean; permalink?: string }
+                          if (j.ok && j.permalink) {
+                            updateTracked(r.id, { permalink: j.permalink, permalinkSource: 'auto' })
+                            setRows(rows.map(x=> x.id===r.id? { ...x, permalink: j.permalink, permalinkSource: 'auto' }: x))
+                          } else {
+                            alert('尚未取得連結，稍後再試')
+                          }
+                        } catch { alert('抓取連結失敗') }
+                      }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
+                      </button>
+                    )}
                     <button className="icon-btn" title="發佈到 Threads" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} onClick={async ()=>{
                       const text = (r.content || '').trim()
                       if (!text) { alert('內容為空，無法發佈'); return }
