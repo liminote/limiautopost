@@ -4,6 +4,7 @@ export default function AdminSettings() {
   const [linked, setLinked] = useState(false)
   const [username, setUsername] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   useEffect(() => {
     const run = async () => {
       // 0) 健康檢查
@@ -24,13 +25,17 @@ export default function AdminSettings() {
       try {
         const r = await fetch('/api/threads/status', { cache: 'no-store' })
         const j = await r.json()
-        if (j.status === 'linked') { setLinked(true); setUsername(j.username || null) }
+        if (j.status === 'linked') { setLinked(true); setUsername(j.username || null); try { localStorage.setItem('threads:username', j.username || '') } catch {} }
         else { setLinked(false); setStatusMsg(j.reasonCode ? `未連結：${j.reasonCode}` : '未連結') }
         try { localStorage.setItem('threads:linked', j.status === 'linked' ? '1' : '0') } catch {}
         return
       } catch {}
       // 3) 後援：讀本機快取
-      try { setLinked(localStorage.getItem('threads:linked') === '1') } catch {}
+      try {
+        setLinked(localStorage.getItem('threads:linked') === '1')
+        const u = localStorage.getItem('threads:username') || ''
+        if (u) setUsername(u)
+      } catch {}
     }
     run()
   }, [])
@@ -42,6 +47,27 @@ export default function AdminSettings() {
         {statusMsg && <div className="text-red-600 text-sm">{statusMsg}</div>}
         <div className="flex gap-2">
           <a className="btn btn-primary" href="/api/threads/oauth/start">{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
+          {linked && (
+            <button
+              className="btn btn-ghost"
+              disabled={busy}
+              onClick={async ()=>{
+                try {
+                  setBusy(true)
+                  const r = await fetch('/api/threads/disconnect', { method: 'POST' })
+                  const j = await r.json()
+                  if (j.ok) {
+                    setLinked(false); setUsername(null); setStatusMsg('已斷開連結')
+                    try { localStorage.setItem('threads:linked', '0'); localStorage.removeItem('threads:username') } catch {}
+                  } else {
+                    setStatusMsg('斷開連結失敗')
+                  }
+                } catch {
+                  setStatusMsg('斷開連結失敗')
+                } finally { setBusy(false) }
+              }}
+            >斷開連結</button>
+          )}
         </div>
         {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
       </div>
