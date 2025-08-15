@@ -77,8 +77,8 @@ function App() {
               <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/login" replace />} />
               <Route path="/admin/users" element={isAdmin ? <AdminUsers /> : <Navigate to="/login" replace />} />
               <Route path="/admin/settings" element={isAdmin ? <AdminSettings /> : <Navigate to="/login" replace />} />
-              {/* User Settings: 個人 Threads 連結與偏好設定（若為管理者則導回管理設定） */}
-              <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : (isAdmin ? <Navigate to="/admin/settings" replace /> : <UserSettings />)} />
+              {/* User Settings: 一律進入個人設定（包含 Threads 連結） */}
+              <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : <UserSettings />} />
               {/* User */}
               <Route path="/force-change-password" element={<ForceChangePassword />} />
               <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <TrackingPage />)} />

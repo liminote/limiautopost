@@ -2,7 +2,11 @@ import { Link, useLocation } from 'react-router-dom'
 
 export default function AdminSubnav(){
   const loc = useLocation()
-  const isActive = (to: string) => loc.pathname === to
+  const isActive = (to: string) => {
+    const p = loc.pathname
+    if (to === '/admin') return p === '/admin' || p === '/admin/'
+    return p === to
+  }
   const base = "px-2 py-1 rounded hover:bg-gray-100 text-sm"
   const activeCls = "text-base font-semibold" // 大一級
   const activeStyle: React.CSSProperties = { color: 'var(--yinmn-blue)' } // 變藍色
