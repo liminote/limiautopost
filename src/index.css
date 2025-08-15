@@ -25,6 +25,8 @@
 :root{ --admin-accent:#6b8da1; --admin-accent-600:#5e7e90; }
 .fix-scrollbar-layout-shift html, .fix-scrollbar-layout-shift body{ height:100%; }
 html{ overflow-y: scroll; }
+/* 強制隱藏頂部版本列容器（舊版快取也不顯示） */
+.container-app > div.text-xs.text-muted{ display:none !important; }
 body{ min-height:100%; scrollbar-gutter: stable; background:var(--surface); color:var(--ui-fg); font-family:'Noto Sans TC', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
 .ui-12{font-size:12px;}
 .table.ui-compact thead th{padding:6px 8px;position:sticky;top:0;background:var(--table-zebra);z-index:10;box-shadow:0 1px 0 var(--ui-border)}
