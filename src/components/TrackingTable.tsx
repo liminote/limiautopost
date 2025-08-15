@@ -165,7 +165,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             <tr><td colSpan={15} className="px-3 py-6 text-center text-gray-500">尚無資料</td></tr>
           ) : rows.map(r => (
             <tr key={r.id}>
-              <td className="px-3 py-2 border-t align-top">{r.articleId}</td>
+              <td className="px-3 py-2 border-t align-top" style={{ width: '16ch' }}>{r.articleId}</td>
               <td className="px-3 py-2 border-t align-top">{r.postId}</td>
               <td className="px-3 py-2 border-t align-top" style={{ minWidth: '6ch' }}>
                 <select
@@ -327,7 +327,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </div>
                 )}
               </td>
-              <td className="px-3 py-2 border-t align-top">
+              <td className="px-3 py-2 border-t align-top" style={{ width: '16ch' }}>
                 <span className="text-gray-700">{r.publishDate || '-'}</span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x">
@@ -366,7 +366,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </button>
                 )}
               </td>
-              <td className="px-3 py-2 border-t align-top">{formatLocal(r.createdAt)}</td>
+              <td className="px-3 py-2 border-t align-top" style={{ width: '16ch' }}>{formatLocal(r.createdAt)}</td>
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex gap-1 justify-end">
                   {r.threadsPostId && (
