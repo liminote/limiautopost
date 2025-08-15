@@ -21,11 +21,7 @@ function TopNav() {
 
   return (
     <>
-    {ver && (
-      <div className="container-app" style={{ paddingTop: '6px' }}>
-        <div className="text-xs text-muted" style={{ lineHeight: 1, textAlign: 'right' }}>v{ver}</div>
-      </div>
-    )}
+    {/* 隱藏版本列（保持空白以免占位影響布局） */}
     <header className="nav">
       <div className="container-app h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
