@@ -211,9 +211,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">{r.articleId}</td>
               <td className="px-3 py-2 border-t align-top">{r.postId}</td>
               <td className="px-3 py-2 border-t align-top" style={{ minWidth: '6ch', textAlign: 'center' }}>
-                <span className="ui-chip" style={{ padding: '0 6px' }}>
-                  {r.platform === 'Instagram' ? 'IG' : r.platform === 'Facebook' ? 'FB' : 'TD'}
-                </span>
+                {(() => {
+                  const code = r.platform === 'Instagram' ? 'IG' : r.platform === 'Facebook' ? 'FB' : 'TD'
+                  const color = r.platform === 'Instagram' ? '#ec4899' : r.platform === 'Facebook' ? '#2563eb' : '#0ea5a1'
+                  return (
+                    <span className="ui-chip" style={{ padding: '0 6px', color }}>
+                      {code}
+                    </span>
+                  )
+                })()}
               </td>
               <td className="px-3 py-2 border-t align-top" style={{ minWidth: '8ch' }}>
                 {(() => {
@@ -261,7 +267,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
                     </button>
-                    {r.status === 'published' && (
+                    {r.platform === 'Threads' && r.status === 'published' && (
                       <button className="icon-btn" title="重試抓取連結" onClick={async ()=>{
                         try {
                           const resp = await fetch(`/api/threads/permalink?id=${encodeURIComponent(r.threadsPostId || '')}`)
@@ -278,6 +284,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
                       </button>
                     )}
+                    {r.platform === 'Threads' && (
                     <button className="icon-btn" title={publishingId === r.id ? '發佈中…' : '發佈到 Threads'} style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id} onClick={async ()=>{
                       const text = (r.content || '').trim()
                       if (!text) { alert('內容為空，無法發佈'); return }
@@ -348,6 +355,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                       )}
                     </button>
+                    )}
                     {import.meta.env.DEV && (
                       <button
                         className="icon-btn icon-ghost"
