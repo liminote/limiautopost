@@ -11,6 +11,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const hideTimerRef = useRef<number | null>(null)
   const anchorRectRef = useRef<DOMRect | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
+  const [publishingId, setPublishingId] = useState<string | null>(null)
 
   const clearHideTimer = () => { if (hideTimerRef.current) { window.clearTimeout(hideTimerRef.current); hideTimerRef.current = null } }
   const hideTooltipLater = () => { clearHideTimer(); hideTimerRef.current = window.setTimeout(()=>{ setHoverId(null); setHoverPos(null); setHoverText('') }, 120) }
@@ -59,6 +60,35 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     if (note === null) return
     updateTracked(id, { notes: note })
     setRows(rows.map(x => x.id === id ? { ...x, notes: note } : x))
+  }
+
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+  async function publishWithRetry(text: string): Promise<{ ok: boolean; id?: string; permalink?: string; errorText?: string }>{
+    const endpoints = ['/api/threads/publish', '/.netlify/functions/threads-publish']
+    const delays = [400, 800, 1600, 3200]
+    for (let i = 0; i < delays.length; i++) {
+      for (const url of endpoints) {
+        try {
+          const resp = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) })
+          const ct = resp.headers.get('content-type') || ''
+          const isJson = ct.includes('application/json')
+          if (resp.ok && isJson) {
+            const j = await resp.json() as { ok?: boolean; id?: string; permalink?: string }
+            if (j?.ok) return { ok: true, id: j.id, permalink: j.permalink }
+            return { ok: false, errorText: 'unknown' }
+          }
+          const bodyText = isJson ? '' : await resp.text().catch(()=>'')
+          if (/deployment failed/i.test(bodyText) || resp.status >= 500) {
+            await sleep(delays[i])
+            continue
+          }
+          return { ok: false, errorText: bodyText || `HTTP ${resp.status}` }
+        } catch {
+          await sleep(delays[i])
+        }
+      }
+    }
+    return { ok: false, errorText: 'Service temporarily unavailable, please retry.' }
   }
 
   return (
@@ -172,32 +202,26 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
                       </button>
                     )}
-                    <button className="icon-btn" title="發佈到 Threads" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} onClick={async ()=>{
+                    <button className="icon-btn" title="發佈到 Threads" style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id} onClick={async ()=>{
                       const text = (r.content || '').trim()
                       if (!text) { alert('內容為空，無法發佈'); return }
                       try {
-                        // 先打 /api 路由，失敗時改打 /.netlify/functions 直連
-                        const tryPublish = async (url: string) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) })
-                        let resp = await tryPublish('/api/threads/publish')
-                        if (!resp.ok) resp = await tryPublish('/.netlify/functions/threads-publish')
-                        const ct = resp.headers.get('content-type') || ''
-                        if (!resp.ok || !ct.includes('application/json')) {
-                          const t = await resp.text();
-                          updateTracked(r.id, { status: 'failed', publishError: t });
+                        setPublishingId(r.id)
+                        updateTracked(r.id, { status: 'publishing' })
+                        setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing' }: x))
+                        const j = await publishWithRetry(text)
+                        if (!j.ok) {
+                          const t = j.errorText || 'unknown'
+                          updateTracked(r.id, { status: 'failed', publishError: t })
                           setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: t }: x))
-                          alert('發佈失敗：' + t); return
+                          alert('發佈失敗：' + t)
+                          return
                         }
-                        const j = await resp.json() as { ok?: boolean; id?: string; permalink?: string }
-                        if (j.ok) {
-                          updateTracked(r.id, { status: 'published', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined })
-                          setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource }: x))
-                          alert(`已發佈（ID: ${j.id || '未知'}）`)
-                        } else {
-                          updateTracked(r.id, { status: 'failed', publishError: 'unknown' });
-                          setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: 'unknown' }: x))
-                          alert('發佈失敗')
-                        }
+                        updateTracked(r.id, { status: 'published', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined })
+                        setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource }: x))
+                        alert(`已發佈（ID: ${j.id || '未知'}）`)
                       } catch { alert('發佈失敗：網路錯誤') }
+                      finally { setPublishingId(null) }
                     }}>
                       {/* 紙飛機圖示，代表自動發佈 */}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
