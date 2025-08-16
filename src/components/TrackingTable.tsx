@@ -14,6 +14,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [syncingId, setSyncingId] = useState<string | null>(null)
   const scheduleCheckRef = useRef<number | null>(null)
+  const [scheduleDialog, setScheduleDialog] = useState<{ show: boolean; row: TrackedPost | null; input: string }>({ show: false, row: null, input: '' })
 
   // 檢查排程發文
   const checkScheduledPosts = useCallback(async () => {
@@ -115,14 +116,28 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     const now = new Date(Date.now() + 10 * 60 * 1000) // 預設現在+10分鐘
     const def = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
     const current = row.scheduledAt ? formatLocal(row.scheduledAt) : def
-    const input = window.prompt('輸入排程時間（YYYY-MM-DD HH:mm）', current)
-    if (input === null) return
+    setScheduleDialog({ show: true, row, input: current })
+  }
+
+  const handleScheduleSubmit = () => {
+    const { row, input } = scheduleDialog
+    if (!row) return
+    
     const s = input.trim().replace('T',' ')
     const m = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/.exec(s)
-    if (!m) { alert('格式需為 YYYY-MM-DD HH:mm'); return }
+    if (!m) { 
+      alert('格式需為 YYYY-MM-DD HH:mm')
+      return 
+    }
+    
     const iso = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00`).toISOString()
     updateTracked(row.id, { scheduledAt: iso, status: 'scheduled' })
     setRows(rows.map(x=> x.id===row.id? { ...x, scheduledAt: iso, status: 'scheduled' }: x))
+    setScheduleDialog({ show: false, row: null, input: '' })
+  }
+
+  const handleScheduleCancel = () => {
+    setScheduleDialog({ show: false, row: null, input: '' })
   }
 
   const clearHideTimer = () => { if (hideTimerRef.current) { window.clearTimeout(hideTimerRef.current); hideTimerRef.current = null } }
@@ -586,6 +601,50 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           onMouseLeave={hideTooltipLater}
         >
           {hoverText}
+        </div>
+      )}
+
+      {/* 排程發文對話框 */}
+      {scheduleDialog.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-md">
+            <h3 className="text-lg font-semibold mb-4">排程發文</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                輸入排程時間（YYYY-MM-DD HH:mm）
+              </label>
+              <input
+                type="text"
+                value={scheduleDialog.input}
+                onChange={(e) => setScheduleDialog(prev => ({ ...prev, input: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="2025-01-20 15:30"
+              />
+            </div>
+
+            {/* 紅色提示文字 */}
+            <div className="mb-4">
+              <p className="text-red-600 text-sm">
+                排程發文5分鐘檢查一次，與實際發文時間有時間落差
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleScheduleCancel}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleScheduleSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                確定
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
