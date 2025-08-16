@@ -118,7 +118,6 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     const ts = Date.now()
     const endpoints = [
       `/.netlify/functions/threads-publish?ts=${ts}`,
-      `/api/threads/publish?ts=${ts}`,
     ]
     const delays = [700, 1200, 2200, 4200, 8200]
     let lastError: string | undefined
@@ -148,7 +147,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     }
     // 最後嘗試：狀態檢查與最新貼文確認
     try {
-      const st = await fetch('/api/threads/status').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
+      const st = await fetch('/.netlify/functions/threads-status').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
       if (st && st.status !== 'linked') {
         const reason = st.reasonCode ? ` (${st.reasonCode})` : ''
         return { ok: false, errorText: `Threads 未連結${reason}` }
@@ -157,7 +156,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     try {
       const start = Date.now()
       while (Date.now() - start < 18_000) {
-        const latest = await fetch('/api/threads/latest').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
+        const latest = await fetch('/.netlify/functions/threads-latest').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
         if (latest?.id && latest?.permalink) {
           return { ok: true, id: latest.id, permalink: latest.permalink }
         }
