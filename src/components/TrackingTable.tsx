@@ -313,13 +313,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                           try {
                             setPublishingId(r.id)
                             // 如果原本是排程狀態，清除排程並改為發佈中
-                            const updates: any = { status: 'publishing' }
                             if (r.scheduledAt) {
-                              updates.scheduledAt = undefined
-                              updates.status = 'publishing'
+                              updateTracked(r.id, { scheduledAt: undefined, status: 'publishing' })
+                              setRows(rows.map(x=> x.id===r.id? { ...x, scheduledAt: undefined, status: 'publishing' }: x))
+                            } else {
+                              updateTracked(r.id, { status: 'publishing' })
+                              setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing' }: x))
                             }
-                            updateTracked(r.id, updates)
-                            setRows(rows.map(x=> x.id===r.id? { ...x, ...updates }: x))
                             const j = await publishWithRetry(text)
                             if (!j.ok) {
                               const t = j.errorText || 'unknown'
