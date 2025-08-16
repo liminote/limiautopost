@@ -486,6 +486,23 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                           const text = (r.content || '').trim()
                           if (!text) { alert('內容為空，無法發佈'); return }
                           
+                          // 發佈前預檢查 token 狀態
+                          try {
+                            const statusCheck = await fetch('/.netlify/functions/threads-status')
+                            if (statusCheck.ok) {
+                              const statusData = await statusCheck.json()
+                              if (statusData.status !== 'linked') {
+                                if (confirm('Threads 未連結或授權已過期，是否現在重新連結？')) {
+                                  window.location.href = '/api/threads/oauth/start'
+                                  return
+                                }
+                                return
+                              }
+                            }
+                          } catch (statusError) {
+                            console.warn('無法檢查 Threads 狀態，繼續嘗試發佈', statusError)
+                          }
+                          
                           try {
                             setPublishingId(r.id)
                             // 如果原本是排程狀態，清除排程並改為發佈中
@@ -507,6 +524,12 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                                   window.location.href = '/api/threads/oauth/start'
                                   return
                                 }
+                              }
+                              
+                              // 檢查是否為網路或服務器錯誤（不應該提示重新連結）
+                              if (t.includes('network error') || t.includes('Service temporarily unavailable') || t.includes('500')) {
+                                console.warn('發佈失敗：網路或服務器問題，非授權問題', t)
+                                // 繼續執行原有的錯誤處理邏輯
                               }
                               
                               // 若是部署切換或 HTML 錯頁，維持發佈中並背景輪詢最新一篇，若 10 秒內抓到新貼文，視為成功
