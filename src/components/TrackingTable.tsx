@@ -71,20 +71,55 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     }
   }, [rows, setRows])
 
-  // 啟動排程檢查
+  // 智能排程檢查：只在有排程文章時啟動，使用更長的間隔
   useEffect(() => {
-    // 立即檢查一次
-    checkScheduledPosts()
+    const scheduledPosts = rows.filter(r => 
+      r.platform === 'Threads' && 
+      r.status === 'scheduled' && 
+      r.scheduledAt
+    )
+
+    if (scheduledPosts.length === 0) {
+      // 沒有排程文章時，清除輪詢
+      if (scheduleCheckRef.current) {
+        clearInterval(scheduleCheckRef.current)
+        scheduleCheckRef.current = null
+      }
+      return
+    }
+
+    // 有排程文章時，計算最接近的排程時間
+    const now = new Date()
+    const nextScheduledTime = Math.min(
+      ...scheduledPosts.map(p => new Date(p.scheduledAt!).getTime())
+    )
     
-    // 每分鐘檢查一次
-    scheduleCheckRef.current = window.setInterval(checkScheduledPosts, 60 * 1000)
+    const timeUntilNext = nextScheduledTime - now.getTime()
+    
+    if (timeUntilNext <= 0) {
+      // 有過期的排程，立即檢查
+      checkScheduledPosts()
+    }
+
+    // 根據排程時間智能設定檢查間隔
+    let checkInterval: number
+    if (timeUntilNext <= 5 * 60 * 1000) { // 5分鐘內
+      checkInterval = 30 * 1000 // 30秒檢查一次
+    } else if (timeUntilNext <= 30 * 60 * 1000) { // 30分鐘內
+      checkInterval = 2 * 60 * 1000 // 2分鐘檢查一次
+    } else {
+      checkInterval = 10 * 60 * 1000 // 10分鐘檢查一次
+    }
+
+    // 啟動輪詢
+    scheduleCheckRef.current = window.setInterval(checkScheduledPosts, checkInterval)
     
     return () => {
       if (scheduleCheckRef.current) {
         clearInterval(scheduleCheckRef.current)
       }
     }
-  }, [checkScheduledPosts])
+  }, [rows, checkScheduledPosts])
 
   const openScheduleDialog = (row: TrackedPost) => {
     const pad = (n: number) => String(n).padStart(2, '0')
