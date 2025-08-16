@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 
 export default function UserSettings(){
-  const [linked, setLinked] = useState(false)
-  const [username, setUsername] = useState<string | null>(null)
+  const [linked, setLinked] = useState(() => { try { return localStorage.getItem('threads:linked') === '1' } catch { return false } })
+  const [username, setUsername] = useState<string | null>(() => { try { return localStorage.getItem('threads:username') } catch { return null } })
   const [busy, setBusy] = useState(false)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
   const [polling, setPolling] = useState(false)
