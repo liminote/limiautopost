@@ -396,27 +396,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 )}
               </td>
               <td className="px-3 py-2 border-t align-top">
-                <div className="flex flex-col">
-                  <span className="text-gray-700">{r.publishDate || '-'}</span>
-                  <span className="text-xs">
-                    {r.scheduledAt ? (
-                      <>
-                        <span className="text-[color:var(--yinmn-blue)]">排程：{formatLocal(r.scheduledAt)}</span>
-                        {' '}
-                        <button className="icon-btn icon-ghost" title="取消排程" onClick={()=> cancelSchedule(r)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-                        </button>
-                        <button className="icon-btn icon-ghost" title="修改排程" onClick={()=> openScheduleDialog(r)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
-                        </button>
-                      </>
-                    ) : (
-                      <button className="icon-btn icon-ghost" title="設定排程" onClick={()=> openScheduleDialog(r)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 7V3h8v4"/><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M16 13h-8"/><path d="M16 17h-5"/></svg>
-                      </button>
-                    )}
-                  </span>
-                </div>
+                <span className="text-gray-700">{r.publishDate || (r.scheduledAt ? formatLocal(r.scheduledAt) : '-')}</span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
@@ -451,7 +431,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <div className="flex gap-1 justify-end">
                   {r.threadsPostId && (
                     <span className="has-tip" data-tip={`已停用：API 限制\n最後同步：${r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}`}>
-                    <button className="icon-btn" disabled={true} onClick={async ()=>{
+                    <button className="icon-btn" style={{ background: 'var(--yinmn-blue)', color:'#fff', borderColor:'var(--yinmn-blue)' }} disabled={true} onClick={async ()=>{
                       try {
                         setSyncingId(r.id)
                         const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
@@ -474,6 +454,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       {syncingId===r.id
                         ? (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12a9 9 0 1 1 18 0"/></svg>)
                         : (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>)}
+                    </button>
+                    <button className="icon-btn" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} title="排程發佈（設定時間）" onClick={()=> openScheduleDialog(r)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                     </button>
                     </span>
                   )}
