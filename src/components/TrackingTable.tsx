@@ -422,9 +422,21 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                     {r.platform === 'Threads' && (
                       <>
                         {/* 藍色飛機：立即發佈 */}
-                        <button className="icon-btn" title={publishingId === r.id ? '發佈中…' : '立即發佈到 Threads'} style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id} onClick={async ()=>{
+                        <button className="icon-btn" title={publishingId === r.id ? '發佈中…' : '立即發佈到 Threads'} style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id || r.status === 'published'} onClick={async ()=>{
+                          // 防重複發佈檢查
+                          if (r.status === 'published') {
+                            alert('此貼文已經發佈，無法重複發佈')
+                            return
+                          }
+                          
+                          if (r.status === 'publishing') {
+                            alert('此貼文正在發佈中，請稍候')
+                            return
+                          }
+                          
                           const text = (r.content || '').trim()
                           if (!text) { alert('內容為空，無法發佈'); return }
+                          
                           try {
                             setPublishingId(r.id)
                             // 如果原本是排程狀態，清除排程並改為發佈中
@@ -435,6 +447,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                               updateTracked(r.id, { status: 'publishing' })
                               setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing' }: x))
                             }
+                            
                             const j = await publishWithRetry(text)
                             if (!j.ok) {
                               const t = j.errorText || 'unknown'
@@ -445,7 +458,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                                 try {
                                   const start = Date.now()
                                   while (Date.now() - start < 10_000) {
-                                    const latest = await fetch('/api/threads/latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
+                                    const latest = await fetch('/.netlify/functions/threads-latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
                                     const link = latest?.permalink
                                     const pid = latest?.id
                                     if (link && pid) {
@@ -475,7 +488,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                               const start = Date.now()
                               try {
                                 while (Date.now() - start < 12_000) {
-                                  const latest = await fetch('/api/threads/latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
+                                  const latest = await fetch('/.netlify/functions/threads-latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
                                   const link = latest?.permalink
                                   const pid = latest?.id
                                   if (pid && link && (!j.id || String(pid) === String(j.id))) {
@@ -498,7 +511,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                           )}
                         </button>
-                        {/* 橘色飛機：排程發佈 - 只在非發佈/發佈中/已排程狀態時顯示 */}
+                        {/* 橘色飛機：排程發佈 - 只在非發佈/發佈中狀態時顯示 */}
                         {r.status !== 'published' && r.status !== 'publishing' && !r.scheduledAt && (
                           <button className="icon-btn" title="排程發佈（設定發佈時間）" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-4 20-7z"/></svg>
