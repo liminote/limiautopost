@@ -452,9 +452,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                       </button>
                     </span>
                   )}
+                  {(r.status !== 'publishing' && r.status !== 'published') && (
                   <button className="icon-btn" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} title="排程發佈（設定發佈時間）" onClick={()=> openScheduleDialog(r)}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                   </button>
+                  )}
                   <button className="icon-btn icon-ghost" title="移除" onClick={()=> { if (confirm('刪除後無法復原，你確定要刪除？')) { removeTracked(r.id); setRows(rows.filter(x=>x.id!==r.id)) } }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
                   </button>
