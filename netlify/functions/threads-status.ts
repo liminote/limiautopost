@@ -52,7 +52,7 @@ export const handler: Handler = async () => {
   } catch (e) {
     status = 'link_failed'; reasonCode = 'store_error'
   }
-  return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status, username, reasonCode, tokenSavedAt }) }
+  return { statusCode: 200, headers: { 'content-type': 'application/json', 'Cache-Control': 'no-store, no-cache, must-revalidate' }, body: JSON.stringify({ status, username, reasonCode, tokenSavedAt }) }
 }
 
 

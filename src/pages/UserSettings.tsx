@@ -9,7 +9,7 @@ export default function UserSettings(){
   useEffect(() => {
     const run = async () => {
       try {
-        const j = await fetch('/api/threads/status', { cache: 'no-store' }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
+        const j = await fetch('/api/threads/status', { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
         setLinked(j.status === 'linked')
         if (j.username) setUsername(j.username)
         if (j.tokenSavedAt) {
@@ -33,6 +33,11 @@ export default function UserSettings(){
           const url = new URL(location.href)
           url.searchParams.delete('threads')
           history.replaceState({}, '', url.toString())
+          // 回來後再打一次狀態拿 tokenSavedAt
+          try {
+            const j2 = await fetch('/api/threads/status', { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : null)
+            if (j2?.tokenSavedAt) setStatusMsg(`Token 取得於 ${new Date(j2.tokenSavedAt).toLocaleString()}`)
+          } catch {}
         }
       } catch {}
     }
