@@ -4,6 +4,7 @@ import type { TrackedPost } from '../../tracking/tracking'
 import GeneratedCard, { type GeneratedCardData } from '../../components/GeneratedCard'
 import { CardService } from '../../services/cardService'
 import type { BaseCard } from '../../types/cards'
+import { useSession } from '../../auth/auth'
 
 type Platform = 'Threads' | 'Instagram' | 'Facebook'
 
@@ -17,6 +18,7 @@ type Card = {
 }
 
 export default function Generator() {
+  const session = useSession()
   const [title, setTitle] = useState('')
   const [article, setArticle] = useState('')
   const [generating, setGenerating] = useState(false)
@@ -28,27 +30,32 @@ export default function Generator() {
   
   const cardService = CardService.getInstance()
 
+  // 獲取當前用戶 ID
+  const currentUserId = session?.email || 'anonymous'
+
   useEffect(() => { refreshTracked() }, [])
 
   // 載入用戶選擇的模板
   useEffect(() => {
     const loadSelectedTemplates = () => {
-      // TODO: 獲取真實用戶 ID
-      const userId = 'current-user'
-      const templates = cardService.getSelectedTemplates(userId)
+      if (!session) return // 未登入時不載入
+      
+      const templates = cardService.getSelectedTemplates(currentUserId)
       setSelectedTemplates(templates)
       console.log('[Generator] 載入的選擇模板:', templates)
     }
 
     loadSelectedTemplates()
-  }, [])
+  }, [session, currentUserId, cardService])
 
   // 載入保存的內容（頁面載入時）
   useEffect(() => {
+    if (!session) return // 未登入時不載入
+    
     try {
-      const savedTitle = localStorage.getItem('generator:title')
-      const savedArticle = localStorage.getItem('generator:article')
-      const savedCards = localStorage.getItem('generator:cards')
+      const savedTitle = localStorage.getItem(`generator:${currentUserId}:title`)
+      const savedArticle = localStorage.getItem(`generator:${currentUserId}:article`)
+      const savedCards = localStorage.getItem(`generator:${currentUserId}:cards`)
       
       if (savedTitle) setTitle(savedTitle)
       if (savedArticle) setArticle(savedArticle)
@@ -63,26 +70,30 @@ export default function Generator() {
     } catch (e) {
       console.warn('載入保存的內容失敗:', e)
     }
-  }, [])
+  }, [session, currentUserId])
 
   // 保存內容到 localStorage（當內容變化時）
   useEffect(() => {
+    if (!session) return // 未登入時不保存
+    
     try {
-      localStorage.setItem('generator:title', title)
-      localStorage.setItem('generator:article', article)
-      localStorage.setItem('generator:cards', JSON.stringify(cards))
+      localStorage.setItem(`generator:${currentUserId}:title`, title)
+      localStorage.setItem(`generator:${currentUserId}:article`, article)
+      localStorage.setItem(`generator:${currentUserId}:cards`, JSON.stringify(cards))
     } catch (e) {
       console.warn('保存內容失敗:', e)
     }
-  }, [title, article, cards])
+  }, [title, article, cards, session, currentUserId])
 
   // 頁面卸載時清除保存的內容（重新載入時會清除）
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (!session) return
+      
       try {
-        localStorage.removeItem('generator:title')
-        localStorage.removeItem('generator:article')
-        localStorage.removeItem('generator:cards')
+        localStorage.removeItem(`generator:${currentUserId}:title`)
+        localStorage.removeItem(`generator:${currentUserId}:article`)
+        localStorage.removeItem(`generator:${currentUserId}:cards`)
       } catch (e) {
         console.warn('清除保存的內容失敗:', e)
       }
@@ -92,7 +103,7 @@ export default function Generator() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [])
+  }, [session, currentUserId])
 
   // SEO
   useEffect(() => {
@@ -203,9 +214,9 @@ export default function Generator() {
       
       // 成功加入追蹤後，清除保存的內容
       try {
-        localStorage.removeItem('generator:title')
-        localStorage.removeItem('generator:article')
-        localStorage.removeItem('generator:cards')
+        localStorage.removeItem(`generator:${currentUserId}:title`)
+        localStorage.removeItem(`generator:${currentUserId}:article`)
+        localStorage.removeItem(`generator:${currentUserId}:cards`)
       } catch (e) {
         console.warn('清除保存的內容失敗:', e)
       }

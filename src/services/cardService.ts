@@ -76,6 +76,10 @@ export class CardService {
 
   // 獲取使用者卡片
   public getUserCards(userId: string): UserCard[] {
+    if (!userId || userId === 'anonymous') {
+      console.warn('無效的用戶 ID:', userId)
+      return []
+    }
     return this.userCards.get(userId) || []
   }
 
@@ -86,6 +90,10 @@ export class CardService {
 
   // 創建使用者卡片
   public createUserCard(userId: string, cardData: Omit<UserCard, 'id' | 'isSystem' | 'userId' | 'createdAt' | 'updatedAt' | 'isSelected'>): UserCard {
+    if (!userId || userId === 'anonymous') {
+      throw new Error('無效的用戶 ID')
+    }
+
     const newCard: UserCard = {
       ...cardData,
       id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -101,12 +109,15 @@ export class CardService {
     }
     this.userCards.get(userId)!.push(newCard)
     this.saveUserCardsToStorage() // 保存數據
-    
     return newCard
   }
 
   // 更新使用者卡片
   public updateUserCard(cardId: string, userId: string, updates: Partial<UserCard>): UserCard | null {
+    if (!userId || userId === 'anonymous') {
+      throw new Error('無效的用戶 ID')
+    }
+
     const userCards = this.userCards.get(userId) || []
     const cardIndex = userCards.findIndex(card => card.id === cardId)
     
@@ -125,6 +136,10 @@ export class CardService {
 
   // 刪除使用者卡片
   public deleteUserCard(cardId: string, userId: string): boolean {
+    if (!userId || userId === 'anonymous') {
+      throw new Error('無效的用戶 ID')
+    }
+
     const userCards = this.userCards.get(userId) || []
     const cardIndex = userCards.findIndex(card => card.id === cardId)
     
@@ -148,6 +163,11 @@ export class CardService {
 
   // 模板選擇相關方法
   public getUserSelections(userId: string): Set<string> {
+    if (!userId || userId === 'anonymous') {
+      console.warn('無效的用戶 ID:', userId)
+      return new Set()
+    }
+
     if (!this.userSelections.has(userId)) {
       // 從 localStorage 載入用戶選擇
       this.loadUserSelectionsFromStorage()
@@ -194,6 +214,10 @@ export class CardService {
   }
 
   public addUserSelection(userId: string, cardId: string): boolean {
+    if (!userId || userId === 'anonymous') {
+      throw new Error('無效的用戶 ID')
+    }
+
     const selections = this.getUserSelections(userId)
     const maxSelections = 5
     
@@ -207,6 +231,10 @@ export class CardService {
   }
 
   public removeUserSelection(userId: string, cardId: string): boolean {
+    if (!userId || userId === 'anonymous') {
+      throw new Error('無效的用戶 ID')
+    }
+
     const selections = this.getUserSelections(userId)
     const result = selections.delete(cardId)
     if (result) {
@@ -216,6 +244,10 @@ export class CardService {
   }
 
   public toggleUserSelection(userId: string, cardId: string): boolean {
+    if (!userId || userId === 'anonymous') {
+      throw new Error('無效的用戶 ID')
+    }
+
     const selections = this.getUserSelections(userId)
     
     if (selections.has(cardId)) {
@@ -227,22 +259,36 @@ export class CardService {
 
   // 獲取模板管理資訊
   public getTemplateManagement(userId: string): TemplateManagement {
-    const allCards = this.getAllCards(userId)
-    const selectedCards = allCards.filter(card => this.getUserSelections(userId).has(card.id))
+    if (!userId || userId === 'anonymous') {
+      return {
+        availableTemplates: [],
+        selectedTemplates: [],
+        maxSelectedTemplates: 5,
+        currentSelectedCount: 0
+      }
+    }
+
+    const availableTemplates = this.getAllCards(userId)
+    const selectedTemplates = this.getSelectedTemplates(userId)
     
     return {
+      availableTemplates,
+      selectedTemplates,
       maxSelectedTemplates: 5,
-      currentSelectedCount: selectedCards.length,
-      availableTemplates: allCards,
-      selectedTemplates: selectedCards
+      currentSelectedCount: selectedTemplates.length
     }
   }
 
-  // 獲取選中的模板（用於貼文生成器）
+  // 獲取用戶選擇的模板
   public getSelectedTemplates(userId: string): BaseCard[] {
-    const selections = this.getUserSelections(userId)
+    if (!userId || userId === 'anonymous') {
+      return []
+    }
+
+    const userSelections = this.getUserSelections(userId)
     const allCards = this.getAllCards(userId)
-    return allCards.filter(card => selections.has(card.id))
+    
+    return allCards.filter(card => userSelections.has(card.id))
   }
 
   // 更新系統模板（管理員功能）

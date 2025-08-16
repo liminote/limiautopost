@@ -1,78 +1,68 @@
 import React, { useState, useEffect } from 'react'
 import { CardService } from '../services/cardService'
 import type { UserCard } from '../types/cards'
+import { useSession } from '../auth/auth'
 
 export default function CardManager() {
+  const session = useSession()
   const [userCards, setUserCards] = useState<UserCard[]>([])
   const [editingCard, setEditingCard] = useState<UserCard | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   const cardService = CardService.getInstance()
 
+  // 獲取當前用戶 ID
+  const currentUserId = session?.email || 'anonymous'
+
   // 載入使用者卡片
   useEffect(() => {
-    loadUserCards()
-  }, [])
+    if (!session) return // 未登入時不載入
+    
+    const loadUserCards = () => {
+      const cards = cardService.getUserCards(currentUserId)
+      setUserCards(cards)
+    }
 
-  const loadUserCards = () => {
-    // TODO: 獲取真實用戶 ID
-    const userId = 'current-user'
-    const cards = cardService.getUserCards(userId)
-    setUserCards(cards)
-  }
+    loadUserCards()
+  }, [session, currentUserId, cardService])
 
   // 創建新卡片
   const handleCreateCard = (cardData: Omit<UserCard, 'id' | 'isSystem' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const userId = 'current-user'
-      const newCard = cardService.createUserCard(userId, cardData)
-      setUserCards([...userCards, newCard])
-      setShowCreateForm(false)
-      
-      // 觸發父組件重新載入模板選擇管理
-      // 這裡需要通知父組件更新模板列表
-      window.dispatchEvent(new CustomEvent('userCardCreated'))
-    } catch (error) {
-      console.error('創建卡片失敗:', error)
-      alert('創建卡片失敗')
-    }
+    if (!session) return
+    
+    const newCard = cardService.createUserCard(currentUserId, cardData)
+    setUserCards(prev => [...prev, newCard])
+    setShowCreateForm(false)
+    
+    // 觸發事件通知其他組件
+    window.dispatchEvent(new CustomEvent('userCardCreated'))
   }
 
   // 更新卡片
   const handleUpdateCard = (cardId: string, updates: Partial<UserCard>) => {
-    try {
-      const userId = 'current-user'
-      const updatedCard = cardService.updateUserCard(cardId, userId, updates)
-      if (updatedCard) {
-        setUserCards(userCards.map(card => 
-          card.id === cardId ? updatedCard : card
-        ))
-        setEditingCard(null)
-        
-        // 觸發父組件重新載入模板選擇管理
-        window.dispatchEvent(new CustomEvent('userCardUpdated'))
-      }
-    } catch (error) {
-      console.error('更新卡片失敗:', error)
-      alert('更新卡片失敗')
+    if (!session) return
+    
+    const updatedCard = cardService.updateUserCard(cardId, currentUserId, updates)
+    if (updatedCard) {
+      setUserCards(prev => prev.map(card => card.id === cardId ? updatedCard : card))
+      setEditingCard(null)
+      
+      // 觸發事件通知其他組件
+      window.dispatchEvent(new CustomEvent('userCardUpdated'))
     }
   }
 
   // 刪除卡片
   const handleDeleteCard = (cardId: string) => {
+    if (!session) return
+    
     if (confirm('確定要刪除這個卡片嗎？刪除後無法復原。')) {
-      try {
-        const userId = 'current-user'
-        const success = cardService.deleteUserCard(cardId, userId)
-        if (success) {
-          setUserCards(userCards.filter(card => card.id !== cardId))
-          
-          // 觸發父組件重新載入模板選擇管理
-          window.dispatchEvent(new CustomEvent('userCardDeleted'))
-        }
-      } catch (error) {
-        console.error('刪除卡片失敗:', error)
-        alert('刪除卡片失敗')
+      const success = cardService.deleteUserCard(cardId, currentUserId)
+      if (success) {
+        setUserCards(prev => prev.filter(card => card.id !== cardId))
+        
+        // 觸發事件通知其他組件
+        window.dispatchEvent(new CustomEvent('userCardDeleted'))
       }
     }
   }
