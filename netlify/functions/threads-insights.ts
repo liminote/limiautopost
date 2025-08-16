@@ -18,37 +18,57 @@ export const handler: Handler = async (event) => {
     const data = await store.get(key, { type: 'json' }) as { access_token?: string } | null
     if (!data?.access_token) return { statusCode: 401, body: 'Missing access token' }
 
-    const fields = [
-      'like_count',
-      'comments_count',
-      'reply_count',
-      'repost_count',
-      'reshare_count',
-      'save_count',
-    ].join(',')
+    const accessToken = data.access_token
 
-    const resp = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(id)}?fields=${fields}&access_token=${encodeURIComponent(data.access_token)}`)
-    const j = await resp.json().catch(()=> ({})) as any
-    if (!resp.ok) {
-      const code = j?.error?.code
-      if (code === 190) {
+    const fetchJson = async (url: string) => {
+      const r = await fetch(url, { headers: { 'user-agent': 'limiautopost/insights' } })
+      const j = await r.json().catch(()=> ({}))
+      return { r, j }
+    }
+
+    const getEdgeCount = async (edgeCandidates: string[]): Promise<number | null> => {
+      for (const edge of edgeCandidates) {
+        const url = `https://graph.threads.net/v1.0/${encodeURIComponent(id)}/${edge}?limit=0&summary=true&access_token=${encodeURIComponent(accessToken)}`
+        const { r, j } = await fetchJson(url)
+        // token 過期
+        if (!r.ok) {
+          const code = j?.error?.code
+          if (code === 190) {
+            return Promise.reject({ tokenExpired: true, detail: j?.error })
+          }
+          // 試下一個 edge 名稱
+          continue
+        }
+        const count = Number(j?.summary?.total_count ?? 0)
+        return isNaN(count) ? 0 : count
+      }
+      return null
+    }
+
+    let likes = 0, comments = 0, shares = 0, saves = 0
+    try {
+      const lc = await getEdgeCount(['likes'])
+      if (lc !== null) likes = lc
+      const cc = await getEdgeCount(['replies','comments'])
+      if (cc !== null) comments = cc
+      const sc = await getEdgeCount(['reposts','reshares','re-shares'])
+      if (sc !== null) shares = sc
+      const svc = await getEdgeCount(['saves','bookmarks'])
+      if (svc !== null) saves = svc
+    } catch (err: any) {
+      if (err?.tokenExpired) {
         return {
           statusCode: 401,
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ ok: false, error: 'TOKEN_EXPIRED', detail: j?.error })
+          body: JSON.stringify({ ok: false, error: 'TOKEN_EXPIRED', detail: err.detail })
         }
       }
       return {
         statusCode: 502,
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ok: false, error: 'UPSTREAM_ERROR', status: resp.status, detail: j })
+        body: JSON.stringify({ ok: false, error: 'UPSTREAM_ERROR', detail: err })
       }
     }
-
-    const likes = Number(j.like_count ?? j.likes ?? 0)
-    const comments = Number(j.comments_count ?? j.reply_count ?? j.replies_count ?? 0)
-    const shares = Number(j.repost_count ?? j.reshare_count ?? j.reposts_count ?? 0)
-    const saves = Number(j.save_count ?? j.saves_count ?? 0)
 
     return {
       statusCode: 200,
