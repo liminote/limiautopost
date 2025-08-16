@@ -161,8 +161,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       clearInterval(scheduleCheckRef.current)
     }
 
-    // 測試用：1分鐘檢查一次，方便調試
-    const checkInterval = 1 * 60 * 1000 // 1分鐘
+    // 暫時停用排程檢查，避免 Function 502 錯誤
+    const checkInterval = 0 // 停用
     console.log(`[排程檢查] 啟動輪詢，間隔：${checkInterval/1000}秒`)
 
     // 啟動輪詢
