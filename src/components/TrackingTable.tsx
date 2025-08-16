@@ -23,17 +23,30 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       r.platform === 'Threads' && 
       r.status === 'scheduled' && 
       r.scheduledAt && 
-      new Date(r.scheduledAt) <= now
+      new Date(r.scheduledAt) <= now &&
+      // 防重複發佈：確保沒有 threadsPostId 和 permalink
+      !r.threadsPostId &&
+      !r.permalink
     )
 
     console.log(`[排程檢查] 找到 ${scheduledPosts.length} 篇過期排程貼文`)
 
     for (const post of scheduledPosts) {
       try {
+        // 再次檢查狀態，避免重複發佈
+        const currentPost = rows.find(x => x.id === post.id)
+        if (!currentPost || 
+            currentPost.status !== 'scheduled' || 
+            currentPost.threadsPostId || 
+            currentPost.permalink) {
+          console.log(`[排程發文] 跳過已處理的貼文：${post.id}`)
+          continue
+        }
+
         console.log(`[排程發文] 開始執行：${post.id}，內容：${post.content.substring(0, 50)}...`)
         setPublishingId(post.id)
         
-        // 更新狀態為發佈中
+        // 更新狀態為發佈中，並鎖定狀態
         updateTracked(post.id, { status: 'publishing' })
         setRows(rows.map(x => x.id === post.id ? { ...x, status: 'publishing' }: x))
         
@@ -138,13 +151,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       return
     }
 
-    // 有排程文章時，立即檢查一次是否有過期的
-    const now = new Date()
-    const hasExpiredPosts = scheduledPosts.some(p => new Date(p.scheduledAt!) <= now)
-    
-    if (hasExpiredPosts) {
-      // 有過期的排程，立即檢查
-      checkScheduledPosts()
+    // 清除之前的輪詢，避免重複
+    if (scheduleCheckRef.current) {
+      clearInterval(scheduleCheckRef.current)
     }
 
     // 固定5分鐘檢查一次，確保準時發佈
