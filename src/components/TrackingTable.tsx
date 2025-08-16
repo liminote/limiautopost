@@ -224,7 +224,16 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       return 
     }
     
-    const iso = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00`).toISOString()
+    // 檢查是否為過去的時間
+    const selectedTime = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00`)
+    const now = new Date()
+    
+    if (selectedTime <= now) {
+      alert('排程時間不能設定為過去的時間，請選擇未來的時間')
+      return
+    }
+    
+    const iso = selectedTime.toISOString()
     updateTracked(row.id, { scheduledAt: iso, status: 'scheduled' })
     setRows(rows.map(x=> x.id===row.id? { ...x, scheduledAt: iso, status: 'scheduled' }: x))
     setScheduleDialog({ show: false, row: null, input: '' })
@@ -702,9 +711,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20 -4-9 -4 20-7z"/></svg>
                           )}
                         </button>
-                        {/* 橘色飛機：排程發佈 - 只在非發佈/發佈中狀態時顯示 */}
-                        {r.status !== 'published' && r.status !== 'publishing' && !r.scheduledAt && (
-                          <button className="icon-btn" title="排程發佈（設定發佈時間）" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
+                        {/* 橘色飛機：排程發佈 - 在排程發佈之前保持顯示，可以重新排程 */}
+                        {r.status !== 'published' && r.status !== 'publishing' && (
+                          <button className="icon-btn" title={r.scheduledAt ? "重新排程（修改發佈時間）" : "排程發佈（設定發佈時間）"} style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20 -4-9 -4 20-7z"/></svg>
                           </button>
                         )}
