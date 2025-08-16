@@ -11,80 +11,106 @@ type TemplateEditData = {
   isSystem: boolean
 }
 
+// 平台名稱映射
+const PLATFORM_NAMES = {
+  threads: 'Threads',
+  instagram: 'Instagram', 
+  facebook: 'Facebook',
+  general: 'General'
+} as const
+
+// 共用樣式
+const INPUT_STYLES = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+
 export default function AIGenerator() {
   const [templates, setTemplates] = useState<TemplateEditData[]>([])
-  const [editingTemplate, setEditingTemplate] = useState<TemplateEditData | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [editState, setEditState] = useState<{
+    template: TemplateEditData | null
+    isOpen: boolean
+    message: string | null
+  }>({
+    template: null,
+    isOpen: false,
+    message: null
+  })
 
   const cardService = CardService.getInstance()
 
   // 載入系統預設模板
   useEffect(() => {
-    const loadSystemTemplates = () => {
-      const systemCards = cardService.getSystemCards()
-      const templateData: TemplateEditData[] = systemCards.map(card => ({
-        id: card.id,
-        platform: card.platform,
-        templateTitle: card.templateTitle,
-        templateFeatures: card.templateFeatures,
-        prompt: card.prompt,
-        isSystem: card.isSystem
-      }))
-      setTemplates(templateData)
-    }
-
-    loadSystemTemplates()
+    const systemCards = cardService.getSystemCards()
+    const templateData: TemplateEditData[] = systemCards.map(card => ({
+      id: card.id,
+      platform: card.platform,
+      templateTitle: card.templateTitle,
+      templateFeatures: card.templateFeatures,
+      prompt: card.prompt,
+      isSystem: card.isSystem
+    }))
+    setTemplates(templateData)
   }, [])
 
   // 開始編輯模板
   const startEdit = (template: TemplateEditData) => {
-    setEditingTemplate({ ...template })
-    setIsEditing(true)
+    setEditState({
+      template: { ...template },
+      isOpen: true,
+      message: null
+    })
   }
 
   // 取消編輯
   const cancelEdit = () => {
-    setEditingTemplate(null)
-    setIsEditing(false)
-    setSaveMessage(null)
+    setEditState({
+      template: null,
+      isOpen: false,
+      message: null
+    })
   }
 
   // 保存模板
   const saveTemplate = () => {
-    if (!editingTemplate) return
+    const { template } = editState
+    if (!template) return
 
     try {
       // 更新本地狀態
       setTemplates(prev => prev.map(t => 
-        t.id === editingTemplate.id ? editingTemplate : t
+        t.id === template.id ? template : t
       ))
       
       // 更新 CardService 中的模板
       cardService.updateSystemTemplate(
-        editingTemplate.id,
-        editingTemplate.platform,
-        editingTemplate.templateTitle,
-        editingTemplate.templateFeatures,
-        editingTemplate.prompt
+        template.id,
+        template.platform,
+        template.templateTitle,
+        template.templateFeatures,
+        template.prompt
       )
       
-      setSaveMessage('模板保存成功！')
-      setIsEditing(false)
-      setEditingTemplate(null)
+      setEditState(prev => ({
+        ...prev,
+        message: '模板保存成功！',
+        isOpen: false,
+        template: null
+      }))
       
       // 3秒後清除成功訊息
-      setTimeout(() => setSaveMessage(null), 3000)
+      setTimeout(() => setEditState(prev => ({ ...prev, message: null })), 3000)
     } catch (error) {
-      setSaveMessage('保存失敗：' + String(error))
+      setEditState(prev => ({ ...prev, message: '保存失敗：' + String(error) }))
     }
   }
 
   // 處理編輯欄位變化
   const handleEditChange = (field: keyof TemplateEditData, value: string) => {
-    if (!editingTemplate) return
-    setEditingTemplate(prev => prev ? { ...prev, [field]: value } : null)
+    setEditState(prev => prev.template ? {
+      ...prev,
+      template: { ...prev.template!, [field]: value }
+    } : prev)
   }
+
+  const { template: editingTemplate, isOpen: isEditing, message: saveMessage } = editState
 
   return (
     <div className="space-y-6">
@@ -123,9 +149,7 @@ export default function AIGenerator() {
               <div>
                 <label className="block text-gray-600 mb-1">平台</label>
                 <div className="p-2 bg-gray-50 rounded border">
-                  {template.platform === 'threads' ? 'Threads' : 
-                   template.platform === 'instagram' ? 'Instagram' : 
-                   template.platform === 'facebook' ? 'Facebook' : 'General'}
+                  {PLATFORM_NAMES[template.platform]}
                 </div>
               </div>
               
@@ -167,14 +191,13 @@ export default function AIGenerator() {
                   平台
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={INPUT_STYLES}
                   value={editingTemplate.platform}
-                  onChange={(e) => handleEditChange('platform', e.target.value as any)}
+                  onChange={(e) => handleEditChange('platform', e.target.value)}
                 >
-                  <option value="threads">Threads</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="general">General</option>
+                  {Object.entries(PLATFORM_NAMES).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -185,7 +208,7 @@ export default function AIGenerator() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={INPUT_STYLES}
                   value={editingTemplate.templateTitle}
                   onChange={(e) => handleEditChange('templateTitle', e.target.value)}
                 />
@@ -197,7 +220,7 @@ export default function AIGenerator() {
                   模板內容
                 </label>
                 <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={INPUT_STYLES}
                   rows={3}
                   value={editingTemplate.templateFeatures}
                   onChange={(e) => handleEditChange('templateFeatures', e.target.value)}
@@ -210,7 +233,7 @@ export default function AIGenerator() {
                   模板 Prompt
                 </label>
                 <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={INPUT_STYLES}
                   rows={5}
                   value={editingTemplate.prompt}
                   onChange={(e) => handleEditChange('prompt', e.target.value)}

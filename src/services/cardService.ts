@@ -176,27 +176,23 @@ export class CardService {
     templateFeatures: string,
     prompt: string
   ): boolean {
-    try {
-      // 找到對應的系統模板
-      const systemCard = defaultSystemCards.find(card => card.id === cardId)
-      if (!systemCard) {
-        console.warn(`找不到系統模板：${cardId}`)
-        return false
-      }
-
-      // 更新模板內容
-      systemCard.platform = platform
-      systemCard.templateTitle = templateTitle
-      systemCard.templateFeatures = templateFeatures
-      systemCard.prompt = prompt
-      systemCard.updatedAt = new Date()
-
-      console.log(`系統模板更新成功：${cardId}`)
-      return true
-    } catch (error) {
-      console.error('更新系統模板失敗：', error)
+    const systemCard = defaultSystemCards.find(card => card.id === cardId)
+    if (!systemCard) {
+      console.warn(`找不到系統模板：${cardId}`)
       return false
     }
+
+    // 更新模板內容
+    Object.assign(systemCard, {
+      platform,
+      templateTitle,
+      templateFeatures,
+      prompt,
+      updatedAt: new Date()
+    })
+
+    console.log(`系統模板更新成功：${cardId}`)
+    return true
   }
 }
 
