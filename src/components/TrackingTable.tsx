@@ -350,12 +350,19 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               </td>
               <td className="px-3 py-2 border-t align-top" style={{ minWidth: '8ch' }}>
                 {(() => {
-                  const statusText = r.status === 'failed' ? '失敗' : (r.status === 'published' ? '成功' : '草稿')
+                  const statusText = r.status === 'failed' ? '失敗' : 
+                                   r.status === 'published' ? '成功' : 
+                                   r.status === 'scheduled' ? '排程' : 
+                                   r.status === 'publishing' ? '發佈中' : '草稿'
                   const style = r.status === 'failed'
-                    ? { color: '#f59e0b', background: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)' }
+                    ? { color: '#dc2626', background: 'rgba(220,38,38,0.10)', borderColor: 'rgba(220,38,38,0.30)' } // 酒紅色
                     : r.status === 'published'
-                      ? { color: '#0ea5a1', background: 'rgba(14,165,160,0.10)', borderColor: 'rgba(14,165,160,0.30)' }
-                      : { color: '#6b7280', background: 'rgba(107,114,128,0.10)', borderColor: 'rgba(107,114,128,0.20)' }
+                      ? { color: '#0ea5a1', background: 'rgba(14,165,160,0.10)', borderColor: 'rgba(14,165,160,0.30)' } // 藍綠色
+                      : r.status === 'scheduled'
+                        ? { color: '#f59e0b', background: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)' } // 橘色
+                        : r.status === 'publishing'
+                          ? { color: '#3b82f6', background: 'rgba(59,130,246,0.10)', borderColor: 'rgba(59,130,246,0.30)' } // 藍色
+                          : { color: '#6b7280', background: 'rgba(107,114,128,0.10)', borderColor: 'rgba(107,114,128,0.20)' } // 灰色
                   return (
                     <span className="ui-chip" title={r.publishError || ''} style={style as any}>{statusText}</span>
                   )
