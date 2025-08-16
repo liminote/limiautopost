@@ -205,7 +205,7 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
-            <option value="general">通用</option>
+            <option value="general">不指定</option>
             <option value="threads">Threads</option>
             <option value="instagram">Instagram</option>
             <option value="facebook">Facebook</option>
@@ -325,7 +325,7 @@ function EditCardForm({ card, onSubmit, onCancel }: EditCardFormProps) {
             onChange={(e) => setFormData({ ...formData, platform: e.target.value as any })}
             className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="general">通用</option>
+            <option value="general">不指定</option>
             <option value="threads">Threads</option>
             <option value="instagram">Instagram</option>
             <option value="facebook">Facebook</option>

@@ -9,6 +9,8 @@ export class CardService {
   private constructor() {
     // 初始化使用者選擇（預設選擇系統模板）
     this.initializeDefaultSelections()
+    // 從 localStorage 載入用戶卡片數據
+    this.loadUserCardsFromStorage()
   }
 
   public static getInstance(): CardService {
@@ -25,6 +27,36 @@ export class CardService {
         this.addUserSelection('default', card.id)
       }
     })
+  }
+
+  // 從 localStorage 載入用戶卡片數據
+  private loadUserCardsFromStorage() {
+    try {
+      const stored = localStorage.getItem('limiautopost:userCards')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        this.userCards = new Map(Object.entries(parsed).map(([userId, cards]) => [
+          userId, 
+          (cards as any[]).map(card => ({
+            ...card,
+            createdAt: new Date(card.createdAt),
+            updatedAt: new Date(card.updatedAt)
+          }))
+        ]))
+      }
+    } catch (error) {
+      console.warn('載入用戶卡片數據失敗:', error)
+    }
+  }
+
+  // 保存用戶卡片數據到 localStorage
+  private saveUserCardsToStorage() {
+    try {
+      const data = Object.fromEntries(this.userCards)
+      localStorage.setItem('limiautopost:userCards', JSON.stringify(data))
+    } catch (error) {
+      console.warn('保存用戶卡片數據失敗:', error)
+    }
   }
 
   // 獲取所有可用卡片（系統 + 使用者）
@@ -68,6 +100,7 @@ export class CardService {
       this.userCards.set(userId, [])
     }
     this.userCards.get(userId)!.push(newCard)
+    this.saveUserCardsToStorage() // 保存數據
     
     return newCard
   }
@@ -86,6 +119,7 @@ export class CardService {
     }
     
     userCards[cardIndex] = updatedCard
+    this.saveUserCardsToStorage() // 保存數據
     return updatedCard
   }
 
@@ -99,6 +133,7 @@ export class CardService {
     userCards.splice(cardIndex, 1)
     // 同時移除選擇狀態
     this.removeUserSelection(userId, cardId)
+    this.saveUserCardsToStorage() // 保存數據
     return true
   }
 
@@ -114,11 +149,48 @@ export class CardService {
   // 模板選擇相關方法
   public getUserSelections(userId: string): Set<string> {
     if (!this.userSelections.has(userId)) {
-      // 預設選擇系統模板
-      const defaultSelections = new Set(defaultSystemCards.filter(card => card.isSelected).map(card => card.id))
-      this.userSelections.set(userId, defaultSelections)
+      // 從 localStorage 載入用戶選擇
+      this.loadUserSelectionsFromStorage()
+      
+      // 如果還是沒有，使用預設選擇系統模板
+      if (!this.userSelections.has(userId)) {
+        const defaultSelections = new Set(defaultSystemCards.filter(card => card.isSelected).map(card => card.id))
+        this.userSelections.set(userId, defaultSelections)
+        this.saveUserSelectionsToStorage()
+      }
     }
     return this.userSelections.get(userId)!
+  }
+
+  // 從 localStorage 載入用戶選擇
+  private loadUserSelectionsFromStorage() {
+    try {
+      const stored = localStorage.getItem('limiautopost:userSelections')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        this.userSelections = new Map(Object.entries(parsed).map(([uid, selections]) => [
+          uid, 
+          new Set(selections as string[])
+        ]))
+      }
+    } catch (error) {
+      console.warn('載入用戶選擇數據失敗:', error)
+    }
+  }
+
+  // 保存用戶選擇到 localStorage
+  private saveUserSelectionsToStorage() {
+    try {
+      const data = Object.fromEntries(
+        Array.from(this.userSelections.entries()).map(([userId, selections]) => [
+          userId, 
+          Array.from(selections)
+        ])
+      )
+      localStorage.setItem('limiautopost:userSelections', JSON.stringify(data))
+    } catch (error) {
+      console.warn('保存用戶選擇數據失敗:', error)
+    }
   }
 
   public addUserSelection(userId: string, cardId: string): boolean {
@@ -130,12 +202,17 @@ export class CardService {
     }
     
     selections.add(cardId)
+    this.saveUserSelectionsToStorage()
     return true
   }
 
   public removeUserSelection(userId: string, cardId: string): boolean {
     const selections = this.getUserSelections(userId)
-    return selections.delete(cardId)
+    const result = selections.delete(cardId)
+    if (result) {
+      this.saveUserSelectionsToStorage()
+    }
+    return result
   }
 
   public toggleUserSelection(userId: string, cardId: string): boolean {

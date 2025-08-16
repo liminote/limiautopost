@@ -178,7 +178,7 @@ export default function UserSettings(){
                   key={template.id} 
                   className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${
                     isSelected 
-                      ? 'border-blue-300 bg-blue-50 shadow-sm' 
+                      ? 'border-[color:var(--yinmn-blue)] bg-[color:var(--yinmn-blue-300)] shadow-sm' 
                       : 'border-gray-200 bg-white hover:bg-gray-50'
                   }`}
                 >
@@ -188,30 +188,30 @@ export default function UserSettings(){
                     checked={isSelected}
                     onChange={() => toggleTemplateSelection(template.id)}
                     disabled={!isSelected && selectedTemplates.length >= maxSelections}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-[color:var(--yinmn-blue)] border-gray-300 rounded focus:ring-[color:var(--yinmn-blue)]"
                   />
                   <label htmlFor={`template-${template.id}`} className="flex-1 cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className={`font-medium ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                        <h3 className={`font-medium ${isSelected ? 'text-[color:var(--yinmn-blue)]' : 'text-gray-900'}`}>
                           {template.templateTitle}
                         </h3>
-                        <p className={`text-sm ${isSelected ? 'text-blue-700' : 'text-gray-600'}`}>
+                        <p className={`text-xs ${isSelected ? 'text-[color:var(--yinmn-blue-600)]' : 'text-gray-600'}`}>
                           {template.templateFeatures}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs px-2 py-1 rounded ${
                           isSelected 
-                            ? 'bg-blue-200 text-blue-800' 
-                            : 'bg-blue-100 text-blue-800'
+                            ? 'bg-[color:var(--yinmn-blue)] text-white' 
+                            : 'bg-[color:var(--yinmn-blue-300)] text-[color:var(--yinmn-blue)]'
                         }`}>
                           {template.platform}
                         </span>
                         {template.isSystem && (
                           <span className={`text-xs px-2 py-1 rounded ${
                             isSelected 
-                              ? 'bg-blue-100 text-blue-700' 
+                              ? 'bg-[color:var(--yinmn-blue-300)] text-[color:var(--yinmn-blue)]' 
                               : 'bg-gray-100 text-gray-600'
                           }`}>
                             系統預設
