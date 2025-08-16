@@ -130,7 +130,7 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
     }
   })
   
-  const created = items.map(it => {
+  const created = items.map((it, index) => {
     // 若標題相同，沿用既有的 articleId（同一篇原文不換編號）
     const titleKey = (it.articleTitle || '').trim()
     const foundSameTitle = titleKey
@@ -154,14 +154,35 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       // 為手動新增的卡片生成唯一的 branchCode
       const letter = normLetter(it.platform)
       const key = `${resolvedArticleId}-${letter}`
-      const next = (counters.get(key) || 0) + 1
+      
+      // 使用更智能的計數邏輯：從當前 counters 開始，逐步遞增
+      let next = counters.get(key) || 0
+      
+      // 檢查這個 branchCode 是否已經被使用
+      const usedBranchCodes = new Set<string>()
+      // 從既有資料收集已使用的 branchCode
+      list.forEach(x => {
+        if (x.articleId === resolvedArticleId && x.branchCode.startsWith(letter)) {
+          usedBranchCodes.add(x.branchCode)
+        }
+      })
+      // 從當前批次已生成的 branchCode 收集
+      created.slice(0, index).forEach(x => {
+        if (x && x.articleId === resolvedArticleId && x.branchCode.startsWith(letter)) {
+          usedBranchCodes.add(x.branchCode)
+        }
+      })
+      
+      // 找到下一個可用的 branchCode
+      do {
+        next++
+        branchCode = `${letter}${next}`
+      } while (usedBranchCodes.has(branchCode))
+      
+      // 更新 counters
       counters.set(key, next)
-      branchCode = `${letter}${next}`
       
-      console.log(`[MAN卡片] 生成 branchCode: ${branchCode}，counters[${key}]: ${next}`)
-      
-      // 更新 platformCounts，確保後續卡片不會重複
-      platformCounts.set(key, Math.max(platformCounts.get(key) || 0, next))
+      console.log(`[MAN卡片] 生成 branchCode: ${branchCode}，counters[${key}]: ${next}，已使用: ${Array.from(usedBranchCodes).join(', ')}`)
     }
     const record: TrackedPost = {
       id: crypto.randomUUID(),
