@@ -108,6 +108,8 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
     const key = `${x.articleId}-${letter}`
     counters.set(key, Math.max(counters.get(key) || 0, n))
   }
+  
+  console.log(`[counters初始化] 從既有資料建立的計數器:`, Object.fromEntries(counters))
 
   const email = getSession()?.email || ''
   const seenPostIds = new Set<string>()
@@ -156,6 +158,8 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       counters.set(key, next)
       branchCode = `${letter}${next}`
       
+      console.log(`[MAN卡片] 生成 branchCode: ${branchCode}，counters[${key}]: ${next}`)
+      
       // 更新 platformCounts，確保後續卡片不會重複
       platformCounts.set(key, Math.max(platformCounts.get(key) || 0, next))
     }
@@ -177,9 +181,11 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
     }
     // 去重規則更新：以 postId（articleId-branchCode）為唯一鍵，允許同標題/內容的多變體（例如 T1/T2）
     if (list.some(x => x.postId === record.postId) || seenPostIds.has(record.postId)) {
+      console.warn(`[去重過濾] 卡片被過濾：${record.postId}，原因：重複的 postId`)
       return null as unknown as TrackedPost
     }
     seenPostIds.add(record.postId)
+    console.log(`[新增卡片] 成功：${record.postId}，branchCode: ${record.branchCode}`)
     return record
   })
   const newList = [...created.filter(Boolean), ...list]
