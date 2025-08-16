@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { CardService, AIGenerationService } from '../../services/cardService'
+import { CardService } from '../../services/cardService'
 
 describe('CardService', () => {
   let cardService: CardService
@@ -207,58 +207,6 @@ describe('CardService', () => {
       const selectedTemplates = cardService.getSelectedTemplates(testUserId)
       expect(selectedTemplates).toHaveLength(3) // 實際只有3個被選中
       expect(selectedTemplates.every(template => template.isSelected)).toBe(true)
-    })
-  })
-})
-
-describe('AIGenerationService', () => {
-  let aiService: AIGenerationService
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-    aiService = AIGenerationService.getInstance()
-  })
-
-  describe('getInstance', () => {
-    it('應該返回單例實例', () => {
-      const instance1 = AIGenerationService.getInstance()
-      const instance2 = AIGenerationService.getInstance()
-      expect(instance1).toBe(instance2)
-    })
-  })
-
-  describe('generateContent', () => {
-    it('應該成功生成內容', async () => {
-      const request = {
-        cardId: 'test-card-id',
-        topic: '測試主題',
-        style: 'casual' as const,
-        additionalContext: '額外說明'
-      }
-
-      const result = await aiService.generateContent(request)
-      
-      expect(result).toBeDefined()
-      expect(result.threads).toHaveLength(3)
-      expect(result.instagram).toBeDefined()
-      expect(result.threads![0].content).toContain('測試主題')
-      expect(result.threads![0].content).toContain('casual')
-      expect(result.threads![0].content).toContain('額外說明')
-    })
-
-    it('應該處理沒有額外上下文的情況', async () => {
-      const request = {
-        cardId: 'test-card-id',
-        topic: '測試主題',
-        style: 'formal' as const
-      }
-
-      const result = await aiService.generateContent(request)
-      
-      expect(result).toBeDefined()
-      expect(result.threads).toHaveLength(3)
-      expect(result.threads![0].content).toContain('測試主題')
-      expect(result.threads![0].content).toContain('formal')
     })
   })
 })

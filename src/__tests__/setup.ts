@@ -9,7 +9,7 @@ const localStorageMock = {
   clear: vi.fn(),
   length: 0,
   key: vi.fn(),
-}
+} as Storage
 global.localStorage = localStorageMock
 
 // Mock fetch
