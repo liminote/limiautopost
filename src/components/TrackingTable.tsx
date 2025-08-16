@@ -612,15 +612,37 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                輸入排程時間（YYYY-MM-DD HH:mm）
+                選擇排程時間
               </label>
-              <input
-                type="text"
-                value={scheduleDialog.input}
-                onChange={(e) => setScheduleDialog(prev => ({ ...prev, input: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="2025-01-20 15:30"
-              />
+              <div className="flex space-x-3">
+                {/* 日期選擇器 */}
+                <div className="flex-1">
+                  <input
+                    type="date"
+                    value={scheduleDialog.input.split(' ')[0]}
+                    onChange={(e) => {
+                      const date = e.target.value
+                      const time = scheduleDialog.input.split(' ')[1] || '12:00'
+                      setScheduleDialog(prev => ({ ...prev, input: `${date} ${time}` }))
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                {/* 時間選擇器 */}
+                <div className="flex-1">
+                  <input
+                    type="time"
+                    value={scheduleDialog.input.split(' ')[1] || '12:00'}
+                    onChange={(e) => {
+                      const date = scheduleDialog.input.split(' ')[0]
+                      const time = e.target.value
+                      setScheduleDialog(prev => ({ ...prev, input: `${date} ${time}` }))
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* 紅色提示文字 */}
