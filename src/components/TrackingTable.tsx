@@ -527,8 +527,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                     {/* Threads 貼文：顯示藍色飛機（立即發佈）和橘色飛機（排程發佈） */}
                     {r.platform === 'Threads' && (
                       <>
-                        {/* 藍色飛機：立即發佈 */}
-                        <button className="icon-btn" title={publishingId === r.id ? '發佈中…' : '立即發佈到 Threads'} style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id || r.status === 'published'} onClick={async ()=>{
+                        {/* 藍色按鈕：立即發佈 */}
+                        <button className="icon-btn" title={publishingId === r.id ? '發佈中…' : '立即發佈到 Threads'} style={{ color: 'var(--yinmn-blue)', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id || r.status === 'published'} onClick={async ()=>{
                           // 防重複發佈檢查
                           if (r.status === 'published') {
                             alert('此貼文已經發佈，無法重複發佈')
@@ -717,7 +717,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         </button>
                         {/* 橘色飛機：排程發佈 - 在排程發佈之前保持顯示，可以重新排程 */}
                         {r.status !== 'published' && r.status !== 'publishing' && (
-                          <button className="icon-btn" title={r.scheduledAt ? "重新排程（修改發佈時間）" : "排程發佈（設定發佈時間）"} style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
+                          <button className="icon-btn" title={r.scheduledAt ? "重新排程（修改發佈時間）" : "排程發佈（設定發佈時間）"} style={{ color:'#f59e0b', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
                             <span>⏰</span>
                           </button>
                         )}
