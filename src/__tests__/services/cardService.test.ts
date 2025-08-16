@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { CardService, AIGenerationService } from '../../services/cardService'
-import type { UserCard } from '../../types/cards'
 
 describe('CardService', () => {
   let cardService: CardService
