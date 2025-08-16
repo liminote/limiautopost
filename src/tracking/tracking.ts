@@ -139,34 +139,12 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       const letter = normLetter(it.platform)
       const key = `${resolvedArticleId}-${letter}`
       
-      // 使用更智能的計數邏輯：從當前 counters 開始，逐步遞增
-      let next = counters.get(key) || 0
-      
-      // 檢查這個 branchCode 是否已經被使用
-      const usedBranchCodes = new Set<string>()
-      // 從既有資料收集已使用的 branchCode
-      list.forEach(x => {
-        if (x.articleId === resolvedArticleId && x.branchCode.startsWith(letter)) {
-          usedBranchCodes.add(x.branchCode)
-        }
-      })
-      // 從當前批次已生成的 branchCode 收集
-      created.slice(0, index).forEach(x => {
-        if (x && x.articleId === resolvedArticleId && x.branchCode.startsWith(letter)) {
-          usedBranchCodes.add(x.branchCode)
-        }
-      })
-      
-      // 找到下一個可用的 branchCode
-      do {
-        next++
-        branchCode = `${letter}${next}`
-      } while (usedBranchCodes.has(branchCode))
-      
-      // 更新 counters
+      // 簡化的計數邏輯：直接使用 counters
+      const next = (counters.get(key) || 0) + 1
       counters.set(key, next)
+      branchCode = `${letter}${next}`
       
-      console.log(`[MAN卡片] 生成 branchCode: ${branchCode}，counters[${key}]: ${next}，已使用: ${Array.from(usedBranchCodes).join(', ')}`)
+      console.log(`[MAN卡片] 生成 branchCode: ${branchCode}，counters[${key}]: ${next}`)
     }
     const record: TrackedPost = {
       id: crypto.randomUUID(),
