@@ -710,13 +710,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                             // 簡易 spinner（無動畫依然可辨識）
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" opacity=".3"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>
                           ) : (
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l -7 20 -4 -9 -4 20 -7z"/></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-4 20-7z"/></svg>
                           )}
                         </button>
                         {/* 橘色飛機：排程發佈 - 在排程發佈之前保持顯示，可以重新排程 */}
                         {r.status !== 'published' && r.status !== 'publishing' && (
                           <button className="icon-btn" title={r.scheduledAt ? "重新排程（修改發佈時間）" : "排程發佈（設定發佈時間）"} style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l -7 20 -4 -9 -4 20 -7z"/></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-4 20-7z"/></svg>
                           </button>
                         )}
                       </>
