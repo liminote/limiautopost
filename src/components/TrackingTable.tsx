@@ -118,7 +118,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     }, 5 * 60 * 1000)
     
     return () => clearInterval(interval)
-  }, []) // 空依賴，只執行一次
+  }, [checkScheduledPosts]) // 加入 checkScheduledPosts 依賴
 
   // 檢查卡住的「發佈中」狀態，防止狀態卡住
   useEffect(() => {
