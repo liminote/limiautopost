@@ -301,77 +301,87 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
                       </button>
                     )}
+                    {/* Threads 貼文：顯示藍色飛機（立即發佈）和橘色飛機（排程發佈） */}
                     {r.platform === 'Threads' && (
-                    <button className="icon-btn" title={publishingId === r.id ? '發佈中…' : '發佈到 Threads'} style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id} onClick={async ()=>{
-                      const text = (r.content || '').trim()
-                      if (!text) { alert('內容為空，無法發佈'); return }
-                      try {
-                        setPublishingId(r.id)
-                        updateTracked(r.id, { status: 'publishing' })
-                        setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing' }: x))
-                        const j = await publishWithRetry(text)
-                        if (!j.ok) {
-                          const t = j.errorText || 'unknown'
-                          // 若是部署切換或 HTML 錯頁，維持發佈中並背景輪詢最新一篇，若 10 秒內抓到新貼文，視為成功
-                          if (/deployment failed/i.test(t) || /<html/i.test(t) || /page not found/i.test(t)) {
-                            updateTracked(r.id, { status: 'publishing', publishError: undefined })
-                            setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing', publishError: undefined }: x))
-                            try {
-                              const start = Date.now()
-                              while (Date.now() - start < 10_000) {
-                                const latest = await fetch('/api/threads/latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
-                                const link = latest?.permalink
-                                const pid = latest?.id
-                                if (link && pid) {
-                                  const publishedAt = r.publishDate || nowYMDHM()
-                                  updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt })
-                                  setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt }: x))
-                                  return
-                                }
-                                await sleep(1200)
-                              }
-                            } catch {}
-                            return
-                          }
-                          updateTracked(r.id, { status: 'failed', publishError: t })
-                          setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: t }: x))
-                          alert('發佈失敗：' + t)
-                          return
-                        }
-                        const confirmed = (j as any).confirmed === true || !!j.permalink
-                        const publishedAt = confirmed ? (r.publishDate || nowYMDHM()) : undefined
-                        updateTracked(r.id, { status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined, publishDate: publishedAt })
-                        setRows(rows.map(x=> x.id===r.id? { ...x, status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource, publishDate: publishedAt ?? x.publishDate }: x))
-                        if (confirmed) {
-                          alert(`已發佈（ID: ${j.id || '未知'}）`)
-                        } else {
-                          // 背景輪詢補確認
-                          const start = Date.now()
+                      <>
+                        {/* 藍色飛機：立即發佈 */}
+                        <button className="icon-btn" title={publishingId === r.id ? '發佈中…' : '立即發佈到 Threads'} style={{ background: 'var(--yinmn-blue)', color: '#fff', borderColor: 'var(--yinmn-blue)' }} disabled={publishingId === r.id} onClick={async ()=>{
+                          const text = (r.content || '').trim()
+                          if (!text) { alert('內容為空，無法發佈'); return }
                           try {
-                            while (Date.now() - start < 12_000) {
-                              const latest = await fetch('/api/threads/latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
-                              const link = latest?.permalink
-                              const pid = latest?.id
-                              if (pid && link && (!j.id || String(pid) === String(j.id))) {
-                                const publishedAt2 = r.publishDate || nowYMDHM()
-                                updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt2 })
-                                setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt2 }: x))
-                                break
+                            setPublishingId(r.id)
+                            updateTracked(r.id, { status: 'publishing' })
+                            setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing' }: x))
+                            const j = await publishWithRetry(text)
+                            if (!j.ok) {
+                              const t = j.errorText || 'unknown'
+                              // 若是部署切換或 HTML 錯頁，維持發佈中並背景輪詢最新一篇，若 10 秒內抓到新貼文，視為成功
+                              if (/deployment failed/i.test(t) || /<html/i.test(t) || /page not found/i.test(t)) {
+                                updateTracked(r.id, { status: 'publishing', publishError: undefined })
+                                setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing', publishError: undefined }: x))
+                                try {
+                                  const start = Date.now()
+                                  while (Date.now() - start < 10_000) {
+                                    const latest = await fetch('/api/threads/latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
+                                    const link = latest?.permalink
+                                    const pid = latest?.id
+                                    if (link && pid) {
+                                      const publishedAt = r.publishDate || nowYMDHM()
+                                      updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt })
+                                      setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt }: x))
+                                      return
+                                    }
+                                    await sleep(1200)
+                                  }
+                                } catch {}
+                                return
                               }
-                              await sleep(1200)
+                              updateTracked(r.id, { status: 'failed', publishError: t })
+                              setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: t }: x))
+                              alert('發佈失敗：' + t)
+                              return
                             }
-                          } catch {}
-                        }
-                      } catch { alert('發佈失敗：網路錯誤') }
-                      finally { setPublishingId(null) }
-                    }}>
-                      {publishingId === r.id ? (
-                        // 簡易 spinner（無動畫依然可辨識）
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" opacity=".3"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                      )}
-                    </button>
+                            const confirmed = (j as any).confirmed === true || !!j.permalink
+                            const publishedAt = confirmed ? (r.publishDate || nowYMDHM()) : undefined
+                            updateTracked(r.id, { status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined, publishDate: publishedAt })
+                            setRows(rows.map(x=> x.id===r.id? { ...x, status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource, publishDate: publishedAt ?? x.publishDate }: x))
+                            if (confirmed) {
+                              alert(`已發佈（ID: ${j.id || '未知'}）`)
+                            } else {
+                              // 背景輪詢補確認
+                              const start = Date.now()
+                              try {
+                                while (Date.now() - start < 12_000) {
+                                  const latest = await fetch('/api/threads/latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
+                                  const link = latest?.permalink
+                                  const pid = latest?.id
+                                  if (pid && link && (!j.id || String(pid) === String(j.id))) {
+                                    const publishedAt2 = r.publishDate || nowYMDHM()
+                                    updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt2 })
+                                    setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt2 }: x))
+                                    break
+                                  }
+                                  await sleep(1200)
+                                }
+                              } catch {}
+                            }
+                          } catch { alert('發佈失敗：網路錯誤') }
+                          finally { setPublishingId(null) }
+                        }}>
+                          {publishingId === r.id ? (
+                            // 簡易 spinner（無動畫依然可辨識）
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" opacity=".3"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                          )}
+                        </button>
+                        {/* 橘色飛機：排程發佈 - 只在非發佈/發佈中狀態時顯示 */}
+                        {r.status !== 'published' && r.status !== 'publishing' && (
+                          <button className="icon-btn" title="排程發佈（設定發佈時間）" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-4 20-7z"/></svg>
+                          </button>
+                        )}
+                      </>
                     )}
                     {import.meta.env.DEV && (
                       <button
@@ -391,7 +401,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 )}
               </td>
               <td className="px-3 py-2 border-t align-top">
-                <span className="text-gray-700">{r.publishDate || (r.scheduledAt ? formatLocal(r.scheduledAt) : '-')}</span>
+                <span className="text-gray-700">
+                  {r.scheduledAt ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate || '-')}
+                </span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
@@ -451,11 +463,6 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                           : (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>)}
                       </button>
                     </span>
-                  )}
-                  {(r.status !== 'publishing' && r.status !== 'published') && (
-                  <button className="icon-btn" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} title="排程發佈（設定發佈時間）" onClick={()=> openScheduleDialog(r)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                  </button>
                   )}
                   <button className="icon-btn icon-ghost" title="移除" onClick={()=> { if (confirm('刪除後無法復原，你確定要刪除？')) { removeTracked(r.id); setRows(rows.filter(x=>x.id!==r.id)) } }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
