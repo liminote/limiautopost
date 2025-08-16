@@ -69,6 +69,10 @@ export default function GeneratedCard({
           </select>
         )}
         <textarea ref={textareaRef} className="textarea text-xs resize-none" value={card.content} onChange={handleChange} rows={1} />
+        {/* 字元計數 */}
+        <div className="text-right">
+          <span className="text-xs text-gray-500">{card.content.length} 字元</span>
+        </div>
       </div>
     </div>
   )

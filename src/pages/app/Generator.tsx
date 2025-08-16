@@ -120,20 +120,7 @@ export default function Generator() {
     try { await navigator.clipboard.writeText(content); alert('已複製到剪貼簿') } catch { alert('複製失敗') }
   }
 
-  const addManual = () => {
-    setCards(prev => ([
-      { id: crypto.randomUUID(), platform: 'Threads', label: '手動新增', content: '', checked: false, code: 'MAN' },
-      ...prev
-    ]))
-  }
-  
-  // 新增不同平台的卡片
-  const addManualWithPlatform = (platform: 'Threads' | 'Instagram' | 'Facebook') => {
-    setCards(prev => ([
-      { id: crypto.randomUUID(), platform, label: `手動新增 - ${platform}`, content: '', checked: false, code: 'MAN' },
-      ...prev
-    ]))
-  }
+
 
   const onAddToTracking = () => {
     console.log('[onAddToTracking] 開始執行')
@@ -182,7 +169,6 @@ export default function Generator() {
             <textarea className="mt-1 textarea w-full text-sm" style={{ height: '20rem' }} value={article} onChange={e=>setArticle(e.target.value)} placeholder="貼上完整長文…" />
           </div>
           <div className="flex gap-2">
-            <button className="btn btn-ghost text-gray-500 cursor-not-allowed" title="即將推出" disabled>個人化風格設定</button>
             <button className="ml-auto btn btn-primary disabled:opacity-50" disabled={!article || generating} onClick={onGenerate}>
               {generating ? '生成中…' : '開始生成貼文'}
             </button>
@@ -203,12 +189,7 @@ export default function Generator() {
         ) : (
            <div className="grid grid-cols-1 gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex gap-2">
-                <button className="btn btn-outline text-sm" onClick={addManual}>＋ Threads</button>
-                <button className="btn btn-outline text-sm" onClick={() => addManualWithPlatform('Instagram')}>＋ Instagram</button>
-                <button className="btn btn-outline text-sm" onClick={() => addManualWithPlatform('Facebook')}>＋ Facebook</button>
-              </div>
-              <div className="ml-auto mr-5 flex items-center gap-3">
+              <div className="ml-auto flex items-center gap-3">
                 <button
                   className="text-xs text-gray-600 hover:text-gray-900"
                   onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: true })))}
@@ -245,17 +226,7 @@ export default function Generator() {
         </button>
       )}
       
-      {/* 測試按鈕 - 暫時加入來診斷問題 */}
-      <button
-        className="btn btn-secondary shadow-lg fixed bottom-6 left-6 z-50"
-        onClick={() => {
-          console.log('[測試] 按鈕點擊測試')
-          console.log('[測試] cards:', cards)
-          console.log('[測試] anyChecked:', anyChecked)
-        }}
-      >
-        測試按鈕
-      </button>
+
     </div>
   )
 }
