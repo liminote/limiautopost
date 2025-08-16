@@ -409,7 +409,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               </td>
               <td className="px-3 py-2 border-t align-top">
                 <span className="text-gray-700">
-                  {r.scheduledAt ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate || '-')}
+                  {r.scheduledAt && r.status !== 'published' && r.status !== 'publishing' ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate || '-')}
                 </span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
