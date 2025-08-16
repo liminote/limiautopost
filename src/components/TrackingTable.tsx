@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState, useEffect, useCallback } from 'react'
 import TagInput from './TagInput'
 import { getTracked, removeTracked, updateTracked, type TrackedPost } from '../tracking/tracking'
 // import removed: mock metrics no longer used
@@ -13,6 +13,78 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [syncingId, setSyncingId] = useState<string | null>(null)
+  const scheduleCheckRef = useRef<number | null>(null)
+
+  // 檢查排程發文
+  const checkScheduledPosts = useCallback(async () => {
+    const now = new Date()
+    const scheduledPosts = rows.filter(r => 
+      r.platform === 'Threads' && 
+      r.status === 'scheduled' && 
+      r.scheduledAt && 
+      new Date(r.scheduledAt) <= now
+    )
+
+    for (const post of scheduledPosts) {
+      try {
+        console.log(`執行排程發文：${post.id}`)
+        setPublishingId(post.id)
+        
+        // 更新狀態為發佈中
+        updateTracked(post.id, { status: 'publishing' })
+        setRows(rows.map(x => x.id === post.id ? { ...x, status: 'publishing' } : x))
+        
+        // 執行發佈
+        const j = await publishWithRetry(post.content)
+        if (j.ok) {
+          const publishedAt = nowYMDHM()
+          updateTracked(post.id, { 
+            status: 'published', 
+            threadsPostId: j.id, 
+            permalink: j.permalink, 
+            permalinkSource: j.permalink ? 'auto' : undefined, 
+            publishDate: publishedAt,
+            scheduledAt: undefined // 清除排程時間
+          })
+          setRows(rows.map(x => x.id === post.id ? { 
+            ...x, 
+            status: 'published', 
+            threadsPostId: j.id, 
+            permalink: j.permalink, 
+            permalinkSource: j.permalink ? 'auto' : x.permalinkSource, 
+            publishDate: publishedAt,
+            scheduledAt: undefined
+          } : x))
+          console.log(`排程發文成功：${post.id}`)
+        } else {
+          updateTracked(post.id, { status: 'failed', publishError: j.errorText })
+          setRows(rows.map(x => x.id === post.id ? { ...x, status: 'failed', publishError: j.errorText } : x))
+          console.error(`排程發文失敗：${post.id}`, j.errorText)
+        }
+      } catch (error) {
+        console.error(`排程發文錯誤：${post.id}`, error)
+        updateTracked(post.id, { status: 'failed', publishError: String(error) })
+        setRows(rows.map(x => x.id === post.id ? { ...x, status: 'failed', publishError: String(error) } : x))
+      } finally {
+        setPublishingId(null)
+      }
+    }
+  }, [rows, setRows])
+
+  // 啟動排程檢查
+  useEffect(() => {
+    // 立即檢查一次
+    checkScheduledPosts()
+    
+    // 每分鐘檢查一次
+    scheduleCheckRef.current = window.setInterval(checkScheduledPosts, 60 * 1000)
+    
+    return () => {
+      if (scheduleCheckRef.current) {
+        clearInterval(scheduleCheckRef.current)
+      }
+    }
+  }, [checkScheduledPosts])
 
   const openScheduleDialog = (row: TrackedPost) => {
     const pad = (n: number) => String(n).padStart(2, '0')
