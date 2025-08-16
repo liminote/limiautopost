@@ -21,7 +21,7 @@ export const handler: Handler = async (event) => {
       return { r, j }
     }
 
-    const attempts: Array<{ edge: string; status?: number; count?: number; error?: any }> = []
+    const attempts: Array<{ edge: string; status?: number; count?: number; error?: any; mode?: 'summary' | 'manual' }> = []
     const getEdgeCount = async (edgeCandidates: string[]): Promise<number | null> => {
       for (const edge of edgeCandidates) {
         const url = `https://graph.threads.net/v1.0/${encodeURIComponent(id)}/${edge}?limit=1&summary=total_count&access_token=${encodeURIComponent(accessToken)}`
@@ -33,12 +33,28 @@ export const handler: Handler = async (event) => {
             return Promise.reject({ tokenExpired: true, detail: j?.error })
           }
           // 試下一個 edge 名稱
-          attempts.push({ edge, status: r.status, error: j?.error || j })
+          attempts.push({ edge, status: r.status, error: j?.error || j, mode: 'summary' })
           continue
         }
         const count = Number(j?.summary?.total_count ?? j?.summary?.count ?? 0)
-        attempts.push({ edge, status: r.status, count })
-        return isNaN(count) ? 0 : count
+        attempts.push({ edge, status: r.status, count, mode: 'summary' })
+        if (!isNaN(count) && count > 0) return count
+        // 若 summary 得到 0，嘗試手動分頁累計
+        try {
+          let total = 0
+          let next: string | null = `https://graph.threads.net/v1.0/${encodeURIComponent(id)}/${edge}?limit=100&access_token=${encodeURIComponent(accessToken)}`
+          let guard = 0
+          while (next && guard < 50) {
+            guard++
+            const { r: r2, j: j2 } = await fetchJson(next)
+            if (!r2.ok) { attempts.push({ edge, status: r2.status, error: j2?.error || j2, mode: 'manual' }); break }
+            const arr = Array.isArray(j2?.data) ? j2.data : []
+            total += arr.length
+            attempts.push({ edge, status: r2.status, count: arr.length, mode: 'manual' })
+            next = j2?.paging?.next || null
+          }
+          return total
+        } catch {}
       }
       return null
     }
