@@ -1,11 +1,12 @@
 import type { Handler } from '@netlify/functions'
 import { getLatestToken } from './_tokenStore'
 
-export const handler: Handler = async () => {
+export const handler: Handler = async (event) => {
   let reasonCode: string | undefined
   let username: string | undefined
   let status: 'not_configured' | 'ready' | 'linked' | 'link_failed' = 'ready'
   let tokenSavedAt: string | undefined
+  const cookieLinked = (event.headers?.cookie || '').includes('threads_linked=1')
   const envOk = !!(process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URL)
   if (!envOk) status = 'not_configured'
   try {
@@ -52,6 +53,8 @@ export const handler: Handler = async () => {
   } catch (e) {
     status = 'link_failed'; reasonCode = 'store_error'
   }
+  // 若沒有 token 但剛授權完（cookie 還在），仍視為 linked，避免 UI 假性斷開
+  if ((status === 'ready' || status === 'link_failed') && cookieLinked) status = 'linked'
   return { statusCode: 200, headers: { 'content-type': 'application/json', 'Cache-Control': 'no-store, no-cache, must-revalidate' }, body: JSON.stringify({ status, username, reasonCode, tokenSavedAt }) }
 }
 
