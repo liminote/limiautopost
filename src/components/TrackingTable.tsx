@@ -71,7 +71,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     }
   }, [rows, setRows])
 
-  // 智能排程檢查：只在有排程文章時啟動，使用更長的間隔
+  // 智能排程檢查：固定5分鐘檢查，確保準時發佈
   useEffect(() => {
     const scheduledPosts = rows.filter(r => 
       r.platform === 'Threads' && 
@@ -88,26 +88,17 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       return
     }
 
-    // 有排程文章時，計算最接近的排程時間
+    // 有排程文章時，立即檢查一次是否有過期的
     const now = new Date()
-    const nextScheduledTime = Math.min(
-      ...scheduledPosts.map(p => new Date(p.scheduledAt!).getTime())
-    )
+    const hasExpiredPosts = scheduledPosts.some(p => new Date(p.scheduledAt!) <= now)
     
-    const timeUntilNext = nextScheduledTime - now.getTime()
-    
-    if (timeUntilNext <= 0) {
+    if (hasExpiredPosts) {
       // 有過期的排程，立即檢查
       checkScheduledPosts()
     }
 
-    // 簡化的檢查間隔：專注於長期排程的資源節省
-    let checkInterval: number
-    if (timeUntilNext <= 24 * 60 * 60 * 1000) { // 1天以內
-      checkInterval = 10 * 60 * 1000 // 10分鐘檢查一次
-    } else {
-      checkInterval = 60 * 60 * 1000 // 1小時檢查一次
-    }
+    // 固定5分鐘檢查一次，確保準時發佈
+    const checkInterval = 5 * 60 * 1000 // 5分鐘
 
     // 啟動輪詢
     scheduleCheckRef.current = window.setInterval(checkScheduledPosts, checkInterval)
