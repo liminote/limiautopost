@@ -14,6 +14,26 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [syncingId, setSyncingId] = useState<string | null>(null)
 
+  const openScheduleDialog = (row: TrackedPost) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const now = new Date(Date.now() + 10 * 60 * 1000) // 預設現在+10分鐘
+    const def = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+    const current = row.scheduledAt ? formatLocal(row.scheduledAt) : def
+    const input = window.prompt('輸入排程時間（YYYY-MM-DD HH:mm）', current)
+    if (input === null) return
+    const s = input.trim().replace('T',' ')
+    const m = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/.exec(s)
+    if (!m) { alert('格式需為 YYYY-MM-DD HH:mm'); return }
+    const iso = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00`).toISOString()
+    updateTracked(row.id, { scheduledAt: iso, status: 'scheduled' })
+    setRows(rows.map(x=> x.id===row.id? { ...x, scheduledAt: iso, status: 'scheduled' }: x))
+  }
+
+  const cancelSchedule = (row: TrackedPost) => {
+    updateTracked(row.id, { scheduledAt: undefined, status: 'draft' })
+    setRows(rows.map(x=> x.id===row.id? { ...x, scheduledAt: undefined, status: 'draft' }: x))
+  }
+
   const clearHideTimer = () => { if (hideTimerRef.current) { window.clearTimeout(hideTimerRef.current); hideTimerRef.current = null } }
   const hideTooltipLater = () => { clearHideTimer(); hideTimerRef.current = window.setTimeout(()=>{ setHoverId(null); setHoverPos(null); setHoverText('') }, 120) }
 
@@ -376,7 +396,27 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 )}
               </td>
               <td className="px-3 py-2 border-t align-top">
-                <span className="text-gray-700">{r.publishDate || '-'}</span>
+                <div className="flex flex-col">
+                  <span className="text-gray-700">{r.publishDate || '-'}</span>
+                  <span className="text-xs">
+                    {r.scheduledAt ? (
+                      <>
+                        <span className="text-[color:var(--yinmn-blue)]">排程：{formatLocal(r.scheduledAt)}</span>
+                        {' '}
+                        <button className="icon-btn icon-ghost" title="取消排程" onClick={()=> cancelSchedule(r)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+                        </button>
+                        <button className="icon-btn icon-ghost" title="修改排程" onClick={()=> openScheduleDialog(r)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                        </button>
+                      </>
+                    ) : (
+                      <button className="icon-btn icon-ghost" title="設定排程" onClick={()=> openScheduleDialog(r)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 7V3h8v4"/><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M16 13h-8"/><path d="M16 17h-5"/></svg>
+                      </button>
+                    )}
+                  </span>
+                </div>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
@@ -411,7 +451,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <div className="flex gap-1 justify-end">
                   {r.threadsPostId && (
                     <span className="has-tip" data-tip={`已停用：API 限制\n最後同步：${r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}`}>
-                    <button className="icon-btn" disabled onClick={async ()=>{
+                    <button className="icon-btn" disabled={true} onClick={async ()=>{
                       try {
                         setSyncingId(r.id)
                         const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
