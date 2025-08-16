@@ -233,7 +233,7 @@ export default function AIGenerator() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Instagram</span>
                   <button
-                    onClick={() => copyToClipboard(generatedContent.instagram.content)}
+                                            onClick={() => copyToClipboard(generatedContent.instagram?.content || '')}
                     className="text-blue-600 hover:text-blue-800 text-sm"
                   >
                     複製

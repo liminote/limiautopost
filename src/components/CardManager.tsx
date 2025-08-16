@@ -174,7 +174,11 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
     }
     onSubmit({
       ...formData,
-      isActive: true
+      isActive: true,
+      platform: formData.category,
+      templateTitle: formData.name,
+      templateFeatures: formData.description,
+      isSelected: false
     })
   }
 

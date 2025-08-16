@@ -5,35 +5,50 @@ export interface BaseCard {
   description: string
   category: 'threads' | 'instagram' | 'facebook' | 'general'
   prompt: string
-  isSystem: boolean // 系統預設，不可編輯
   isActive: boolean
-  createdAt: string
-  updatedAt: string
+  isSystem: boolean
+  userId?: string
+  createdAt: Date
+  updatedAt: Date
+  // 新增欄位
+  platform: 'threads' | 'instagram' | 'facebook' | 'general'
+  templateTitle: string
+  templateFeatures: string
+  isSelected: boolean // 是否被使用者勾選
 }
 
-// 使用者自定義卡片
 export interface UserCard extends Omit<BaseCard, 'isSystem'> {
   isSystem: false
   userId: string
 }
 
-// 系統預設卡片
-export interface SystemCard extends BaseCard {
+export interface SystemCard extends Omit<BaseCard, 'userId'> {
   isSystem: true
-  userId: null
 }
 
-// 卡片生成結果
-export interface CardGenerationResult {
-  threads: Array<{ content: string }>
-  instagram: { content: string }
-  facebook?: { content: string }
-}
-
-// 卡片生成請求
 export interface CardGenerationRequest {
   cardId: string
   topic: string
-  style?: 'formal' | 'casual' | 'professional' | 'friendly'
+  style: 'formal' | 'casual' | 'professional' | 'friendly'
   additionalContext?: string
+}
+
+export interface CardGenerationResult {
+  threads?: Array<{ content: string }>
+  instagram?: { content: string }
+  facebook?: { content: string }
+}
+
+// 新增：模板選擇介面
+export interface TemplateSelection {
+  cardId: string
+  isSelected: boolean
+}
+
+// 新增：模板管理介面
+export interface TemplateManagement {
+  maxSelectedTemplates: number
+  currentSelectedCount: number
+  availableTemplates: BaseCard[]
+  selectedTemplates: BaseCard[]
 }
