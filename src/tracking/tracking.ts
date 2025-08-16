@@ -129,6 +129,16 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       counters.set(key, next)
       branchCode = `${letter}${next}`
     }
+    
+    // 特殊處理手動新增的卡片（MAN），確保不會被去重過濾
+    if (it.branchCode === 'MAN') {
+      // 為手動新增的卡片生成唯一的 branchCode
+      const letter = normLetter(it.platform)
+      const key = `${resolvedArticleId}-${letter}`
+      const next = (counters.get(key) || 0) + 1
+      counters.set(key, next)
+      branchCode = `${letter}${next}`
+    }
     const record: TrackedPost = {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
