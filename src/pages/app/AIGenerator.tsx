@@ -3,8 +3,7 @@ import { CardService, AIGenerationService } from '../../services/cardService'
 import type { BaseCard, CardGenerationRequest, CardGenerationResult } from '../../types/cards'
 
 export default function AIGenerator() {
-  const [cards, setCards] = useState<BaseCard[]>([])
-  const [selectedCard, setSelectedCard] = useState<BaseCard | null>(null)
+  const [selectedTemplates, setSelectedTemplates] = useState<BaseCard[]>([])
   const [topic, setTopic] = useState('')
   const [style, setStyle] = useState<'formal' | 'casual' | 'professional' | 'friendly'>('casual')
   const [additionalContext, setAdditionalContext] = useState('')
@@ -15,27 +14,22 @@ export default function AIGenerator() {
   const cardService = CardService.getInstance()
   const aiService = AIGenerationService.getInstance()
 
-  // 載入可用卡片
+  // 載入使用者選中的模板
   useEffect(() => {
-    const loadCards = () => {
+    const loadSelectedTemplates = () => {
       // TODO: 獲取真實用戶 ID
       const userId = 'current-user'
-      const availableCards = cardService.getAllCards(userId)
-      setCards(availableCards)
-      
-      // 預設選擇第一個卡片
-      if (availableCards.length > 0 && !selectedCard) {
-        setSelectedCard(availableCards[0])
-      }
+      const templates = cardService.getSelectedTemplates(userId)
+      setSelectedTemplates(templates)
     }
 
-    loadCards()
-  }, [selectedCard])
+    loadSelectedTemplates()
+  }, [])
 
   // 生成內容
   const handleGenerate = async () => {
-    if (!selectedCard || !topic.trim()) {
-      setError('請選擇卡片並輸入主題')
+    if (selectedTemplates.length === 0 || !topic.trim()) {
+      setError('請選擇至少一個模板並輸入主題')
       return
     }
 
@@ -44,20 +38,49 @@ export default function AIGenerator() {
     setGeneratedContent(null)
 
     try {
-      const request: CardGenerationRequest = {
-        cardId: selectedCard.id,
-        topic: topic.trim(),
-        style,
-        additionalContext: additionalContext.trim() || undefined
+      // 為每個選中的模板生成內容
+      const results: CardGenerationResult[] = []
+      
+      for (const template of selectedTemplates) {
+        const request: CardGenerationRequest = {
+          cardId: template.id,
+          topic: topic.trim(),
+          style,
+          additionalContext: additionalContext.trim() || undefined
+        }
+
+        const result = await aiService.generateContent(request)
+        results.push(result)
       }
 
-      const result = await aiService.generateContent(request)
-      setGeneratedContent(result)
+      // 合併所有結果
+      const mergedResult = mergeResults(results)
+      setGeneratedContent(mergedResult)
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成失敗')
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  // 合併多個生成結果
+  const mergeResults = (results: CardGenerationResult[]): CardGenerationResult => {
+    const merged: CardGenerationResult = {}
+    
+    results.forEach(result => {
+      if (result.threads) {
+        if (!merged.threads) merged.threads = []
+        merged.threads.push(...result.threads)
+      }
+      if (result.instagram && !merged.instagram) {
+        merged.instagram = result.instagram
+      }
+      if (result.facebook && !merged.facebook) {
+        merged.facebook = result.facebook
+      }
+    })
+    
+    return merged
   }
 
   // 重置表單
@@ -78,49 +101,66 @@ export default function AIGenerator() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">AI 貼文生成器</h1>
-        <p className="text-gray-600">選擇卡片模板，輸入主題，AI 自動生成貼文內容</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">貼文生成器</h1>
+        <p className="text-gray-600">選擇模板，輸入主題，AI 自動生成貼文內容</p>
+      </div>
+
+      {/* 模板選擇區域 */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">選擇模板</h2>
+          <a 
+            href="/settings" 
+            className="text-blue-600 hover:text-blue-800 text-sm underline"
+          >
+            前往設定管理模板 →
+          </a>
+        </div>
+        
+        {selectedTemplates.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-4">還沒有選擇任何模板</p>
+            <a 
+              href="/settings" 
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              前往設定選擇模板
+            </a>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {selectedTemplates.map((template) => (
+              <div
+                key={template.id}
+                className="p-4 border border-gray-200 rounded-lg bg-gray-50"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-gray-900">{template.templateTitle}</h3>
+                  {template.isSystem && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                      系統預設
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 mb-2">{template.templateFeatures}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {template.platform}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {template.category}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 生成設定區域 */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">生成設定</h2>
         
-        {/* 卡片選擇 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            選擇卡片模板
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {cards.map((card) => (
-              <div
-                key={card.id}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedCard?.id === card.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => setSelectedCard(card)}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium text-gray-900">{card.name}</h3>
-                  {card.isSystem && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                      系統預設
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600">{card.description}</p>
-                <div className="mt-2">
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    {card.category}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* 主題輸入 */}
         <div className="mb-4">
           <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
@@ -174,7 +214,7 @@ export default function AIGenerator() {
         <div className="flex gap-3">
           <button
             onClick={handleGenerate}
-            disabled={isGenerating || !selectedCard || !topic.trim()}
+            disabled={isGenerating || selectedTemplates.length === 0 || !topic.trim()}
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isGenerating ? '生成中...' : '生成內容'}
@@ -233,7 +273,7 @@ export default function AIGenerator() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Instagram</span>
                   <button
-                                            onClick={() => copyToClipboard(generatedContent.instagram?.content || '')}
+                    onClick={() => copyToClipboard(generatedContent.instagram?.content || '')}
                     className="text-blue-600 hover:text-blue-800 text-sm"
                   >
                     複製

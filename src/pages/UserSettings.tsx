@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import CardManager from '../components/CardManager'
+import { CardService } from '../services/cardService'
+import type { BaseCard } from '../types/cards'
 
 export default function UserSettings(){
   const [linked, setLinked] = useState(() => { try { return localStorage.getItem('threads:linked') === '1' } catch { return false } })
@@ -7,6 +9,13 @@ export default function UserSettings(){
   const [busy, setBusy] = useState(false)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
   const [polling, setPolling] = useState(false)
+
+  // 模板管理相關狀態
+  const [availableTemplates, setAvailableTemplates] = useState<BaseCard[]>([])
+  const [selectedTemplates, setSelectedTemplates] = useState<BaseCard[]>([])
+  const [maxSelections, setMaxSelections] = useState(5)
+
+  const cardService = CardService.getInstance()
 
   useEffect(() => {
     const run = async () => {
@@ -71,9 +80,37 @@ export default function UserSettings(){
     run()
   }, [])
 
+  // 載入模板管理資訊
+  useEffect(() => {
+    const loadTemplateManagement = () => {
+      const userId = 'current-user' // TODO: 獲取真實用戶 ID
+      const management = cardService.getTemplateManagement(userId)
+      setAvailableTemplates(management.availableTemplates)
+      setSelectedTemplates(management.selectedTemplates)
+      setMaxSelections(management.maxSelectedTemplates)
+    }
+
+    loadTemplateManagement()
+  }, [])
+
+  // 切換模板選擇
+  const toggleTemplateSelection = (cardId: string) => {
+    const userId = 'current-user' // TODO: 獲取真實用戶 ID
+    const success = cardService.toggleUserSelection(userId, cardId)
+    
+    if (success) {
+      // 重新載入模板管理資訊
+      const management = cardService.getTemplateManagement(userId)
+      setAvailableTemplates(management.availableTemplates)
+      setSelectedTemplates(management.selectedTemplates)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-base font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>個人設定</h1>
+      
+      {/* Threads 連結設定 */}
       <div className="card card-body text-sm text-gray-600 space-y-2">
         <h2 className="font-semibold">Threads 連結</h2>
         {statusMsg && <div className="text-red-600 text-sm">{statusMsg}</div>}
@@ -103,6 +140,54 @@ export default function UserSettings(){
         </div>
         ) : null}
         {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
+      </div>
+
+      {/* 模板選擇管理 */}
+      <div className="card card-body text-sm text-gray-600 space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">模板選擇管理</h2>
+          <div className="text-sm text-gray-500">
+            已選擇 {selectedTemplates.length} / {maxSelections} 個模板
+          </div>
+        </div>
+        <p className="text-gray-500">選擇要在「貼文生成器」中顯示的模板（最多可選擇 {maxSelections} 個）</p>
+        
+        {availableTemplates.length === 0 ? (
+          <p className="text-gray-500 text-center py-4">載入中...</p>
+        ) : (
+          <div className="space-y-3">
+            {availableTemplates.map((template) => (
+              <div key={template.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                <input
+                  type="checkbox"
+                  id={`template-${template.id}`}
+                  checked={selectedTemplates.some(t => t.id === template.id)}
+                  onChange={() => toggleTemplateSelection(template.id)}
+                  disabled={!selectedTemplates.some(t => t.id === template.id) && selectedTemplates.length >= maxSelections}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor={`template-${template.id}`} className="flex-1 cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{template.templateTitle}</h3>
+                      <p className="text-sm text-gray-600">{template.templateFeatures}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {template.platform}
+                      </span>
+                      {template.isSystem && (
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          系統預設
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* AI 卡片管理 */}
