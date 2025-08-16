@@ -35,7 +35,11 @@ export default function Generator() {
     link.href = location.href
   }, [])
 
-  const anyChecked = useMemo(() => cards.some(c => c.checked), [cards])
+  const anyChecked = useMemo(() => {
+    const checked = cards.some(c => c.checked)
+    console.log('[Generator] anyChecked:', checked, 'cards:', cards.map(c => ({ id: c.id, checked: c.checked, platform: c.platform })))
+    return checked
+  }, [cards])
 
   const onGenerate = () => {
     setGenerating(true)
@@ -61,6 +65,14 @@ export default function Generator() {
   const addManual = () => {
     setCards(prev => ([
       { id: crypto.randomUUID(), platform: 'Threads', label: '手動新增', content: '', checked: false, code: 'MAN' },
+      ...prev
+    ]))
+  }
+  
+  // 新增不同平台的卡片
+  const addManualWithPlatform = (platform: 'Threads' | 'Instagram' | 'Facebook') => {
+    setCards(prev => ([
+      { id: crypto.randomUUID(), platform, label: `手動新增 - ${platform}`, content: '', checked: false, code: 'MAN' },
       ...prev
     ]))
   }
@@ -112,7 +124,11 @@ export default function Generator() {
         ) : (
            <div className="grid grid-cols-1 gap-4">
             <div className="flex items-center gap-3">
-              <button className="btn btn-outline text-sm" onClick={addManual}>＋ 手動新增卡片</button>
+              <div className="flex gap-2">
+                <button className="btn btn-outline text-sm" onClick={addManual}>＋ Threads</button>
+                <button className="btn btn-outline text-sm" onClick={() => addManualWithPlatform('Instagram')}>＋ Instagram</button>
+                <button className="btn btn-outline text-sm" onClick={() => addManualWithPlatform('Facebook')}>＋ Facebook</button>
+              </div>
               <div className="ml-auto mr-5 flex items-center gap-3">
                 <button
                   className="text-xs text-gray-600 hover:text-gray-900"
