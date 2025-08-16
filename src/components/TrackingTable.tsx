@@ -423,38 +423,38 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               </td>
               <td className="px-3 py-2 border-t align-top">{formatLocal(r.createdAt)}</td>
               <td className="px-3 py-2 border-t align-top">
-                <div className="flex gap-1 justify-end">
+                <div className="flex flex-col gap-1 items-end justify-end">
                   {r.threadsPostId && (
                     <span className="has-tip" data-tip={`已停用：API 限制\n最後同步：${r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}`}>
-                    <button className="icon-btn" style={{ background: 'var(--yinmn-blue)', color:'#fff', borderColor:'var(--yinmn-blue)' }} disabled={true} onClick={async ()=>{
-                      try {
-                        setSyncingId(r.id)
-                        const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
-                        const when = new Date().toISOString()
-                        updateTracked(r.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when })
-                        setRows(rows.map(x=> x.id===r.id? { ...x, likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when }: x))
-                      } catch (e: any) {
-                        const msg = String(e)
-                        if (msg.includes('TOKEN_EXPIRED') || msg.includes('401')) {
-                          if (confirm('Threads 授權已過期，是否現在重新連結？')) {
-                            window.location.href = '/api/threads/oauth/start'
+                      <button className="icon-btn" style={{ background: 'var(--yinmn-blue)', color:'#fff', borderColor:'var(--yinmn-blue)' }} disabled={true} onClick={async ()=>{
+                        try {
+                          setSyncingId(r.id)
+                          const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
+                          const when = new Date().toISOString()
+                          updateTracked(r.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when })
+                          setRows(rows.map(x=> x.id===r.id? { ...x, likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when }: x))
+                        } catch (e: any) {
+                          const msg = String(e)
+                          if (msg.includes('TOKEN_EXPIRED') || msg.includes('401')) {
+                            if (confirm('Threads 授權已過期，是否現在重新連結？')) {
+                              window.location.href = '/api/threads/oauth/start'
+                            }
+                          } else if (msg.includes('NOT_SUPPORTED') || msg.includes('501')) {
+                            alert('此 API 暫不提供該貼文的互動數（Threads Graph API 限制）。')
+                          } else {
+                            alert('同步失敗：' + msg)
                           }
-                        } else if (msg.includes('NOT_SUPPORTED') || msg.includes('501')) {
-                          alert('此 API 暫不提供該貼文的互動數（Threads Graph API 限制）。')
-                        } else {
-                          alert('同步失敗：' + msg)
-                        }
-                      } finally { setSyncingId(null) }
-                    }}>
-                      {syncingId===r.id
-                        ? (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12a9 9 0 1 1 18 0"/></svg>)
-                        : (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>)}
-                    </button>
-                    <button className="icon-btn" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} title="排程發佈（設定時間）" onClick={()=> openScheduleDialog(r)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                    </button>
+                        } finally { setSyncingId(null) }
+                      }}>
+                        {syncingId===r.id
+                          ? (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12a9 9 0 1 1 18 0"/></svg>)
+                          : (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>)}
+                      </button>
                     </span>
                   )}
+                  <button className="icon-btn" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} title="排程發佈（設定發佈時間）" onClick={()=> openScheduleDialog(r)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                  </button>
                   <button className="icon-btn icon-ghost" title="移除" onClick={()=> { if (confirm('刪除後無法復原，你確定要刪除？')) { removeTracked(r.id); setRows(rows.filter(x=>x.id!==r.id)) } }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
                   </button>
