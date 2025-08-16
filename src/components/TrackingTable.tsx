@@ -279,11 +279,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
-                    {/* 無連結時隱藏「自動/手動」 */}
-                    <button className="icon-btn" title="手動貼上連結" onClick={()=> setPermalink(r.id)}>
-                      {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
-                    </button>
+                    {/* 無連結時：只有 IG/FB 貼文才顯示手動輸入連結的 icon */}
+                    {r.platform !== 'Threads' && (
+                      <button className="icon-btn" title="手動貼上連結" onClick={()=> setPermalink(r.id)}>
+                        {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
+                      </button>
+                    )}
                     {r.platform === 'Threads' && r.status === 'published' && (
                       <button className="icon-btn" title="重試抓取連結" onClick={async ()=>{
                         try {
