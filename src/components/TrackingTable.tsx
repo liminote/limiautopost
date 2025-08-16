@@ -169,6 +169,42 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     }
   }, [rows, checkScheduledPosts])
 
+  // 檢查卡住的「發佈中」狀態，防止狀態卡住
+  useEffect(() => {
+    const stuckPublishingPosts = rows.filter(r => 
+      r.platform === 'Threads' && 
+      r.status === 'publishing' && 
+      r.scheduledAt // 只有排程貼文才需要檢查
+    )
+
+    if (stuckPublishingPosts.length === 0) return
+
+    // 檢查是否有貼文卡在「發佈中」狀態超過10分鐘
+    const now = new Date()
+    const stuckPosts = stuckPublishingPosts.filter(post => {
+      const scheduledTime = new Date(post.scheduledAt!)
+      const timeDiff = now.getTime() - scheduledTime.getTime()
+      return timeDiff > 10 * 60 * 1000 // 10分鐘
+    })
+
+    if (stuckPosts.length > 0) {
+      console.warn(`[狀態檢查] 發現 ${stuckPosts.length} 篇貼文卡在「發佈中」狀態`)
+      
+      stuckPosts.forEach(post => {
+        console.warn(`[狀態檢查] 貼文 ${post.id} 卡住，重置為失敗狀態`)
+        updateTracked(post.id, { 
+          status: 'failed', 
+          publishError: '發佈狀態卡住：超過10分鐘未完成，已自動重置'
+        })
+        setRows(rows.map(x => x.id === post.id ? { 
+          ...x, 
+          status: 'failed', 
+          publishError: '發佈狀態卡住：超過10分鐘未完成，已自動重置'
+        } : x))
+      })
+    }
+  }, [rows, setRows])
+
   const openScheduleDialog = (row: TrackedPost) => {
     const pad = (n: number) => String(n).padStart(2, '0')
     const now = new Date(Date.now() + 10 * 60 * 1000) // 預設現在+10分鐘
