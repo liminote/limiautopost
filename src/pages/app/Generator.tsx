@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { addTracked, getTracked, nextArticleId } from '../../tracking/tracking'
 import type { TrackedPost } from '../../tracking/tracking'
 import GeneratedCard, { type GeneratedCardData } from '../../components/GeneratedCard'
+import { CardService } from '../../services/cardService'
+import type { BaseCard } from '../../types/cards'
 
 type Platform = 'Threads' | 'Instagram' | 'Facebook'
 
@@ -19,10 +21,27 @@ export default function Generator() {
   const [article, setArticle] = useState('')
   const [generating, setGenerating] = useState(false)
   const [cards, setCards] = useState<Card[]>([])
+  const [selectedTemplates, setSelectedTemplates] = useState<BaseCard[]>([])
   // 追蹤列表刷新（暫存於本地，供加入追蹤後同步 UI 用）
   const [, setTracked] = useState<TrackedPost[]>([])
   const refreshTracked = () => setTracked(getTracked())
+  
+  const cardService = CardService.getInstance()
+
   useEffect(() => { refreshTracked() }, [])
+
+  // 載入用戶選擇的模板
+  useEffect(() => {
+    const loadSelectedTemplates = () => {
+      // TODO: 獲取真實用戶 ID
+      const userId = 'current-user'
+      const templates = cardService.getSelectedTemplates(userId)
+      setSelectedTemplates(templates)
+      console.log('[Generator] 載入的選擇模板:', templates)
+    }
+
+    loadSelectedTemplates()
+  }, [])
 
   // SEO
   useEffect(() => {
@@ -42,17 +61,56 @@ export default function Generator() {
   }, [cards])
 
   const onGenerate = () => {
+    if (selectedTemplates.length === 0) {
+      alert('請先在「個人設定」中選擇至少一個模板')
+      return
+    }
+
     setGenerating(true)
     setTimeout(() => {
       const res = generateFrom(article)
       const articleId = nextArticleId()
-      const newCards: Card[] = [
-        // 調整順序：200 → 350 → 500 → IG
-        { id: crypto.randomUUID(), platform: 'Threads', label: `Threads 建議 1（約 200 字） · ${articleId}`, content: res[2], checked: false, code: 'T3' },
-        { id: crypto.randomUUID(), platform: 'Threads', label: `Threads 建議 2（約 350 字） · ${articleId}`, content: res[1], checked: false, code: 'T2' },
-        { id: crypto.randomUUID(), platform: 'Threads', label: `Threads 建議 3（約 500 字） · ${articleId}`, content: res[0], checked: false, code: 'T1' },
-        { id: crypto.randomUUID(), platform: 'Instagram', label: `Instagram 建議 · ${articleId}`, content: res[3], checked: false, code: 'IG' },
-      ]
+      
+              // 根據用戶選擇的模板生成卡片
+        const newCards: Card[] = selectedTemplates.map((template, index) => {
+          let content = ''
+          let code = ''
+          
+          // 根據模板類型和平台生成內容
+          if (template.platform === 'threads') {
+            // 根據模板順序選擇不同長度的內容
+            if (index === 0) {
+              content = res[0] // 500字
+              code = 'T1'
+            } else if (index === 1) {
+              content = res[1] // 350字
+              code = 'T2'
+            } else {
+              content = res[2] // 200字
+              code = 'T3'
+            }
+          } else if (template.platform === 'instagram') {
+            content = res[3] // 220字
+            code = 'IG'
+          } else {
+            content = res[0] // 預設使用最長內容
+            code = 'FB'
+          }
+          
+          return {
+            id: crypto.randomUUID(),
+            platform: template.platform === 'threads' ? 'Threads' : 
+                     template.platform === 'instagram' ? 'Instagram' : 
+                     template.platform === 'facebook' ? 'Facebook' : 'Threads',
+            label: `${template.platform === 'threads' ? 'Threads' : 
+                    template.platform === 'instagram' ? 'Instagram' : 
+                    template.platform === 'facebook' ? 'Facebook' : 'Threads'} - ${template.templateTitle} · ${articleId}`,
+            content: content || template.prompt || '請輸入內容',
+            checked: false,
+            code: code
+          }
+        })
+      
       setCards(newCards)
       setGenerating(false)
     }, 300)
@@ -134,7 +192,13 @@ export default function Generator() {
 
       {/* 右：結果卡片（2/3） */}
       <div className="space-y-4">
-        {cards.length === 0 ? (
+        {selectedTemplates.length === 0 ? (
+          <div className="card card-body text-center">
+            <div className="text-lg text-gray-600 mb-2">尚未選擇模板</div>
+            <div className="text-sm text-gray-500 mb-4">請先在「個人設定」中選擇要使用的模板</div>
+            <a href="/settings" className="btn btn-primary">前往個人設定</a>
+          </div>
+        ) : cards.length === 0 ? (
           <div className="text-sm text-gray-500">尚未有結果，請先輸入文章並點「開始生成貼文」。</div>
         ) : (
            <div className="grid grid-cols-1 gap-4">
