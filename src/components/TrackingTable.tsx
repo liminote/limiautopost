@@ -15,6 +15,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const [syncingId, setSyncingId] = useState<string | null>(null)
   const [isCheckingSchedule, setIsCheckingSchedule] = useState(false)
   const [scheduleDialog, setScheduleDialog] = useState<{ show: boolean; row: TrackedPost | null; input: string }>({ show: false, row: null, input: '' })
+  const [publishDateDialog, setPublishDateDialog] = useState<{ show: boolean; row: TrackedPost | null; input: string }>({ show: false, row: null, input: '' })
 
   // 簡化的排程檢查：移除複雜的重試機制
   const checkScheduledPosts = useCallback(async () => {
@@ -160,6 +161,14 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     setScheduleDialog({ show: true, row, input: current })
   }
 
+  const openPublishDateDialog = (row: TrackedPost) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const now = new Date(Date.now() + 10 * 60 * 1000) // 預設現在+10分鐘
+    const def = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+    const current = row.publishDate ? formatLocal(row.publishDate) : def
+    setPublishDateDialog({ show: true, row, input: current })
+  }
+
   const handleScheduleSubmit = () => {
     const { row, input } = scheduleDialog
     if (!row) return
@@ -188,6 +197,36 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
 
   const handleScheduleCancel = () => {
     setScheduleDialog({ show: false, row: null, input: '' })
+  }
+
+  const handlePublishDateSubmit = () => {
+    const { row, input } = publishDateDialog
+    if (!row) return
+    
+    const s = input.trim().replace('T',' ')
+    const m = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/.exec(s)
+    if (!m) { 
+      alert('格式需為 YYYY-MM-DD HH:mm')
+      return 
+    }
+    
+    // 檢查是否為過去的時間
+    const selectedTime = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00`)
+    const now = new Date()
+    
+    if (selectedTime <= now) {
+      alert('發佈日期不能設定為過去的時間，請選擇未來的時間')
+      return
+    }
+    
+    const publishDate = selectedTime.toISOString()
+    updateTracked(row.id, { publishDate })
+    setRows(rows.map(x => x.id === row.id ? { ...x, publishDate } : x))
+    setPublishDateDialog({ show: false, row: null, input: '' })
+  }
+
+  const handlePublishDateCancel = () => {
+    setPublishDateDialog({ show: false, row: null, input: '' })
   }
 
   const clearHideTimer = () => { if (hideTimerRef.current) { window.clearTimeout(hideTimerRef.current); hideTimerRef.current = null } }
@@ -439,12 +478,16 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 {r.permalink ? (
                   <div className="flex items-center gap-1">
-                    {/* 「自動/手動」在有連結時顯示，字級較小 */}
-                    <span className="text-muted" style={{ fontSize: '11px' }}>{r.permalinkSource === 'manual' || r.permalinkSource === 'locked-manual' ? '手動' : '自動'}</span>
                     {/* 連結 icon：雙鏈節，語意更直覺 */}
                     <button className="icon-btn" title="開啟連結" onClick={()=> ensurePermalinkAndOpen(r)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7-7l1 1"/><path d="M14 11a5 5 0 0 1-7 7l-1-1"/><path d="M8 12l8 0"/></svg>
                     </button>
+                    {/* IG/FB 貼文：顯示「筆」圖示，可編輯連結 */}
+                    {r.platform !== 'Threads' && (
+                      <button className="icon-btn" title="編輯連結" onClick={()=> setPermalink(r.id)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
@@ -689,9 +732,17 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 )}
               </td>
               <td className="px-3 py-2 border-t align-top">
-                <span className="text-gray-700">
-                  {r.scheduledAt && r.status !== 'published' && r.status !== 'publishing' ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate || '-')}
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-700">
+                    {r.scheduledAt && r.status !== 'published' && r.status !== 'publishing' ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate || '-')}
+                  </span>
+                  {/* IG/FB 貼文：顯示「筆」圖示，可設定發佈日期 */}
+                  {r.platform !== 'Threads' && (
+                    <button className="icon-btn" title="設定發佈日期" onClick={()=> openPublishDateDialog(r)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                    </button>
+                  )}
+                </div>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
@@ -828,6 +879,65 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               </button>
               <button
                 onClick={handleScheduleSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                確定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 發佈日期設定對話框 */}
+      {publishDateDialog.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-md">
+            <h3 className="text-lg font-semibold mb-4">設定發佈日期</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                選擇發佈日期時間
+              </label>
+              <div className="flex space-x-3">
+                {/* 日期選擇器 */}
+                <div className="flex-1">
+                  <input
+                    type="date"
+                    value={publishDateDialog.input.split(' ')[0]}
+                    onChange={(e) => {
+                      const date = e.target.value
+                      const time = publishDateDialog.input.split(' ')[1] || '12:00'
+                      setPublishDateDialog(prev => ({ ...prev, input: `${date} ${time}` }))
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                {/* 時間選擇器 */}
+                <div className="flex-1">
+                  <input
+                    type="time"
+                    value={publishDateDialog.input.split(' ')[1] || '12:00'}
+                    onChange={(e) => {
+                      const date = publishDateDialog.input.split(' ')[0]
+                      const time = e.target.value
+                      setPublishDateDialog(prev => ({ ...prev, input: `${date} ${time}` }))
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handlePublishDateCancel}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handlePublishDateSubmit}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 確定
