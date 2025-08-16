@@ -14,6 +14,12 @@ export async function mockFetchMetrics(id: string): Promise<{ id: string; likes:
   return res.json()
 }
 
+export async function fetchRealMetrics(id: string): Promise<{ id: string; likes: number; comments: number; shares: number; saves: number }> {
+  const res = await fetch('/.netlify/functions/threads-insights?id=' + encodeURIComponent(id))
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
 
 
 

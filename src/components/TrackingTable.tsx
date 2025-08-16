@@ -416,12 +416,12 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex gap-1 justify-end">
                   {r.threadsPostId && (
-                    <button className="icon-btn" title="同步互動數（模擬）" onClick={async ()=>{
+                    <button className="icon-btn" title="同步互動數（Threads 真實數據）" onClick={async ()=>{
                       try {
-                        const m = await mockFetchMetrics(r.threadsPostId!)
+                        const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
                         updateTracked(r.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves })
                         setRows(rows.map(x=> x.id===r.id? { ...x, likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves }: x))
-                      } catch { alert('同步失敗') }
+                      } catch (e) { alert('同步失敗：' + String(e)) }
                     }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
                     </button>
