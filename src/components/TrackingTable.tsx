@@ -262,6 +262,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
 
+  // 發佈日期專用格式：只顯示到時分，避免格子打架
+  const formatPublishDate = (iso?: string): string => {
+    if (!iso) return '-'
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return iso.replace('T',' ').slice(0,16)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
   const nowYMDHM = (): string => {
     const d = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
@@ -734,7 +743,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex items-center gap-1">
                   <span className="text-gray-700">
-                    {r.scheduledAt && r.status !== 'published' && r.status !== 'publishing' ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate || '-')}
+                    {r.scheduledAt && r.status !== 'published' && r.status !== 'publishing' ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate ? formatPublishDate(r.publishDate) : '-')}
                   </span>
                   {/* IG/FB 貼文：顯示「筆」圖示，可設定發佈日期 */}
                   {r.platform !== 'Threads' && (
