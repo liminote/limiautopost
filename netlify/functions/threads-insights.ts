@@ -22,7 +22,7 @@ export const handler: Handler = async (event) => {
 
     const getEdgeCount = async (edgeCandidates: string[]): Promise<number | null> => {
       for (const edge of edgeCandidates) {
-        const url = `https://graph.threads.net/v1.0/${encodeURIComponent(id)}/${edge}?limit=0&summary=true&access_token=${encodeURIComponent(accessToken)}`
+        const url = `https://graph.threads.net/v1.0/${encodeURIComponent(id)}/${edge}?limit=1&summary=total_count&access_token=${encodeURIComponent(accessToken)}`
         const { r, j } = await fetchJson(url)
         // token 過期
         if (!r.ok) {
@@ -33,7 +33,7 @@ export const handler: Handler = async (event) => {
           // 試下一個 edge 名稱
           continue
         }
-        const count = Number(j?.summary?.total_count ?? 0)
+        const count = Number(j?.summary?.total_count ?? j?.summary?.count ?? 0)
         return isNaN(count) ? 0 : count
       }
       return null

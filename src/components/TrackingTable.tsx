@@ -155,6 +155,25 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   return (
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
+      <div className="flex justify-end mb-2">
+        <button className="btn btn-ghost" title="同步所有已發佈 Threads 互動數" onClick={async ()=>{
+          const targets = rows.filter(x=> x.platform==='Threads' && x.status==='published' && x.threadsPostId)
+          if (targets.length===0) { alert('沒有可同步的貼文'); return }
+          const api = await import('../api/threads')
+          const updated = [...rows]
+          for (const t of targets) {
+            try {
+              const m = await api.fetchRealMetrics(t.threadsPostId!)
+              const when = new Date().toISOString()
+              updateTracked(t.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when })
+              const idx = updated.findIndex(r=> r.id===t.id); if (idx!==-1) updated[idx] = { ...updated[idx], likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when }
+            } catch (e) {
+              console.warn('sync all failed for', t.id, e)
+            }
+          }
+          setRows(updated)
+        }}>全部同步</button>
+      </div>
       <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
           <col className="w-8ch" /> {/* 1 原文編號 */}
@@ -375,7 +394,10 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 )}
               </td>
               <td className="px-3 py-2 border-t align-top">
-                <span className="text-gray-700">{r.publishDate || '-'}</span>
+                <div className="flex flex-col">
+                  <span className="text-gray-700">{r.publishDate || '-'}</span>
+                  {r.metricsSyncedAt && <span className="text-xs text-gray-400">同步：{formatLocal(r.metricsSyncedAt)}</span>}
+                </div>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x">
                 <input className="ui-input-xs" type="number" min={0} step={1} value={r.likes ?? 0}
