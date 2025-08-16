@@ -29,11 +29,6 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     setRows(rows.map(x=> x.id===row.id? { ...x, scheduledAt: iso, status: 'scheduled' }: x))
   }
 
-  const cancelSchedule = (row: TrackedPost) => {
-    updateTracked(row.id, { scheduledAt: undefined, status: 'draft' })
-    setRows(rows.map(x=> x.id===row.id? { ...x, scheduledAt: undefined, status: 'draft' }: x))
-  }
-
   const clearHideTimer = () => { if (hideTimerRef.current) { window.clearTimeout(hideTimerRef.current); hideTimerRef.current = null } }
   const hideTooltipLater = () => { clearHideTimer(); hideTimerRef.current = window.setTimeout(()=>{ setHoverId(null); setHoverPos(null); setHoverText('') }, 120) }
 
