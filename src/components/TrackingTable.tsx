@@ -176,7 +176,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
         clearInterval(scheduleCheckRef.current)
       }
     }
-  }, [rows, checkScheduledPosts])
+  }, [rows]) // 移除 checkScheduledPosts 依賴，避免重複觸發
 
   // 檢查卡住的「發佈中」狀態，防止狀態卡住
   useEffect(() => {
@@ -368,7 +368,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
         }
       }
     }
-    // 最後嘗試：狀態檢查與最新貼文確認
+    // 最後嘗試：狀態檢查
     try {
       const st = await fetch('/.netlify/functions/threads-status').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
       if (st && st.status !== 'linked') {
@@ -376,16 +376,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
         return { ok: false, errorText: `Threads 未連結${reason}` }
       }
     } catch {}
-    try {
-      const start = Date.now()
-      while (Date.now() - start < 18_000) {
-        const latest = await fetch('/.netlify/functions/threads-latest').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
-        if (latest?.id && latest?.permalink) {
-          return { ok: true, id: latest.id, permalink: latest.permalink }
-        }
-        await sleep(1200)
-      }
-    } catch {}
+    
+    // 移除有問題的 threads-latest 回退邏輯，直接返回錯誤
     return { ok: false, errorText: lastError ? `Service temporarily unavailable: ${lastError}` : 'Service temporarily unavailable, please retry.' }
   }
 
@@ -686,6 +678,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                                 // 如果30秒內沒有確認成功，標記為失敗
                                 const finalStatus = rows.find(x => x.id === r.id)?.status
                                 if (finalStatus === 'publishing') {
+                                  console.warn(`[發佈確認] 超時失敗：${r.id}`)
                                   updateTracked(r.id, { 
                                     status: 'failed', 
                                     publishError: '發佈確認超時：無法驗證貼文是否成功發佈' 
