@@ -101,14 +101,12 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       checkScheduledPosts()
     }
 
-    // 根據排程時間智能設定檢查間隔
+    // 簡化的檢查間隔：專注於長期排程的資源節省
     let checkInterval: number
-    if (timeUntilNext <= 5 * 60 * 1000) { // 5分鐘內
-      checkInterval = 30 * 1000 // 30秒檢查一次
-    } else if (timeUntilNext <= 30 * 60 * 1000) { // 30分鐘內
-      checkInterval = 2 * 60 * 1000 // 2分鐘檢查一次
-    } else {
+    if (timeUntilNext <= 24 * 60 * 60 * 1000) { // 1天以內
       checkInterval = 10 * 60 * 1000 // 10分鐘檢查一次
+    } else {
+      checkInterval = 60 * 60 * 1000 // 1小時檢查一次
     }
 
     // 啟動輪詢
