@@ -312,8 +312,14 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                           if (!text) { alert('內容為空，無法發佈'); return }
                           try {
                             setPublishingId(r.id)
-                            updateTracked(r.id, { status: 'publishing' })
-                            setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing' }: x))
+                            // 如果原本是排程狀態，清除排程並改為發佈中
+                            const updates: any = { status: 'publishing' }
+                            if (r.scheduledAt) {
+                              updates.scheduledAt = undefined
+                              updates.status = 'publishing'
+                            }
+                            updateTracked(r.id, updates)
+                            setRows(rows.map(x=> x.id===r.id? { ...x, ...updates }: x))
                             const j = await publishWithRetry(text)
                             if (!j.ok) {
                               const t = j.errorText || 'unknown'
@@ -377,8 +383,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                           )}
                         </button>
-                        {/* 橘色飛機：排程發佈 - 只在非發佈/發佈中狀態時顯示 */}
-                        {r.status !== 'published' && r.status !== 'publishing' && (
+                        {/* 橘色飛機：排程發佈 - 只在非發佈/發佈中/已排程狀態時顯示 */}
+                        {r.status !== 'published' && r.status !== 'publishing' && !r.scheduledAt && (
                           <button className="icon-btn" title="排程發佈（設定發佈時間）" style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-4 20-7z"/></svg>
                           </button>
