@@ -14,6 +14,7 @@ export default function AdminSubnav(){
     <div className="flex items-center gap-3 border-b pb-2">
       <Link to="/admin" className={`${base} ${isActive('/admin') ? activeCls : ''}`} style={isActive('/admin') ? activeStyle : undefined}>總覽</Link>
       <Link to="/admin/users" className={`${base} ${isActive('/admin/users') ? activeCls : ''}`} style={isActive('/admin/users') ? activeStyle : undefined}>使用者</Link>
+      <Link to="/admin/ai-generator" className={`${base} ${isActive('/admin/ai-generator') ? activeCls : ''}`} style={isActive('/admin/ai-generator') ? activeStyle : undefined}>AI 生成器</Link>
       <Link to="/admin/settings" className={`${base} ${isActive('/admin/settings') ? activeCls : ''}`} style={isActive('/admin/settings') ? activeStyle : undefined}>管理者設定</Link>
     </div>
   )

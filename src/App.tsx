@@ -39,10 +39,6 @@ function TopNav() {
             className={active('/app') ? 'active' : ''}
           >貼文生成器</Link>
           <Link
-            to="/ai-generator"
-            className={active('/ai-generator') ? 'active' : ''}
-          >AI 生成器</Link>
-          <Link
             to="/tracking"
             className={active('/tracking') ? 'active' : ''}
           >追蹤列表</Link>
@@ -82,13 +78,13 @@ function App() {
               <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/login" replace />} />
               <Route path="/admin/users" element={isAdmin ? <AdminUsers /> : <Navigate to="/login" replace />} />
               <Route path="/admin/settings" element={isAdmin ? <AdminSettings /> : <Navigate to="/login" replace />} />
+              <Route path="/admin/ai-generator" element={isAdmin ? <AIGenerator /> : <Navigate to="/login" replace />} />
               {/* User Settings: 一律進入個人設定（包含 Threads 連結） */}
               <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : <UserSettings />} />
               {/* User */}
               <Route path="/force-change-password" element={<ForceChangePassword />} />
               <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <TrackingPage />)} />
               <Route path="/app" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <Generator />)} />
-              <Route path="/ai-generator" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <AIGenerator />)} />
               <Route path="*" element={<Navigate to={session ? (isAdmin ? '/admin' : '/app') : '/'} replace />} />
             </Routes>
           </main>
