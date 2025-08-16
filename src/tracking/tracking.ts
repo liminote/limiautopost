@@ -27,6 +27,7 @@ export type TrackedPost = {
   publishError?: string
   notes?: string
   tags?: string[]
+  metricsSyncedAt?: string // ISO 最後同步互動數時間
   createdAt: string
   ownerEmail?: string
 }

@@ -12,6 +12,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const anchorRectRef = useRef<DOMRect | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [publishingId, setPublishingId] = useState<string | null>(null)
+  const [syncingId, setSyncingId] = useState<string | null>(null)
 
   const clearHideTimer = () => { if (hideTimerRef.current) { window.clearTimeout(hideTimerRef.current); hideTimerRef.current = null } }
   const hideTooltipLater = () => { clearHideTimer(); hideTimerRef.current = window.setTimeout(()=>{ setHoverId(null); setHoverPos(null); setHoverText('') }, 120) }
@@ -416,11 +417,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex gap-1 justify-end">
                   {r.threadsPostId && (
-                    <button className="icon-btn" title="同步互動數（Threads 真實數據）" onClick={async ()=>{
+                    <button className="icon-btn" title="同步互動數（Threads 真實數據）" disabled={syncingId===r.id} onClick={async ()=>{
                       try {
+                        setSyncingId(r.id)
                         const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
-                        updateTracked(r.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves })
-                        setRows(rows.map(x=> x.id===r.id? { ...x, likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves }: x))
+                        const when = new Date().toISOString()
+                        updateTracked(r.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when })
+                        setRows(rows.map(x=> x.id===r.id? { ...x, likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when }: x))
                       } catch (e: any) {
                         const msg = String(e)
                         if (msg.includes('TOKEN_EXPIRED') || msg.includes('401')) {
@@ -430,9 +433,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         } else {
                           alert('同步失敗：' + msg)
                         }
-                      }
+                      } finally { setSyncingId(null) }
                     }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
+                      {syncingId===r.id
+                        ? (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12a9 9 0 1 1 18 0"/></svg>)
+                        : (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>)}
                     </button>
                   )}
                   <button className="icon-btn icon-ghost" title="移除" onClick={()=> { if (confirm('刪除後無法復原，你確定要刪除？')) { removeTracked(r.id); setRows(rows.filter(x=>x.id!==r.id)) } }}>
