@@ -500,6 +500,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                             const j = await publishWithRetry(text)
                             if (!j.ok) {
                               const t = j.errorText || 'unknown'
+                              
+                              // 檢查是否為 token 過期錯誤
+                              if (t.includes('TOKEN_EXPIRED') || t.includes('401') || t.includes('Session has expired')) {
+                                if (confirm('Threads 授權已過期，是否現在重新連結？')) {
+                                  window.location.href = '/api/threads/oauth/start'
+                                  return
+                                }
+                              }
+                              
                               // 若是部署切換或 HTML 錯頁，維持發佈中並背景輪詢最新一篇，若 10 秒內抓到新貼文，視為成功
                               if (/deployment failed/i.test(t) || /<html/i.test(t) || /page not found/i.test(t)) {
                                 updateTracked(r.id, { status: 'publishing', publishError: undefined })
