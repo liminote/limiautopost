@@ -5,6 +5,7 @@ import { getLatestToken } from './_tokenStore'
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'GET') return { statusCode: 405, body: 'Method Not Allowed' }
   const id = event.queryStringParameters?.id
+  const diag = event.queryStringParameters?.diag === '1'
   if (!id) return { statusCode: 400, body: 'Missing id' }
   try {
     const latest = await getLatestToken()
@@ -20,6 +21,7 @@ export const handler: Handler = async (event) => {
       return { r, j }
     }
 
+    const attempts: Array<{ edge: string; status?: number; count?: number; error?: any }> = []
     const getEdgeCount = async (edgeCandidates: string[]): Promise<number | null> => {
       for (const edge of edgeCandidates) {
         const url = `https://graph.threads.net/v1.0/${encodeURIComponent(id)}/${edge}?limit=1&summary=total_count&access_token=${encodeURIComponent(accessToken)}`
@@ -31,9 +33,11 @@ export const handler: Handler = async (event) => {
             return Promise.reject({ tokenExpired: true, detail: j?.error })
           }
           // 試下一個 edge 名稱
+          attempts.push({ edge, status: r.status, error: j?.error || j })
           continue
         }
         const count = Number(j?.summary?.total_count ?? j?.summary?.count ?? 0)
+        attempts.push({ edge, status: r.status, count })
         return isNaN(count) ? 0 : count
       }
       return null
@@ -64,11 +68,9 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    return {
-      statusCode: 200,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ok: true, id, likes, comments, shares, saves })
-    }
+    const payload: any = { ok: true, id, likes, comments, shares, saves }
+    if (diag) payload.attempts = attempts
+    return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }
   } catch (e) {
     return { statusCode: 500, body: String(e) }
   }
