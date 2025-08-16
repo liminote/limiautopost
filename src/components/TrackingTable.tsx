@@ -161,11 +161,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       clearInterval(scheduleCheckRef.current)
     }
 
-    // 完全停用排程檢查，避免瘋狂執行
-    console.log(`[排程檢查] 完全停用排程檢查，等待 Function 問題修復`)
-    
-    // 不啟動輪詢，直接返回
-    return
+    // 固定5分鐘檢查一次，確保準時發佈
+    const checkInterval = 5 * 60 * 1000 // 5分鐘
+    console.log(`[排程檢查] 啟動輪詢，間隔：${checkInterval/1000}秒`)
+
+    // 啟動輪詢
+    scheduleCheckRef.current = window.setInterval(() => {
+      console.log('[排程檢查] 輪詢觸發，執行 checkScheduledPosts')
+      checkScheduledPosts()
+    }, checkInterval)
     
     return () => {
       if (scheduleCheckRef.current) {
