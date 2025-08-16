@@ -452,6 +452,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                           if (confirm('Threads 授權已過期，是否現在重新連結？')) {
                             window.location.href = '/api/threads/oauth/start'
                           }
+                        } else if (msg.includes('NOT_SUPPORTED') || msg.includes('501')) {
+                          alert('此 API 暫不提供該貼文的互動數（Threads Graph API 限制）。')
                         } else {
                           alert('同步失敗：' + msg)
                         }

@@ -84,6 +84,10 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    const onlyUnsupported = attempts.length > 0 && attempts.every(a => !a.count && (a.status === 500) && (a.error?.code === 100 || a.error?.code === 10))
+    if (onlyUnsupported) {
+      return { statusCode: 501, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'NOT_SUPPORTED', detail: attempts }) }
+    }
     const payload: any = { ok: true, id, likes, comments, shares, saves }
     if (diag) payload.attempts = attempts
     return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }
