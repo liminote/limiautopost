@@ -114,22 +114,6 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
   const email = getSession()?.email || ''
   const seenPostIds = new Set<string>()
   
-  // 先處理所有項目，計算需要的 branchCode 數量
-  const platformCounts = new Map<string, number>()
-  items.forEach(it => {
-    const titleKey = (it.articleTitle || '').trim()
-    const foundSameTitle = titleKey
-      ? list.find(x => (x.articleTitle || '').trim() === titleKey)
-      : undefined
-    const resolvedArticleId = foundSameTitle ? foundSameTitle.articleId : it.articleId
-    
-    if (it.branchCode === 'MAN' || !(/^[TGF]\d+$/.test(it.branchCode || ''))) {
-      const letter = normLetter(it.platform)
-      const key = `${resolvedArticleId}-${letter}`
-      platformCounts.set(key, (platformCounts.get(key) || 0) + 1)
-    }
-  })
-  
   const created = items.map((it, index) => {
     // 若標題相同，沿用既有的 articleId（同一篇原文不換編號）
     const titleKey = (it.articleTitle || '').trim()
