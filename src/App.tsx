@@ -3,6 +3,7 @@ import AdminUsers from './pages/admin/AdminUsers'
 import TrackingPage from './pages/app/Tracking'
 import Login from './pages/Login'
 import Generator from './pages/app/Generator.tsx'
+import AIGenerator from './pages/app/AIGenerator'
 import { hasRole, signOut, mustChangePassword, useSession } from './auth/auth'
 import ForceChangePassword from './pages/ForceChangePassword'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -37,6 +38,10 @@ function TopNav() {
             to="/app"
             className={active('/app') ? 'active' : ''}
           >貼文生成器</Link>
+          <Link
+            to="/ai-generator"
+            className={active('/ai-generator') ? 'active' : ''}
+          >AI 生成器</Link>
           <Link
             to="/tracking"
             className={active('/tracking') ? 'active' : ''}
@@ -83,6 +88,7 @@ function App() {
               <Route path="/force-change-password" element={<ForceChangePassword />} />
               <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <TrackingPage />)} />
               <Route path="/app" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <Generator />)} />
+              <Route path="/ai-generator" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <AIGenerator />)} />
               <Route path="*" element={<Navigate to={session ? (isAdmin ? '/admin' : '/app') : '/'} replace />} />
             </Routes>
           </main>

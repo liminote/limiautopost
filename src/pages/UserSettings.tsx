@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import CardManager from '../components/CardManager'
 
 export default function UserSettings(){
   const [linked, setLinked] = useState(() => { try { return localStorage.getItem('threads:linked') === '1' } catch { return false } })
@@ -102,6 +103,13 @@ export default function UserSettings(){
         </div>
         ) : null}
         {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
+      </div>
+
+      {/* AI 卡片管理 */}
+      <div className="card card-body text-sm text-gray-600 space-y-2">
+        <h2 className="font-semibold">AI 卡片管理</h2>
+        <p className="text-gray-500">管理你的自定義 AI 生成卡片，創建專屬的內容生成模板</p>
+        <CardManager />
       </div>
     </div>
   )
