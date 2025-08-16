@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import TagInput from './TagInput'
 import { getTracked, removeTracked, updateTracked, type TrackedPost } from '../tracking/tracking'
-import { mockFetchMetrics } from '../api/threads'
+// import removed: mock metrics no longer used
 
 export default function TrackingTable({ rows, setRows, loading }: { rows: TrackedPost[]; setRows: (r: TrackedPost[]) => void; loading?: boolean }){
   const [hoverId, setHoverId] = useState<string | null>(null)
