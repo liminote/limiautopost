@@ -288,17 +288,16 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col className="w-9ch" /> {/* 3 平台 */}
           <col className="w-8ch" /> {/* 4 狀態 */}
           <col className="w-12ch" /> {/* 5 原文標題 */}
-          <col className="w-12ch" /> {/* 6 內容 */}
+          <col className="w-20ch" /> {/* 6 內容 */}
           <col className="w-12ch" /> {/* 7 標籤 */}
           <col /> {/* 8 連結 */}
           <col className="w-8ch" /> {/* 9 發佈日期 */}
           <col /> {/* 10 讚 */}
           <col /> {/* 11 留言 */}
           <col /> {/* 12 分享 */}
-          <col /> {/* 13 儲存 */}
-          <col /> {/* 14 備註 */}
-          <col className="w-8ch" /> {/* 15 建立時間 */}
-          <col /> {/* 16 操作 */}
+          <col /> {/* 13 備註 */}
+          <col className="w-8ch" /> {/* 14 建立時間 */}
+          <col /> {/* 15 操作 */}
         </colgroup>
         <thead style={{ fontSize: '14px', position: 'sticky', top: 0, background: 'var(--ui-bg)', zIndex: 5, boxShadow: '0 1px 0 var(--ui-border)' }}>
           <tr>
@@ -314,7 +313,6 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             <th>讚</th>
             <th>留言</th>
             <th>分享</th>
-            <th>儲存</th>
             <th>備註</th>
             <th>建立時間</th>
             <th>操作</th>
@@ -372,7 +370,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
               <td className="px-3 py-2 border-t text-gray-600 align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
-                <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
+                <div className="w-20ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
                   {(r.content || '').slice(0, 36)}{(r.content || '').length > 36 ? '…' : ''}
                 </div>
               </td>
@@ -532,9 +530,6 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               </td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
-              <td className="px-3 py-2 border-t ui-gap-x">
-                <span className="text-gray-400">N/A（API 限制）</span>
-              </td>
               <td className="px-3 py-2 border-t ui-gap-x">
                 <span className="text-gray-400">N/A（API 限制）</span>
               </td>
