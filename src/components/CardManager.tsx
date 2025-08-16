@@ -84,7 +84,7 @@ export default function CardManager() {
         <h2 className="text-2xl font-bold text-gray-900">我的卡片</h2>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-[color:var(--yinmn-blue)] text-white rounded-md hover:bg-[color:var(--yinmn-blue-600)]"
         >
           新增卡片
         </button>
@@ -107,7 +107,7 @@ export default function CardManager() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditingCard(card)}
-                  className="text-blue-600 hover:text-blue-800 text-sm"
+                  className="text-[color:var(--yinmn-blue)] hover:text-[color:var(--yinmn-blue-600)] text-sm"
                 >
                   編輯
                 </button>
@@ -123,7 +123,7 @@ export default function CardManager() {
             <p className="text-gray-600 mb-3">{card.templateFeatures || card.description}</p>
             
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              <span className="text-xs bg-[color:var(--yinmn-blue-300)] text-[color:var(--yinmn-blue)] px-2 py-1 rounded">
                 {card.platform || card.category}
               </span>
             </div>
@@ -146,7 +146,7 @@ export default function CardManager() {
           <p className="text-gray-500 mb-4">還沒有自定義卡片</p>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-[color:var(--yinmn-blue)] text-white rounded-md hover:bg-[color:var(--yinmn-blue-600)]"
           >
             創建第一個卡片
           </button>
@@ -202,7 +202,7 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
             id="card-platform"
             value={formData.platform}
             onChange={(e) => setFormData({ ...formData, platform: e.target.value as any })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[color:var(--yinmn-blue)]"
             required
           >
             <option value="general">不指定</option>
@@ -222,7 +222,7 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
             type="text"
             value={formData.templateTitle}
             onChange={(e) => setFormData({ ...formData, templateTitle: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[color:var(--yinmn-blue)]"
             placeholder="例如：職場心得模板"
             required
           />
@@ -237,7 +237,7 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
             id="card-features"
             value={formData.templateFeatures}
             onChange={(e) => setFormData({ ...formData, templateFeatures: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[color:var(--yinmn-blue)]"
             rows={3}
             placeholder="簡短描述這個模板的用途和特色"
           />
@@ -252,7 +252,7 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
             id="card-prompt"
             value={formData.prompt}
             onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[color:var(--yinmn-blue)]"
             rows={6}
             placeholder="輸入 AI 生成內容的指令和規則..."
             required
@@ -262,14 +262,14 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
         <div className="flex gap-3">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-[color:var(--yinmn-blue)] text-white rounded-md hover:bg-[color:var(--yinmn-blue-600)]"
           >
             創建卡片
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+            className="px-4 py-2 bg-[color:var(--yinmn-blue)] text-white rounded-md hover:bg-[color:var(--yinmn-blue-600)]"
           >
             取消
           </button>
@@ -376,14 +376,14 @@ function EditCardForm({ card, onSubmit, onCancel }: EditCardFormProps) {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+            className="px-3 py-1 bg-[color:var(--yinmn-blue)] text-white rounded text-sm hover:bg-[color:var(--yinmn-blue-600)]"
           >
             更新
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+            className="px-3 py-1 bg-[color:var(--yinmn-blue)] text-white rounded text-sm hover:bg-[color:var(--yinmn-blue-600)]"
           >
             取消
           </button>

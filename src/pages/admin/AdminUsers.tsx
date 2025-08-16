@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createUser, getUsers, updateUser, deleteUser, type AppUser } from '../../auth/users'
+import AdminSubnav from '../../components/AdminSubnav'
 
 type UserRow = Pick<AppUser, 'id'|'email'|'createdAt'|'validFrom'|'validTo'|'notes'|'enabled'|'logs'>
 
@@ -13,13 +14,8 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       {/* Admin sub header */}
-      <div className="mb-2">
-        <div className="flex items-center gap-3 border-b pb-2">
-          <a href="/admin" className="px-2 py-1 rounded hover:bg-gray-100 text-sm">總覽</a>
-          <a href="/admin/users" className="px-2 py-1 rounded hover:bg-gray-100 text-base font-semibold" style={{ color: 'var(--yinmn-blue)' }}>使用者</a>
-          <a href="/admin/settings" className="px-2 py-1 rounded hover:bg-gray-100 text-sm">管理者設定</a>
-        </div>
-      </div>
+      <AdminSubnav />
+      
       <div className="flex items-center justify-between">
         <button
           className="btn btn-primary text-sm"

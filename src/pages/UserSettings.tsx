@@ -178,7 +178,7 @@ export default function UserSettings(){
                   key={template.id} 
                   className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${
                     isSelected 
-                      ? 'border-[color:var(--yinmn-blue)] bg-[color:var(--yinmn-blue-300)] shadow-sm' 
+                      ? 'border-[color:var(--yinmn-blue)] bg-gray-50 shadow-sm' 
                       : 'border-gray-200 bg-white hover:bg-gray-50'
                   }`}
                 >
