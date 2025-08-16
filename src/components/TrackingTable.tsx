@@ -745,12 +745,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   <span className="text-gray-700">
                     {r.scheduledAt && r.status !== 'published' && r.status !== 'publishing' ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate ? formatPublishDate(r.publishDate) : '-')}
                   </span>
-                  {/* IG/FB 貼文：顯示「筆」圖示，可設定發佈日期 */}
-                  {r.platform !== 'Threads' && (
-                    <button className="icon-btn" title="設定發佈日期" onClick={()=> openPublishDateDialog(r)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
-                    </button>
-                  )}
+                  {/* 所有平台都顯示「筆」圖示，保持對齊 */}
+                  <button 
+                    className="icon-btn" 
+                    title={r.platform === 'Threads' ? "Threads 發佈日期為自動抓取，無法手動編輯" : "設定發佈日期"}
+                    onClick={()=> r.platform === 'Threads' ? alert('Threads 發佈日期為自動抓取，無法手動編輯') : openPublishDateDialog(r)}
+                    style={{ opacity: r.platform === 'Threads' ? 0.3 : 1 }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                  </button>
                 </div>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
