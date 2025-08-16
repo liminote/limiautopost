@@ -156,7 +156,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
       <div className="flex justify-end mb-2">
-        <button className="btn btn-ghost" title="同步所有已發佈 Threads 互動數" onClick={async ()=>{
+        <button className="btn btn-ghost" title="已停用：API 限制" disabled onClick={async ()=>{
           const targets = rows.filter(x=> x.platform==='Threads' && x.status==='published' && x.threadsPostId)
           if (targets.length===0) { alert('沒有可同步的貼文'); return }
           const api = await import('../api/threads')
@@ -399,21 +399,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   {r.metricsSyncedAt && <span className="text-xs text-gray-400">同步：{formatLocal(r.metricsSyncedAt)}</span>}
                 </div>
               </td>
+              <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
+              <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
               <td className="px-3 py-2 border-t ui-gap-x">
-                <input className="ui-input-xs" type="number" min={0} step={1} value={r.likes ?? 0}
-                  onChange={e=>{ const v = Number(e.target.value||0); updateTracked(r.id,{ likes: v }); setRows(rows.map(x=> x.id===r.id? { ...x, likes: v }: x)); }} />
+                <span className="text-gray-400">N/A（API 限制）</span>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x">
-                <input className="ui-input-xs" type="number" min={0} step={1} value={r.comments ?? 0}
-                  onChange={e=>{ const v = Number(e.target.value||0); updateTracked(r.id,{ comments: v }); setRows(rows.map(x=> x.id===r.id? { ...x, comments: v }: x)); }} />
-              </td>
-              <td className="px-3 py-2 border-t ui-gap-x">
-                <input className="ui-input-xs" type="number" min={0} step={1} value={r.shares ?? 0}
-                  onChange={e=>{ const v = Number(e.target.value||0); updateTracked(r.id,{ shares: v }); setRows(rows.map(x=> x.id===r.id? { ...x, shares: v }: x)); }} />
-              </td>
-              <td className="px-3 py-2 border-t ui-gap-x">
-                <input className="ui-input-xs" type="number" min={0} step={1} value={r.saves ?? 0}
-                  onChange={e=>{ const v = Number(e.target.value||0); updateTracked(r.id,{ saves: v }); setRows(rows.map(x=> x.id===r.id? { ...x, saves: v }: x)); }} />
+                <span className="text-gray-400">N/A（API 限制）</span>
               </td>
               <td className="px-3 py-2 border-t align-top">
                 {r.notes && r.notes.trim() ? (
@@ -438,8 +430,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">{formatLocal(r.createdAt)}</td>
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex gap-1 justify-end">
-                  {r.threadsPostId && (
-                    <button className="icon-btn" title="同步互動數（Threads 真實數據）" disabled={syncingId===r.id} onClick={async ()=>{
+                  {false && r.threadsPostId && (
+                    <button className="icon-btn" title="已停用：API 限制" disabled onClick={async ()=>{
                       try {
                         setSyncingId(r.id)
                         const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
