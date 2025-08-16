@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CardService } from '../../services/cardService'
+import AdminSubnav from '../../components/AdminSubnav'
 
 // 模板編輯的類型定義
 type TemplateEditData = {
@@ -114,6 +115,9 @@ export default function AIGenerator() {
 
   return (
     <div className="space-y-6">
+      {/* Admin sub header */}
+      <AdminSubnav />
+      
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>
           AI 生成器模板管理
