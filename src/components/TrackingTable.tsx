@@ -558,29 +558,94 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                               alert('發佈失敗：' + t)
                               return
                             }
-                            const confirmed = (j as any).confirmed === true || !!j.permalink
-                            const publishedAt = confirmed ? (r.publishDate || nowYMDHM()) : undefined
-                            updateTracked(r.id, { status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : undefined, publishDate: publishedAt })
-                            setRows(rows.map(x=> x.id===r.id? { ...x, status: confirmed ? 'published' : 'publishing', threadsPostId: j.id, permalink: j.permalink, permalinkSource: j.permalink ? 'auto' : x.permalinkSource, publishDate: publishedAt ?? x.publishDate }: x))
-                            if (confirmed) {
-                              alert(`已發佈（ID: ${j.id || '未知'}）`)
+                            
+                            // 改進的發佈成功驗證
+                            const hasValidResponse = j.id && j.permalink
+                            if (hasValidResponse) {
+                              // 有 ID 和連結，直接確認成功
+                              const publishedAt = r.publishDate || nowYMDHM()
+                              updateTracked(r.id, { 
+                                status: 'published', 
+                                threadsPostId: j.id, 
+                                permalink: j.permalink, 
+                                permalinkSource: 'auto', 
+                                publishDate: publishedAt 
+                              })
+                              setRows(rows.map(x=> x.id===r.id? { 
+                                ...x, 
+                                status: 'published', 
+                                threadsPostId: j.id, 
+                                permalink: j.permalink, 
+                                permalinkSource: 'auto', 
+                                publishDate: publishedAt 
+                              }: x))
+                              alert(`發佈成功！ID: ${j.id}`)
                             } else {
-                              // 背景輪詢補確認
+                              // 沒有完整回應，需要進一步確認
+                              console.log(`[發佈] 需要進一步確認：${r.id}，回應：`, j)
+                              updateTracked(r.id, { status: 'publishing' })
+                              setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing' }: x))
+                              
+                              // 背景輪詢確認發佈狀態
                               const start = Date.now()
                               try {
-                                while (Date.now() - start < 12_000) {
+                                while (Date.now() - start < 30_000) { // 增加到30秒
+                                  console.log(`[發佈確認] 輪詢檢查：${r.id}`)
                                   const latest = await fetch('/.netlify/functions/threads-latest').then(x=> x.ok ? x.json() : null).catch(()=>null) as any
-                                  const link = latest?.permalink
-                                  const pid = latest?.id
-                                  if (pid && link && (!j.id || String(pid) === String(j.id))) {
-                                    const publishedAt2 = r.publishDate || nowYMDHM()
-                                    updateTracked(r.id, { status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt2 })
-                                    setRows(rows.map(x=> x.id===r.id? { ...x, status: 'published', threadsPostId: pid, permalink: link, permalinkSource: 'auto', publishDate: publishedAt2 }: x))
-                                    break
+                                  
+                                  if (latest?.id && latest?.permalink) {
+                                    // 檢查是否為我們的貼文（通過內容比對）
+                                    const contentMatch = latest.caption && latest.caption.includes(r.content.substring(0, 20))
+                                    if (contentMatch || (!j.id || String(latest.id) === String(j.id))) {
+                                      const publishedAt2 = r.publishDate || nowYMDHM()
+                                      updateTracked(r.id, { 
+                                        status: 'published', 
+                                        threadsPostId: latest.id, 
+                                        permalink: latest.permalink, 
+                                        permalinkSource: 'auto', 
+                                        publishDate: publishedAt2 
+                                      })
+                                      setRows(rows.map(x=> x.id===r.id? { 
+                                        ...x, 
+                                        status: 'published', 
+                                        threadsPostId: latest.id, 
+                                        permalink: latest.permalink, 
+                                        permalinkSource: 'auto', 
+                                        publishDate: publishedAt2 
+                                      }: x))
+                                      console.log(`[發佈確認] 成功確認：${r.id}，ID: ${latest.id}`)
+                                      break
+                                    }
                                   }
-                                  await sleep(1200)
+                                  await sleep(2000) // 2秒檢查一次
                                 }
-                              } catch {}
+                                
+                                // 如果30秒內沒有確認成功，標記為失敗
+                                const finalStatus = rows.find(x => x.id === r.id)?.status
+                                if (finalStatus === 'publishing') {
+                                  updateTracked(r.id, { 
+                                    status: 'failed', 
+                                    publishError: '發佈確認超時：無法驗證貼文是否成功發佈' 
+                                  })
+                                  setRows(rows.map(x=> x.id===r.id? { 
+                                    ...x, 
+                                    status: 'failed', 
+                                    publishError: '發佈確認超時：無法驗證貼文是否成功發佈' 
+                                  }: x))
+                                  alert('發佈確認超時，請檢查 Threads 帳號或稍後重試')
+                                }
+                              } catch (confirmError) {
+                                console.error(`[發佈確認] 錯誤：${r.id}`, confirmError)
+                                updateTracked(r.id, { 
+                                  status: 'failed', 
+                                  publishError: `發佈確認失敗：${String(confirmError)}` 
+                                })
+                                setRows(rows.map(x=> x.id===r.id? { 
+                                  ...x, 
+                                  status: 'failed', 
+                                  publishError: `發佈確認失敗：${String(confirmError)}` 
+                                }: x))
+                              }
                             }
                           } catch { alert('發佈失敗：網路錯誤') }
                           finally { setPublishingId(null) }
