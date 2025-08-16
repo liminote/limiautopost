@@ -500,11 +500,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
-                    {/* 無連結時：只有 IG/FB 貼文才顯示手動輸入連結的 icon */}
+                    {/* 無連結時：只有 IG/FB 貼文才顯示「筆」圖示，代表可以輸入連結 */}
                     {r.platform !== 'Threads' && (
-                      <button className="icon-btn" title="手動貼上連結" onClick={()=> setPermalink(r.id)}>
-                        {/* 連結圖示（與上方開啟連結一致的鏈結造型，易於辨識為手動貼上） */}
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 1 7 7l-3 3a5 5 0 1 1-7-7l1-1"/><path d="M14 11a5 5 0 0 1-7-7l3-3a5 5 0 1 1 7 7l-1 1"/></svg>
+                      <button className="icon-btn" title="輸入連結" onClick={()=> setPermalink(r.id)}>
+                        {/* 筆圖示，代表可以編輯/輸入 */}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                       </button>
                     )}
                     {r.platform === 'Threads' && r.status === 'published' && (
