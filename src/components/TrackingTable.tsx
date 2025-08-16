@@ -26,18 +26,51 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       new Date(r.scheduledAt) <= now
     )
 
+    console.log(`[排程檢查] 找到 ${scheduledPosts.length} 篇過期排程貼文`)
+
     for (const post of scheduledPosts) {
       try {
-        console.log(`執行排程發文：${post.id}`)
+        console.log(`[排程發文] 開始執行：${post.id}，內容：${post.content.substring(0, 50)}...`)
         setPublishingId(post.id)
         
         // 更新狀態為發佈中
         updateTracked(post.id, { status: 'publishing' })
-        setRows(rows.map(x => x.id === post.id ? { ...x, status: 'publishing' } : x))
+        setRows(rows.map(x => x.id === post.id ? { ...x, status: 'publishing' }: x))
         
-        // 執行發佈
-        const j = await publishWithRetry(post.content)
-        if (j.ok) {
+        // 執行發佈，增加重試次數
+        let retryCount = 0
+        const maxRetries = 3
+        let j = null
+        
+        while (retryCount < maxRetries && !j?.ok) {
+          try {
+            console.log(`[排程發文] 第 ${retryCount + 1} 次嘗試發佈：${post.id}`)
+            j = await publishWithRetry(post.content)
+            
+            if (j.ok) {
+              console.log(`[排程發文] 發佈成功：${post.id}，ID: ${j.id}`)
+              break
+            } else {
+              console.warn(`[排程發文] 第 ${retryCount + 1} 次發佈失敗：${post.id}，錯誤：${j.errorText}`)
+              retryCount++
+              
+              if (retryCount < maxRetries) {
+                // 等待一段時間後重試
+                await new Promise(resolve => setTimeout(resolve, 5000 * retryCount))
+              }
+            }
+          } catch (retryError) {
+            console.error(`[排程發文] 第 ${retryCount + 1} 次發佈異常：${post.id}`, retryError)
+            retryCount++
+            
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 5000 * retryCount))
+            }
+          }
+        }
+        
+        if (j?.ok) {
+          // 發佈成功
           const publishedAt = nowYMDHM()
           updateTracked(post.id, { 
             status: 'published', 
@@ -56,16 +89,32 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             publishDate: publishedAt,
             scheduledAt: undefined
           } : x))
-          console.log(`排程發文成功：${post.id}`)
+          console.log(`[排程發文] 成功完成：${post.id}`)
         } else {
-          updateTracked(post.id, { status: 'failed', publishError: j.errorText })
-          setRows(rows.map(x => x.id === post.id ? { ...x, status: 'failed', publishError: j.errorText } : x))
-          console.error(`排程發文失敗：${post.id}`, j.errorText)
+          // 所有重試都失敗
+          const errorMessage = j?.errorText || '發佈失敗，已重試多次'
+          console.error(`[排程發文] 最終失敗：${post.id}，錯誤：${errorMessage}`)
+          updateTracked(post.id, { 
+            status: 'failed', 
+            publishError: `排程發文失敗：${errorMessage}（已重試${maxRetries}次）`
+          })
+          setRows(rows.map(x => x.id === post.id ? { 
+            ...x, 
+            status: 'failed', 
+            publishError: `排程發文失敗：${errorMessage}（已重試${maxRetries}次）`
+          } : x))
         }
       } catch (error) {
-        console.error(`排程發文錯誤：${post.id}`, error)
-        updateTracked(post.id, { status: 'failed', publishError: String(error) })
-        setRows(rows.map(x => x.id === post.id ? { ...x, status: 'failed', publishError: String(error) } : x))
+        console.error(`[排程發文] 嚴重錯誤：${post.id}`, error)
+        updateTracked(post.id, { 
+          status: 'failed', 
+          publishError: `排程發文系統錯誤：${String(error)}`
+        })
+        setRows(rows.map(x => x.id === post.id ? { 
+          ...x, 
+          status: 'failed', 
+          publishError: `排程發文系統錯誤：${String(error)}`
+        } : x))
       } finally {
         setPublishingId(null)
       }
