@@ -28,11 +28,22 @@ export const handler: Handler = async (event) => {
     ].join(',')
 
     const resp = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(id)}?fields=${fields}&access_token=${encodeURIComponent(data.access_token)}`)
+    const j = await resp.json().catch(()=> ({})) as any
     if (!resp.ok) {
-      const txt = await resp.text().catch(()=> '')
-      return { statusCode: 502, body: `Threads insights failed: ${resp.status} ${txt}` }
+      const code = j?.error?.code
+      if (code === 190) {
+        return {
+          statusCode: 401,
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ok: false, error: 'TOKEN_EXPIRED', detail: j?.error })
+        }
+      }
+      return {
+        statusCode: 502,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ok: false, error: 'UPSTREAM_ERROR', status: resp.status, detail: j })
+      }
     }
-    const j = await resp.json() as any
 
     const likes = Number(j.like_count ?? j.likes ?? 0)
     const comments = Number(j.comments_count ?? j.reply_count ?? j.replies_count ?? 0)

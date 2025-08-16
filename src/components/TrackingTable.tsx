@@ -421,7 +421,16 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                         const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
                         updateTracked(r.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves })
                         setRows(rows.map(x=> x.id===r.id? { ...x, likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves }: x))
-                      } catch (e) { alert('同步失敗：' + String(e)) }
+                      } catch (e: any) {
+                        const msg = String(e)
+                        if (msg.includes('TOKEN_EXPIRED') || msg.includes('401')) {
+                          if (confirm('Threads 授權已過期，是否現在重新連結？')) {
+                            window.location.href = '/api/threads/oauth/start'
+                          }
+                        } else {
+                          alert('同步失敗：' + msg)
+                        }
+                      }
                     }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>
                     </button>
