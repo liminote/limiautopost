@@ -155,25 +155,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   return (
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
-      <div className="flex justify-end mb-2">
-        <button className="btn btn-ghost" title="已停用：API 限制" disabled onClick={async ()=>{
-          const targets = rows.filter(x=> x.platform==='Threads' && x.status==='published' && x.threadsPostId)
-          if (targets.length===0) { alert('沒有可同步的貼文'); return }
-          const api = await import('../api/threads')
-          const updated = [...rows]
-          for (const t of targets) {
-            try {
-              const m = await api.fetchRealMetrics(t.threadsPostId!)
-              const when = new Date().toISOString()
-              updateTracked(t.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when })
-              const idx = updated.findIndex(r=> r.id===t.id); if (idx!==-1) updated[idx] = { ...updated[idx], likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when }
-            } catch (e) {
-              console.warn('sync all failed for', t.id, e)
-            }
-          }
-          setRows(updated)
-        }}>全部同步</button>
-      </div>
+      {/* 全部同步按鈕依需求移除 */}
       <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
           <col className="w-8ch" /> {/* 1 原文編號 */}
@@ -396,7 +378,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex flex-col">
                   <span className="text-gray-700">{r.publishDate || '-'}</span>
-                  {r.metricsSyncedAt && <span className="text-xs text-gray-400">同步：{formatLocal(r.metricsSyncedAt)}</span>}
+                  <span className="text-xs text-gray-400">同步：{r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}</span>
                 </div>
               </td>
               <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
@@ -430,8 +412,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">{formatLocal(r.createdAt)}</td>
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex gap-1 justify-end">
-                  {false && r.threadsPostId && (
-                    <button className="icon-btn" title="已停用：API 限制" disabled onClick={async ()=>{
+                  {r.threadsPostId && (
+                    <button className="icon-btn" title={`已停用：API 限制\n最後同步：${r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}`} disabled onClick={async ()=>{
                       try {
                         setSyncingId(r.id)
                         const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))

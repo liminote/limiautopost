@@ -72,6 +72,7 @@ input[type=number]{-moz-appearance:textfield}
 .icon-btn:hover{background:#f9fafb}
 .icon-btn.icon-ghost{border:0;color:var(--muted)}
 .icon-btn svg{width:14px;height:14px;display:block}
+.icon-btn[disabled]{opacity:.6;cursor:not-allowed}
 .card{border:1px solid var(--ui-border);border-radius:16px;background:#fff;box-shadow:0 4px 16px rgba(2,6,23,.06)}
 .card:hover{box-shadow:0 8px 20px rgba(2,6,23,.10)}
 .card-header{padding:16px 20px;border-bottom:1px solid var(--ui-border)}
