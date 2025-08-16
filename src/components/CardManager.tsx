@@ -186,42 +186,45 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
     <div className="bg-white rounded-lg shadow-md p-6">
       <h3 className="text-lg font-medium mb-4">創建新卡片</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            卡片名稱 *
-          </label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="例如：職場心得模板"
-            required
-          />
-        </div>
+                  <div>
+            <label htmlFor="card-name" className="block text-sm font-medium text-gray-700 mb-1">
+              卡片名稱 *
+            </label>
+            <input
+              id="card-name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="例如：職場心得模板"
+              required
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            描述
-          </label>
-          <input
-            type="text"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="簡短描述這個卡片的用途"
-          />
-        </div>
+                  <div>
+            <label htmlFor="card-description" className="block text-sm font-medium text-gray-700 mb-1">
+              描述
+            </label>
+            <input
+              id="card-description"
+              type="text"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="簡短描述這個卡片的用途"
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            類別
-          </label>
-          <select
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
+                  <div>
+            <label htmlFor="card-category" className="block text-sm font-medium text-gray-700 mb-1">
+              類別
+            </label>
+            <select
+              id="card-category"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
             <option value="general">通用</option>
             <option value="threads">Threads</option>
             <option value="instagram">Instagram</option>
@@ -229,19 +232,20 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Prompt 內容 *
-          </label>
-          <textarea
-            value={formData.prompt}
-            onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={6}
-            placeholder="輸入 AI 生成內容的指令和規則..."
-            required
-          />
-        </div>
+                  <div>
+            <label htmlFor="card-prompt" className="block text-sm font-medium text-gray-700 mb-1">
+              Prompt 內容 *
+            </label>
+            <textarea
+              id="card-prompt"
+              value={formData.prompt}
+              onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={6}
+              placeholder="輸入 AI 生成內容的指令和規則..."
+              required
+            />
+          </div>
 
         <div className="flex gap-3">
           <button
@@ -292,10 +296,11 @@ function EditCardForm({ card, onSubmit, onCancel }: EditCardFormProps) {
       <h4 className="font-medium mb-3">編輯卡片</h4>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="edit-card-name" className="block text-sm font-medium text-gray-700 mb-1">
             卡片名稱 *
           </label>
           <input
+            id="edit-card-name"
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
