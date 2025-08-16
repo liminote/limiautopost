@@ -78,21 +78,36 @@ export default function Generator() {
   }
 
   const onAddToTracking = () => {
+    console.log('[onAddToTracking] 開始執行')
     const selected = cards.filter(c => c.checked)
-    if (!selected.length) return
+    console.log('[onAddToTracking] 選取的卡片:', selected.map(c => ({ id: c.id, platform: c.platform, content: c.content.substring(0, 50) })))
+    
+    if (!selected.length) {
+      console.log('[onAddToTracking] 沒有選取任何卡片')
+      return
+    }
+    
     // 從第一張卡片的 label 取出 Axxx（若沒有，臨時給一個）
     const articleId = /A\d{3}/.exec(selected[0]?.label || '')?.[0] || nextArticleId()
-    addTracked(selected.map(c => ({
-      articleId,
-      branchCode: c.code,
-      postId: '',
-      articleTitle: title,
-      content: c.content,
-      platform: c.platform,
-    })))
-    alert('已加入追蹤列表：' + selected.length + ' 筆')
-    setCards(prev => prev.map(c => ({ ...c, checked: false })))
-    refreshTracked()
+    console.log('[onAddToTracking] 使用的 articleId:', articleId)
+    
+    try {
+      const result = addTracked(selected.map(c => ({
+        articleId,
+        branchCode: c.code,
+        postId: '',
+        articleTitle: title,
+        content: c.content,
+        platform: c.platform,
+      })))
+      console.log('[onAddToTracking] addTracked 結果:', result)
+      alert('已加入追蹤列表：' + selected.length + ' 筆')
+      setCards(prev => prev.map(c => ({ ...c, checked: false })))
+      refreshTracked()
+    } catch (error) {
+      console.error('[onAddToTracking] 錯誤:', error)
+      alert('加入追蹤列表失敗：' + String(error))
+    }
   }
 
   return (
@@ -165,6 +180,18 @@ export default function Generator() {
           將選取項目加入追蹤列表
         </button>
       )}
+      
+      {/* 測試按鈕 - 暫時加入來診斷問題 */}
+      <button
+        className="btn btn-secondary shadow-lg fixed bottom-6 left-6 z-50"
+        onClick={() => {
+          console.log('[測試] 按鈕點擊測試')
+          console.log('[測試] cards:', cards)
+          console.log('[測試] anyChecked:', anyChecked)
+        }}
+      >
+        測試按鈕
+      </button>
     </div>
   )
 }
