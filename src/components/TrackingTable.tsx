@@ -410,7 +410,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex gap-1 justify-end">
                   {r.threadsPostId && (
-                    <span title={`已停用：API 限制\n最後同步：${r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}`}>
+                    <span className="has-tip" data-tip={`已停用：API 限制\n最後同步：${r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}`}>
                     <button className="icon-btn" disabled onClick={async ()=>{
                       try {
                         setSyncingId(r.id)
