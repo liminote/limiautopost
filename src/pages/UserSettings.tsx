@@ -5,12 +5,38 @@ export default function UserSettings(){
   const [username, setUsername] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
+  const [polling, setPolling] = useState(false)
 
   useEffect(() => {
     const run = async () => {
       try {
         const j = await fetch('/api/threads/status', { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
-        setLinked(j.status === 'linked')
+        const prev = linked
+        const nextLinked = j.status === 'linked'
+        // 若先前已連結，但狀態短暫回落（store 延遲或快取），先維持連結並稍後重試
+        if (!nextLinked && prev) {
+          setStatusMsg('正在確認 Threads 連結狀態（稍後自動重試）')
+          if (!polling) {
+            setPolling(true)
+            let attempts = 0
+            const timer = setInterval(async () => {
+              attempts++
+              try {
+                const j2 = await fetch('/api/threads/status', { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : null)
+                if (j2?.status === 'linked') {
+                  setLinked(true)
+                  if (j2.username) setUsername(j2.username)
+                  if (j2.tokenSavedAt) setStatusMsg(`Token 取得於 ${new Date(j2.tokenSavedAt).toLocaleString()}`)
+                  clearInterval(timer); setPolling(false)
+                }
+              } catch {}
+              if (attempts >= 6) { clearInterval(timer); setPolling(false) }
+            }, 5000)
+          }
+        } else {
+          setLinked(nextLinked)
+          if (nextLinked) setStatusMsg(j.tokenSavedAt ? `Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}` : null)
+        }
         if (j.username) setUsername(j.username)
         if (j.tokenSavedAt) {
           setStatusMsg(`Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}`)
