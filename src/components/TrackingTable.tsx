@@ -142,9 +142,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
       r.scheduledAt
     )
 
+    console.log(`[排程檢查] useEffect 觸發，找到 ${scheduledPosts.length} 篇排程文章：`, 
+      scheduledPosts.map(p => ({ id: p.id, scheduledAt: p.scheduledAt, status: p.status })))
+
     if (scheduledPosts.length === 0) {
       // 沒有排程文章時，清除輪詢
       if (scheduleCheckRef.current) {
+        console.log('[排程檢查] 沒有排程文章，清除輪詢')
         clearInterval(scheduleCheckRef.current)
         scheduleCheckRef.current = null
       }
@@ -153,14 +157,19 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
 
     // 清除之前的輪詢，避免重複
     if (scheduleCheckRef.current) {
+      console.log('[排程檢查] 清除舊的輪詢')
       clearInterval(scheduleCheckRef.current)
     }
 
-    // 固定5分鐘檢查一次，確保準時發佈
-    const checkInterval = 5 * 60 * 1000 // 5分鐘
+    // 測試用：1分鐘檢查一次，方便調試
+    const checkInterval = 1 * 60 * 1000 // 1分鐘
+    console.log(`[排程檢查] 啟動輪詢，間隔：${checkInterval/1000}秒`)
 
     // 啟動輪詢
-    scheduleCheckRef.current = window.setInterval(checkScheduledPosts, checkInterval)
+    scheduleCheckRef.current = window.setInterval(() => {
+      console.log('[排程檢查] 輪詢觸發，執行 checkScheduledPosts')
+      checkScheduledPosts()
+    }, checkInterval)
     
     return () => {
       if (scheduleCheckRef.current) {
