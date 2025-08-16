@@ -13,177 +13,118 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [syncingId, setSyncingId] = useState<string | null>(null)
-  const scheduleCheckRef = useRef<number | null>(null)
+  const [isCheckingSchedule, setIsCheckingSchedule] = useState(false)
   const [scheduleDialog, setScheduleDialog] = useState<{ show: boolean; row: TrackedPost | null; input: string }>({ show: false, row: null, input: '' })
 
-  // 檢查排程發文
+  // 簡化的排程檢查：移除複雜的重試機制
   const checkScheduledPosts = useCallback(async () => {
+    if (isCheckingSchedule) {
+      console.log('[排程檢查] 已在執行中，跳過重複檢查')
+      return
+    }
+
     const now = new Date()
     const scheduledPosts = rows.filter(r => 
       r.platform === 'Threads' && 
       r.status === 'scheduled' && 
       r.scheduledAt && 
       new Date(r.scheduledAt) <= now &&
-      // 防重複發佈：確保沒有 threadsPostId 和 permalink
-      !r.threadsPostId &&
-      !r.permalink
+      // 防重複發佈：確保沒有 threadsPostId
+      !r.threadsPostId
     )
-
-    console.log(`[排程檢查] 找到 ${scheduledPosts.length} 篇過期排程貼文`)
-
-    for (const post of scheduledPosts) {
-      try {
-        // 再次檢查狀態，避免重複發佈
-        const currentPost = rows.find(x => x.id === post.id)
-        if (!currentPost || 
-            currentPost.status !== 'scheduled' || 
-            currentPost.threadsPostId || 
-            currentPost.permalink) {
-          console.log(`[排程發文] 跳過已處理的貼文：${post.id}`)
-          continue
-        }
-
-        console.log(`[排程發文] 開始執行：${post.id}，內容：${post.content.substring(0, 50)}...`)
-        setPublishingId(post.id)
-        
-        // 更新狀態為發佈中，並鎖定狀態
-        updateTracked(post.id, { status: 'publishing' })
-        setRows(rows.map(x => x.id === post.id ? { ...x, status: 'publishing' }: x))
-        
-        // 執行發佈，增加重試次數
-        let retryCount = 0
-        const maxRetries = 3
-        let j = null
-        
-        while (retryCount < maxRetries && !j?.ok) {
-          try {
-            console.log(`[排程發文] 第 ${retryCount + 1} 次嘗試發佈：${post.id}`)
-            j = await publishWithRetry(post.content)
-            
-            if (j.ok) {
-              console.log(`[排程發文] 發佈成功：${post.id}，ID: ${j.id}`)
-              break
-            } else {
-              console.warn(`[排程發文] 第 ${retryCount + 1} 次發佈失敗：${post.id}，錯誤：${j.errorText}`)
-              retryCount++
-              
-              if (retryCount < maxRetries) {
-                // 等待一段時間後重試
-                await new Promise(resolve => setTimeout(resolve, 5000 * retryCount))
-              }
-            }
-          } catch (retryError) {
-            console.error(`[排程發文] 第 ${retryCount + 1} 次發佈異常：${post.id}`, retryError)
-            retryCount++
-            
-            if (retryCount < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 5000 * retryCount))
-            }
-          }
-        }
-        
-        if (j?.ok) {
-          // 發佈成功
-          const publishedAt = nowYMDHM()
-          updateTracked(post.id, { 
-            status: 'published', 
-            threadsPostId: j.id, 
-            permalink: j.permalink, 
-            permalinkSource: j.permalink ? 'auto' : undefined, 
-            publishDate: publishedAt,
-            scheduledAt: undefined // 清除排程時間
-          })
-          setRows(rows.map(x => x.id === post.id ? { 
-            ...x, 
-            status: 'published', 
-            threadsPostId: j.id, 
-            permalink: j.permalink, 
-            permalinkSource: j.permalink ? 'auto' : x.permalinkSource, 
-            publishDate: publishedAt,
-            scheduledAt: undefined
-          } : x))
-          console.log(`[排程發文] 成功完成：${post.id}`)
-        } else {
-          // 所有重試都失敗
-          const errorMessage = j?.errorText || '發佈失敗，已重試多次'
-          console.error(`[排程發文] 最終失敗：${post.id}，錯誤：${errorMessage}`)
-          updateTracked(post.id, { 
-            status: 'failed', 
-            publishError: `排程發文失敗：${errorMessage}（已重試${maxRetries}次）`
-          })
-          setRows(rows.map(x => x.id === post.id ? { 
-            ...x, 
-            status: 'failed', 
-            publishError: `排程發文失敗：${errorMessage}（已重試${maxRetries}次）`
-          } : x))
-        }
-      } catch (error) {
-        console.error(`[排程發文] 嚴重錯誤：${post.id}`, error)
-        updateTracked(post.id, { 
-          status: 'failed', 
-          publishError: `排程發文系統錯誤：${String(error)}`
-        })
-        setRows(rows.map(x => x.id === post.id ? { 
-          ...x, 
-          status: 'failed', 
-          publishError: `排程發文系統錯誤：${String(error)}`
-        } : x))
-      } finally {
-        setPublishingId(null)
-      }
-    }
-  }, [rows, setRows])
-
-  // 智能排程檢查：固定5分鐘檢查，確保準時發佈
-  useEffect(() => {
-    const scheduledPosts = rows.filter(r => 
-      r.platform === 'Threads' && 
-      r.status === 'scheduled' && 
-      r.scheduledAt
-    )
-
-    console.log(`[排程檢查] useEffect 觸發，找到 ${scheduledPosts.length} 篇排程文章：`, 
-      scheduledPosts.map(p => ({ id: p.id, scheduledAt: p.scheduledAt, status: p.status })))
 
     if (scheduledPosts.length === 0) {
-      // 沒有排程文章時，清除輪詢
-      if (scheduleCheckRef.current) {
-        console.log('[排程檢查] 沒有排程文章，清除輪詢')
-        clearInterval(scheduleCheckRef.current)
-        scheduleCheckRef.current = null
-      }
+      console.log('[排程檢查] 沒有到期的排程貼文')
       return
     }
 
-    // 清除之前的輪詢，避免重複
-    if (scheduleCheckRef.current) {
-      console.log('[排程檢查] 清除舊的輪詢')
-      clearInterval(scheduleCheckRef.current)
-    }
+    console.log(`[排程檢查] 找到 ${scheduledPosts.length} 篇到期排程貼文`)
+    setIsCheckingSchedule(true)
 
-    // 固定5分鐘檢查一次，確保準時發佈
-    const checkInterval = 5 * 60 * 1000 // 5分鐘
-    console.log(`[排程檢查] 啟動輪詢，間隔：${checkInterval/1000}秒`)
+    try {
+      for (const post of scheduledPosts) {
+        try {
+          // 再次檢查狀態，避免重複發佈
+          const currentPost = rows.find(x => x.id === post.id)
+          if (!currentPost || 
+              currentPost.status !== 'scheduled' || 
+              currentPost.threadsPostId) {
+            console.log(`[排程發文] 跳過已處理的貼文：${post.id}`)
+            continue
+          }
 
-    // 啟動輪詢
-    scheduleCheckRef.current = window.setInterval(() => {
-      console.log('[排程檢查] 輪詢觸發，執行 checkScheduledPosts')
-      checkScheduledPosts()
-    }, checkInterval)
-    
-    return () => {
-      if (scheduleCheckRef.current) {
-        clearInterval(scheduleCheckRef.current)
+          console.log(`[排程發文] 開始執行：${post.id}`)
+          
+          // 立即更新狀態為發佈中，防止重複執行
+          updateTracked(post.id, { status: 'publishing' })
+          setRows(rows.map(x => x.id === post.id ? { ...x, status: 'publishing' }: x))
+          
+          // 簡化發佈：直接發佈，不重試
+          const result = await publishWithRetry(post.content)
+          
+          if (result.ok) {
+            // 發佈成功
+            const publishedAt = nowYMDHM()
+            const updateData = {
+              status: 'published' as const,
+              threadsPostId: result.id,
+              permalink: result.permalink,
+              permalinkSource: result.permalink ? 'auto' as const : undefined,
+              publishDate: publishedAt,
+              scheduledAt: undefined // 清除排程時間
+            }
+            
+            updateTracked(post.id, updateData)
+            setRows(rows.map(x => x.id === post.id ? { ...x, ...updateData }: x))
+            console.log(`[排程發文] 成功：${post.id}`)
+          } else {
+            // 發佈失敗
+            const errorMessage = result.errorText || '發佈失敗'
+            console.error(`[排程發文] 失敗：${post.id}，錯誤：${errorMessage}`)
+            
+            const updateData = {
+              status: 'failed' as const,
+              publishError: `排程發文失敗：${errorMessage}`
+            }
+            
+            updateTracked(post.id, updateData)
+            setRows(rows.map(x => x.id === post.id ? { ...x, ...updateData }: x))
+          }
+        } catch (error) {
+          console.error(`[排程發文] 異常：${post.id}`, error)
+          
+          const updateData = {
+            status: 'failed' as const,
+            publishError: `排程發文系統錯誤：${String(error)}`
+          }
+          
+          updateTracked(post.id, updateData)
+          setRows(rows.map(x => x.id === post.id ? { ...x, ...updateData }: x))
+        }
       }
+    } finally {
+      setIsCheckingSchedule(false)
     }
-  }, [rows]) // 移除 checkScheduledPosts 依賴，避免重複觸發
+  }, [rows, setRows, isCheckingSchedule])
+
+  // 簡化的排程檢查：只在頁面載入和定時檢查時執行
+  useEffect(() => {
+    // 頁面載入時檢查一次
+    checkScheduledPosts()
+    
+    // 每 5 分鐘檢查一次（簡化邏輯）
+    const interval = setInterval(() => {
+      checkScheduledPosts()
+    }, 5 * 60 * 1000)
+    
+    return () => clearInterval(interval)
+  }, []) // 空依賴，只執行一次
 
   // 檢查卡住的「發佈中」狀態，防止狀態卡住
   useEffect(() => {
     const stuckPublishingPosts = rows.filter(r => 
       r.platform === 'Threads' && 
-      r.status === 'publishing' && 
-      r.scheduledAt // 只有排程貼文才需要檢查
+      r.status === 'publishing'
     )
 
     if (stuckPublishingPosts.length === 0) return
@@ -191,25 +132,22 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     // 檢查是否有貼文卡在「發佈中」狀態超過10分鐘
     const now = new Date()
     const stuckPosts = stuckPublishingPosts.filter(post => {
-      const scheduledTime = new Date(post.scheduledAt!)
-      const timeDiff = now.getTime() - scheduledTime.getTime()
+      const publishStartTime = post.publishDate ? new Date(post.publishDate) : new Date()
+      const timeDiff = now.getTime() - publishStartTime.getTime()
       return timeDiff > 10 * 60 * 1000 // 10分鐘
     })
 
     if (stuckPosts.length > 0) {
-      console.warn(`[狀態檢查] 發現 ${stuckPosts.length} 篇貼文卡在「發佈中」狀態`)
+      console.warn(`發現 ${stuckPosts.length} 篇卡住的發佈中貼文，重置為失敗狀態`)
       
       stuckPosts.forEach(post => {
-        console.warn(`[狀態檢查] 貼文 ${post.id} 卡住，重置為失敗狀態`)
-        updateTracked(post.id, { 
-          status: 'failed', 
-          publishError: '發佈狀態卡住：超過10分鐘未完成，已自動重置'
-        })
-        setRows(rows.map(x => x.id === post.id ? { 
-          ...x, 
-          status: 'failed', 
-          publishError: '發佈狀態卡住：超過10分鐘未完成，已自動重置'
-        } : x))
+        const updateData = {
+          status: 'failed' as const,
+          publishError: '發佈超時，已自動重置狀態'
+        }
+        
+        updateTracked(post.id, updateData)
+        setRows(rows.map(x => x.id === post.id ? { ...x, ...updateData }: x))
       })
     }
   }, [rows, setRows])
@@ -384,7 +322,19 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   return (
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
-      {/* 全部同步按鈕依需求移除 */}
+      {/* 手動檢查排程按鈕 */}
+      <div className="flex justify-between items-center mb-4 p-4 border-b">
+        <div className="text-sm text-gray-600">
+          排程檢查：每 5 分鐘自動檢查，或手動觸發
+        </div>
+        <button 
+          className="btn btn-primary"
+          onClick={checkScheduledPosts}
+          disabled={isCheckingSchedule}
+        >
+          {isCheckingSchedule ? '檢查中...' : '手動檢查排程'}
+        </button>
+      </div>
       <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
           <col className="w-8ch" /> {/* 1 原文編號 */}
@@ -710,13 +660,13 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                             // 簡易 spinner（無動畫依然可辨識）
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" opacity=".3"/><path d="M21 12a9 9 0 0 0-9-9"/></svg>
                           ) : (
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-4 20-7z"/></svg>
+                            <span>✈️</span>
                           )}
                         </button>
                         {/* 橘色飛機：排程發佈 - 在排程發佈之前保持顯示，可以重新排程 */}
                         {r.status !== 'published' && r.status !== 'publishing' && (
                           <button className="icon-btn" title={r.scheduledAt ? "重新排程（修改發佈時間）" : "排程發佈（設定發佈時間）"} style={{ background: '#f59e0b', color:'#fff', borderColor:'#f59e0b' }} onClick={()=> openScheduleDialog(r)}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-4 20-7z"/></svg>
+                            <span>✈️</span>
                           </button>
                         )}
                       </>
