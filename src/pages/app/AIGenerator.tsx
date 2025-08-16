@@ -1,329 +1,236 @@
 import { useState, useEffect } from 'react'
-import { CardService, AIGenerationService } from '../../services/cardService'
-import type { BaseCard, CardGenerationRequest, CardGenerationResult } from '../../types/cards'
+import { CardService } from '../../services/cardService'
+
+// 模板編輯的類型定義
+type TemplateEditData = {
+  id: string
+  platform: 'threads' | 'instagram' | 'facebook' | 'general'
+  templateTitle: string
+  templateFeatures: string
+  prompt: string
+  isSystem: boolean
+}
 
 export default function AIGenerator() {
-  const [selectedTemplates, setSelectedTemplates] = useState<BaseCard[]>([])
-  const [topic, setTopic] = useState('')
-  const [style, setStyle] = useState<'formal' | 'casual' | 'professional' | 'friendly'>('casual')
-  const [additionalContext, setAdditionalContext] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedContent, setGeneratedContent] = useState<CardGenerationResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<TemplateEditData[]>([])
+  const [editingTemplate, setEditingTemplate] = useState<TemplateEditData | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
   const cardService = CardService.getInstance()
-  const aiService = AIGenerationService.getInstance()
 
-  // 載入使用者選中的模板
+  // 載入系統預設模板
   useEffect(() => {
-    const loadSelectedTemplates = () => {
-      // TODO: 獲取真實用戶 ID
-      const userId = 'current-user'
-      const templates = cardService.getSelectedTemplates(userId)
-      setSelectedTemplates(templates)
+    const loadSystemTemplates = () => {
+      const systemCards = cardService.getSystemCards()
+      const templateData: TemplateEditData[] = systemCards.map(card => ({
+        id: card.id,
+        platform: card.platform,
+        templateTitle: card.templateTitle,
+        templateFeatures: card.templateFeatures,
+        prompt: card.prompt,
+        isSystem: card.isSystem
+      }))
+      setTemplates(templateData)
     }
 
-    loadSelectedTemplates()
+    loadSystemTemplates()
   }, [])
 
-  // 生成內容
-  const handleGenerate = async () => {
-    if (selectedTemplates.length === 0 || !topic.trim()) {
-      setError('請選擇至少一個模板並輸入主題')
-      return
-    }
+  // 開始編輯模板
+  const startEdit = (template: TemplateEditData) => {
+    setEditingTemplate({ ...template })
+    setIsEditing(true)
+  }
 
-    setIsGenerating(true)
-    setError(null)
-    setGeneratedContent(null)
+  // 取消編輯
+  const cancelEdit = () => {
+    setEditingTemplate(null)
+    setIsEditing(false)
+    setSaveMessage(null)
+  }
+
+  // 保存模板
+  const saveTemplate = () => {
+    if (!editingTemplate) return
 
     try {
-      // 為每個選中的模板生成內容
-      const results: CardGenerationResult[] = []
+      // 更新本地狀態
+      setTemplates(prev => prev.map(t => 
+        t.id === editingTemplate.id ? editingTemplate : t
+      ))
       
-      for (const template of selectedTemplates) {
-        const request: CardGenerationRequest = {
-          cardId: template.id,
-          topic: topic.trim(),
-          style,
-          additionalContext: additionalContext.trim() || undefined
-        }
-
-        const result = await aiService.generateContent(request)
-        results.push(result)
-      }
-
-      // 合併所有結果
-      const mergedResult = mergeResults(results)
-      setGeneratedContent(mergedResult)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失敗')
-    } finally {
-      setIsGenerating(false)
+      // 更新 CardService 中的模板
+      cardService.updateSystemTemplate(
+        editingTemplate.id,
+        editingTemplate.platform,
+        editingTemplate.templateTitle,
+        editingTemplate.templateFeatures,
+        editingTemplate.prompt
+      )
+      
+      setSaveMessage('模板保存成功！')
+      setIsEditing(false)
+      setEditingTemplate(null)
+      
+      // 3秒後清除成功訊息
+      setTimeout(() => setSaveMessage(null), 3000)
+    } catch (error) {
+      setSaveMessage('保存失敗：' + String(error))
     }
   }
 
-  // 合併多個生成結果
-  const mergeResults = (results: CardGenerationResult[]): CardGenerationResult => {
-    const merged: CardGenerationResult = {}
-    
-    results.forEach(result => {
-      if (result.threads) {
-        if (!merged.threads) merged.threads = []
-        merged.threads.push(...result.threads)
-      }
-      if (result.instagram && !merged.instagram) {
-        merged.instagram = result.instagram
-      }
-      if (result.facebook && !merged.facebook) {
-        merged.facebook = result.facebook
-      }
-    })
-    
-    return merged
-  }
-
-  // 重置表單
-  const handleReset = () => {
-    setTopic('')
-    setStyle('casual')
-    setAdditionalContext('')
-    setGeneratedContent(null)
-    setError(null)
-  }
-
-  // 複製內容到剪貼簿
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    // TODO: 顯示複製成功提示
+  // 處理編輯欄位變化
+  const handleEditChange = (field: keyof TemplateEditData, value: string) => {
+    if (!editingTemplate) return
+    setEditingTemplate(prev => prev ? { ...prev, [field]: value } : null)
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">貼文生成器</h1>
-        <p className="text-gray-600">選擇模板，輸入主題，AI 自動生成貼文內容</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>
+          AI 生成器模板管理
+        </h1>
+        <div className="text-sm text-gray-600">
+          管理四個預設模板的設定
+        </div>
       </div>
 
-      {/* 模板選擇區域 */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">選擇模板</h2>
-          <a 
-            href="/settings" 
-            className="text-blue-600 hover:text-blue-800 text-sm underline"
-          >
-            前往設定管理模板 →
-          </a>
+      {/* 成功/錯誤訊息 */}
+      {saveMessage && (
+        <div className={`p-3 rounded-lg ${saveMessage.includes('成功') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {saveMessage}
         </div>
-        
-        {selectedTemplates.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">還沒有選擇任何模板</p>
-            <a 
-              href="/settings" 
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              前往設定選擇模板
-            </a>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {selectedTemplates.map((template) => (
-              <div
-                key={template.id}
-                className="p-4 border border-gray-200 rounded-lg bg-gray-50"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium text-gray-900">{template.templateTitle}</h3>
-                  {template.isSystem && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                      系統預設
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 mb-2">{template.templateFeatures}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    {template.platform}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {template.category}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
 
-      {/* 生成設定區域 */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">生成設定</h2>
-        
-        {/* 主題輸入 */}
-        <div className="mb-4">
-          <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
-            主題 / 關鍵字 *
-          </label>
-          <input
-            type="text"
-            id="topic"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="例如：職場溝通技巧、創業心得、生活感悟..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
-        {/* 風格選擇 */}
-        <div className="mb-4">
-          <label htmlFor="style" className="block text-sm font-medium text-gray-700 mb-2">
-            內容風格
-          </label>
-          <select
-            id="style"
-            value={style}
-            onChange={(e) => setStyle(e.target.value as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="casual">輕鬆自然</option>
-            <option value="formal">正式專業</option>
-            <option value="professional">專業權威</option>
-            <option value="friendly">親切友善</option>
-          </select>
-        </div>
-
-        {/* 額外上下文 */}
-        <div className="mb-6">
-          <label htmlFor="context" className="block text-sm font-medium text-gray-700 mb-2">
-            額外說明（選填）
-          </label>
-          <textarea
-            id="context"
-            value={additionalContext}
-            onChange={(e) => setAdditionalContext(e.target.value)}
-            placeholder="補充說明、特殊要求、目標受眾等..."
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* 操作按鈕 */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating || selectedTemplates.length === 0 || !topic.trim()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGenerating ? '生成中...' : '生成內容'}
-          </button>
-          <button
-            onClick={handleReset}
-            className="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-          >
-            重置
-          </button>
-        </div>
-
-        {/* 錯誤提示 */}
-        {error && (
-          <div className="mt-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
-            {error}
-          </div>
-        )}
-      </div>
-
-      {/* 生成結果區域 */}
-      {generatedContent && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">生成結果</h2>
-          
-          {/* Threads 內容 */}
-          {generatedContent.threads && generatedContent.threads.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Threads 貼文</h3>
-              <div className="space-y-4">
-                {generatedContent.threads.map((thread, index) => (
-                  <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">
-                        Threads {index + 1}
-                      </span>
-                      <button
-                        onClick={() => copyToClipboard(thread.content)}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        複製
-                      </button>
-                    </div>
-                    <p className="text-gray-800 whitespace-pre-wrap">{thread.content}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Instagram 內容 */}
-          {generatedContent.instagram && (
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Instagram 貼文</h3>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Instagram</span>
-                  <button
-                    onClick={() => copyToClipboard(generatedContent.instagram?.content || '')}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    複製
-                  </button>
-                </div>
-                <p className="text-gray-800 whitespace-pre-wrap">
-                  {generatedContent.instagram.content}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Facebook 內容 */}
-          {generatedContent.facebook && (
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Facebook 貼文</h3>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Facebook</span>
-                  <button
-                    onClick={() => copyToClipboard(generatedContent.facebook!.content)}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    複製
-                  </button>
-                </div>
-                <p className="text-gray-800 whitespace-pre-wrap">
-                  {generatedContent.facebook.content}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* 後續操作 */}
-          <div className="border-t pt-4">
-            <p className="text-sm text-gray-600 mb-3">
-              生成完成！你可以複製內容到其他編輯器進行調整，或直接使用。
-            </p>
-            <div className="flex gap-3">
+      {/* 模板列表 */}
+      <div className="grid grid-cols-1 gap-4">
+        {templates.map((template) => (
+          <div key={template.id} className="card card-body">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">{template.templateTitle}</h3>
               <button
-                onClick={() => copyToClipboard(JSON.stringify(generatedContent, null, 2))}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="btn btn-primary"
+                onClick={() => startEdit(template)}
+                disabled={isEditing}
               >
-                複製全部 JSON
+                編輯模板
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <label className="block text-gray-600 mb-1">平台</label>
+                <div className="p-2 bg-gray-50 rounded border">
+                  {template.platform === 'threads' ? 'Threads' : 
+                   template.platform === 'instagram' ? 'Instagram' : 
+                   template.platform === 'facebook' ? 'Facebook' : 'General'}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-gray-600 mb-1">模板名稱</label>
+                <div className="p-2 bg-gray-50 rounded border">
+                  {template.templateTitle}
+                </div>
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-gray-600 mb-1">模板內容</label>
+                <div className="p-2 bg-gray-50 rounded border">
+                  {template.templateFeatures}
+                </div>
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-gray-600 mb-1">模板 Prompt</label>
+                <div className="p-2 bg-gray-50 rounded border">
+                  {template.prompt}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 編輯對話框 */}
+      {isEditing && editingTemplate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">編輯模板：{editingTemplate.templateTitle}</h3>
+            
+            <div className="space-y-4">
+              {/* 平台選擇 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  平台
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={editingTemplate.platform}
+                  onChange={(e) => handleEditChange('platform', e.target.value as any)}
+                >
+                  <option value="threads">Threads</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+
+              {/* 模板名稱 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  模板名稱
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={editingTemplate.templateTitle}
+                  onChange={(e) => handleEditChange('templateTitle', e.target.value)}
+                />
+              </div>
+
+              {/* 模板內容 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  模板內容
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  value={editingTemplate.templateFeatures}
+                  onChange={(e) => handleEditChange('templateFeatures', e.target.value)}
+                />
+              </div>
+
+              {/* 模板 Prompt */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  模板 Prompt
+                </label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={5}
+                  value={editingTemplate.prompt}
+                  onChange={(e) => handleEditChange('prompt', e.target.value)}
+                  placeholder="輸入 AI 生成時使用的 prompt 模板..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={cancelEdit}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                取消
               </button>
               <button
-                onClick={handleReset}
-                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                onClick={saveTemplate}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                重新生成
+                保存
               </button>
             </div>
           </div>
