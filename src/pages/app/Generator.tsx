@@ -43,6 +43,57 @@ export default function Generator() {
     loadSelectedTemplates()
   }, [])
 
+  // 載入保存的內容（頁面載入時）
+  useEffect(() => {
+    try {
+      const savedTitle = localStorage.getItem('generator:title')
+      const savedArticle = localStorage.getItem('generator:article')
+      const savedCards = localStorage.getItem('generator:cards')
+      
+      if (savedTitle) setTitle(savedTitle)
+      if (savedArticle) setArticle(savedArticle)
+      if (savedCards) {
+        try {
+          const parsedCards = JSON.parse(savedCards)
+          setCards(parsedCards)
+        } catch (e) {
+          console.warn('無法解析保存的卡片數據:', e)
+        }
+      }
+    } catch (e) {
+      console.warn('載入保存的內容失敗:', e)
+    }
+  }, [])
+
+  // 保存內容到 localStorage（當內容變化時）
+  useEffect(() => {
+    try {
+      localStorage.setItem('generator:title', title)
+      localStorage.setItem('generator:article', article)
+      localStorage.setItem('generator:cards', JSON.stringify(cards))
+    } catch (e) {
+      console.warn('保存內容失敗:', e)
+    }
+  }, [title, article, cards])
+
+  // 頁面卸載時清除保存的內容（重新載入時會清除）
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        localStorage.removeItem('generator:title')
+        localStorage.removeItem('generator:article')
+        localStorage.removeItem('generator:cards')
+      } catch (e) {
+        console.warn('清除保存的內容失敗:', e)
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
+
   // SEO
   useEffect(() => {
     document.title = '貼文生成器 - limiautopost'
@@ -149,6 +200,15 @@ export default function Generator() {
       alert('已加入追蹤列表：' + selected.length + ' 筆')
       setCards(prev => prev.map(c => ({ ...c, checked: false })))
       refreshTracked()
+      
+      // 成功加入追蹤後，清除保存的內容
+      try {
+        localStorage.removeItem('generator:title')
+        localStorage.removeItem('generator:article')
+        localStorage.removeItem('generator:cards')
+      } catch (e) {
+        console.warn('清除保存的內容失敗:', e)
+      }
     } catch (error) {
       console.error('[onAddToTracking] 錯誤:', error)
       alert('加入追蹤列表失敗：' + String(error))
