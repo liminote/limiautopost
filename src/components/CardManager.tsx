@@ -5,7 +5,6 @@ import type { UserCard } from '../types/cards'
 export default function CardManager() {
   const [userCards, setUserCards] = useState<UserCard[]>([])
   const [editingCard, setEditingCard] = useState<UserCard | null>(null)
-
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   const cardService = CardService.getInstance()
@@ -29,6 +28,10 @@ export default function CardManager() {
       const newCard = cardService.createUserCard(userId, cardData)
       setUserCards([...userCards, newCard])
       setShowCreateForm(false)
+      
+      // 觸發父組件重新載入模板選擇管理
+      // 這裡需要通知父組件更新模板列表
+      window.dispatchEvent(new CustomEvent('userCardCreated'))
     } catch (error) {
       console.error('創建卡片失敗:', error)
       alert('創建卡片失敗')
@@ -45,6 +48,9 @@ export default function CardManager() {
           card.id === cardId ? updatedCard : card
         ))
         setEditingCard(null)
+        
+        // 觸發父組件重新載入模板選擇管理
+        window.dispatchEvent(new CustomEvent('userCardUpdated'))
       }
     } catch (error) {
       console.error('更新卡片失敗:', error)
@@ -60,6 +66,9 @@ export default function CardManager() {
         const success = cardService.deleteUserCard(cardId, userId)
         if (success) {
           setUserCards(userCards.filter(card => card.id !== cardId))
+          
+          // 觸發父組件重新載入模板選擇管理
+          window.dispatchEvent(new CustomEvent('userCardDeleted'))
         }
       } catch (error) {
         console.error('刪除卡片失敗:', error)
@@ -67,8 +76,6 @@ export default function CardManager() {
       }
     }
   }
-
-
 
   return (
     <div className="space-y-6">
@@ -96,7 +103,7 @@ export default function CardManager() {
         {userCards.map((card) => (
           <div key={card.id} className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-medium text-gray-900">{card.name}</h3>
+              <h3 className="text-lg font-medium text-gray-900">{card.templateTitle || card.name}</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditingCard(card)}
@@ -113,14 +120,11 @@ export default function CardManager() {
               </div>
             </div>
             
-            <p className="text-gray-600 mb-3">{card.description}</p>
+            <p className="text-gray-600 mb-3">{card.templateFeatures || card.description}</p>
             
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                {card.category}
-              </span>
-              <span className="text-xs text-gray-500">
-                創建於 {new Date(card.createdAt).toLocaleDateString()}
+                {card.platform || card.category}
               </span>
             </div>
 
@@ -160,24 +164,27 @@ interface CreateCardFormProps {
 
 function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    category: 'general' as const,
+    platform: 'general' as const,
+    templateTitle: '',
+    templateFeatures: '',
     prompt: ''
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name.trim() || !formData.prompt.trim()) {
+    if (!formData.templateTitle.trim() || !formData.prompt.trim()) {
       alert('請填寫所有必填欄位')
       return
     }
     onSubmit({
-      ...formData,
+      name: formData.templateTitle,
+      description: formData.templateFeatures,
+      category: formData.platform,
+      prompt: formData.prompt,
       isActive: true,
-      platform: formData.category,
-      templateTitle: formData.name,
-      templateFeatures: formData.description,
+      platform: formData.platform,
+      templateTitle: formData.templateTitle,
+      templateFeatures: formData.templateFeatures,
       isSelected: false
     })
   }
@@ -186,45 +193,18 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
     <div className="bg-white rounded-lg shadow-md p-6">
       <h3 className="text-lg font-medium mb-4">創建新卡片</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-            <label htmlFor="card-name" className="block text-sm font-medium text-gray-700 mb-1">
-              卡片名稱 *
-            </label>
-            <input
-              id="card-name"
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="例如：職場心得模板"
-              required
-            />
-          </div>
-
-                  <div>
-            <label htmlFor="card-description" className="block text-sm font-medium text-gray-700 mb-1">
-              描述
-            </label>
-            <input
-              id="card-description"
-              type="text"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="簡短描述這個卡片的用途"
-            />
-          </div>
-
-                  <div>
-            <label htmlFor="card-category" className="block text-sm font-medium text-gray-700 mb-1">
-              類別
-            </label>
-            <select
-              id="card-category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+        {/* 平台選擇 */}
+        <div>
+          <label htmlFor="card-platform" className="block text-sm font-medium text-gray-700 mb-1">
+            平台 *
+          </label>
+          <select
+            id="card-platform"
+            value={formData.platform}
+            onChange={(e) => setFormData({ ...formData, platform: e.target.value as any })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          >
             <option value="general">通用</option>
             <option value="threads">Threads</option>
             <option value="instagram">Instagram</option>
@@ -232,20 +212,52 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
           </select>
         </div>
 
-                  <div>
-            <label htmlFor="card-prompt" className="block text-sm font-medium text-gray-700 mb-1">
-              Prompt 內容 *
-            </label>
-            <textarea
-              id="card-prompt"
-              value={formData.prompt}
-              onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={6}
-              placeholder="輸入 AI 生成內容的指令和規則..."
-              required
-            />
-          </div>
+        {/* 模板名稱 */}
+        <div>
+          <label htmlFor="card-title" className="block text-sm font-medium text-gray-700 mb-1">
+            模板名稱 *
+          </label>
+          <input
+            id="card-title"
+            type="text"
+            value={formData.templateTitle}
+            onChange={(e) => setFormData({ ...formData, templateTitle: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="例如：職場心得模板"
+            required
+          />
+        </div>
+
+        {/* 模板內容 */}
+        <div>
+          <label htmlFor="card-features" className="block text-sm font-medium text-gray-700 mb-1">
+            模板內容
+          </label>
+          <textarea
+            id="card-features"
+            value={formData.templateFeatures}
+            onChange={(e) => setFormData({ ...formData, templateFeatures: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={3}
+            placeholder="簡短描述這個模板的用途和特色"
+          />
+        </div>
+
+        {/* 模板 Prompt */}
+        <div>
+          <label htmlFor="card-prompt" className="block text-sm font-medium text-gray-700 mb-1">
+            模板 Prompt *
+          </label>
+          <textarea
+            id="card-prompt"
+            value={formData.prompt}
+            onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={6}
+            placeholder="輸入 AI 生成內容的指令和規則..."
+            required
+          />
+        </div>
 
         <div className="flex gap-3">
           <button
@@ -276,58 +288,41 @@ interface EditCardFormProps {
 
 function EditCardForm({ card, onSubmit, onCancel }: EditCardFormProps) {
   const [formData, setFormData] = useState({
-    name: card.name,
-    description: card.description,
-    category: card.category,
+    platform: card.platform || card.category,
+    templateTitle: card.templateTitle || card.name,
+    templateFeatures: card.templateFeatures || card.description,
     prompt: card.prompt
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name.trim() || !formData.prompt.trim()) {
+    if (!formData.templateTitle.trim() || !formData.prompt.trim()) {
       alert('請填寫所有必填欄位')
       return
     }
-    onSubmit(formData)
+    onSubmit({
+      name: formData.templateTitle,
+      description: formData.templateFeatures,
+      category: formData.platform,
+      prompt: formData.prompt,
+      platform: formData.platform,
+      templateTitle: formData.templateTitle,
+      templateFeatures: formData.templateFeatures
+    })
   }
 
   return (
     <div className="mt-4 p-4 bg-gray-50 rounded-lg">
       <h4 className="font-medium mb-3">編輯卡片</h4>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label htmlFor="edit-card-name" className="block text-sm font-medium text-gray-700 mb-1">
-            卡片名稱 *
-          </label>
-          <input
-            id="edit-card-name"
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-
+        {/* 平台選擇 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            描述
-          </label>
-          <input
-            type="text"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            類別
+            平台
           </label>
           <select
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+            value={formData.platform}
+            onChange={(e) => setFormData({ ...formData, platform: e.target.value as any })}
             className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="general">通用</option>
@@ -337,6 +332,34 @@ function EditCardForm({ card, onSubmit, onCancel }: EditCardFormProps) {
           </select>
         </div>
 
+        {/* 模板名稱 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            模板名稱 *
+          </label>
+          <input
+            type="text"
+            value={formData.templateTitle}
+            onChange={(e) => setFormData({ ...formData, templateTitle: e.target.value })}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        {/* 模板內容 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            模板內容
+          </label>
+          <textarea
+            value={formData.templateFeatures}
+            onChange={(e) => setFormData({ ...formData, templateFeatures: e.target.value })}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={3}
+          />
+        </div>
+
+        {/* 模板 Prompt */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Prompt 內容 *

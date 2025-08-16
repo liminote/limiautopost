@@ -91,6 +91,21 @@ export default function UserSettings(){
     }
 
     loadTemplateManagement()
+
+    // 監聽卡片創建/更新/刪除事件
+    const handleUserCardChange = () => {
+      loadTemplateManagement()
+    }
+
+    window.addEventListener('userCardCreated', handleUserCardChange)
+    window.addEventListener('userCardUpdated', handleUserCardChange)
+    window.addEventListener('userCardDeleted', handleUserCardChange)
+
+    return () => {
+      window.removeEventListener('userCardCreated', handleUserCardChange)
+      window.removeEventListener('userCardUpdated', handleUserCardChange)
+      window.removeEventListener('userCardDeleted', handleUserCardChange)
+    }
   }, [])
 
   // 切換模板選擇
@@ -156,36 +171,58 @@ export default function UserSettings(){
           <p className="text-gray-500 text-center py-4">載入中...</p>
         ) : (
           <div className="space-y-3">
-            {availableTemplates.map((template) => (
-              <div key={template.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
-                <input
-                  type="checkbox"
-                  id={`template-${template.id}`}
-                  checked={selectedTemplates.some(t => t.id === template.id)}
-                  onChange={() => toggleTemplateSelection(template.id)}
-                  disabled={!selectedTemplates.some(t => t.id === template.id) && selectedTemplates.length >= maxSelections}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor={`template-${template.id}`} className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{template.templateTitle}</h3>
-                      <p className="text-sm text-gray-600">{template.templateFeatures}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        {template.platform}
-                      </span>
-                      {template.isSystem && (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                          系統預設
+            {availableTemplates.map((template) => {
+              const isSelected = selectedTemplates.some(t => t.id === template.id)
+              return (
+                <div 
+                  key={template.id} 
+                  className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${
+                    isSelected 
+                      ? 'border-blue-300 bg-blue-50 shadow-sm' 
+                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    id={`template-${template.id}`}
+                    checked={isSelected}
+                    onChange={() => toggleTemplateSelection(template.id)}
+                    disabled={!isSelected && selectedTemplates.length >= maxSelections}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor={`template-${template.id}`} className="flex-1 cursor-pointer">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className={`font-medium ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                          {template.templateTitle}
+                        </h3>
+                        <p className={`text-sm ${isSelected ? 'text-blue-700' : 'text-gray-600'}`}>
+                          {template.templateFeatures}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          isSelected 
+                            ? 'bg-blue-200 text-blue-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {template.platform}
                         </span>
-                      )}
+                        {template.isSystem && (
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            isSelected 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            系統預設
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </label>
-              </div>
-            ))}
+                  </label>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
