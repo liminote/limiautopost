@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
+import { pruneOldTokens } from './_tokenStore'
 
 const APP_ID = process.env.THREADS_APP_ID || ''
 const APP_SECRET = process.env.THREADS_APP_SECRET || ''
@@ -35,6 +36,8 @@ export const handler: Handler = async (event) => {
       )
       const key = `threads:${data.user_id}`
       await store.set(key, JSON.stringify({ ...data, username, savedAt: new Date().toISOString() }))
+      // 清掉舊 token（僅保留最新一筆）
+      try { await pruneOldTokens(1) } catch {}
     } catch {}
     // 設置 cookie 作為前端快速檢查（7 天）
     const cookie = `threads_linked=1; Path=/; Max-Age=${7*24*60*60}; SameSite=Lax; Secure; HttpOnly`

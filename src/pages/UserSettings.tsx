@@ -12,6 +12,9 @@ export default function UserSettings(){
         const j = await fetch('/api/threads/status', { cache: 'no-store' }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
         setLinked(j.status === 'linked')
         if (j.username) setUsername(j.username)
+        if (j.tokenSavedAt) {
+          setStatusMsg(`Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}`)
+        }
         // 同步快取
         try {
           localStorage.setItem('threads:linked', j.status === 'linked' ? '1' : '0')

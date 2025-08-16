@@ -5,6 +5,7 @@ export const handler: Handler = async () => {
   let reasonCode: string | undefined
   let username: string | undefined
   let status: 'not_configured' | 'ready' | 'linked' | 'link_failed' = 'ready'
+  let tokenSavedAt: string | undefined
   const envOk = !!(process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URL)
   if (!envOk) status = 'not_configured'
   try {
@@ -13,7 +14,8 @@ export const handler: Handler = async () => {
     if (!has) {
       status = envOk ? 'ready' : 'not_configured'
     } else {
-      const data = latest!.data as { access_token?: string; username?: string; user_id?: string } | null
+      const data = latest!.data as { access_token?: string; username?: string; user_id?: string; savedAt?: string } | null
+      tokenSavedAt = data?.savedAt
       if (data?.access_token) {
         // 先嘗試 /me
         let ok = false
@@ -50,7 +52,7 @@ export const handler: Handler = async () => {
   } catch (e) {
     status = 'link_failed'; reasonCode = 'store_error'
   }
-  return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status, username, reasonCode }) }
+  return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status, username, reasonCode, tokenSavedAt }) }
 }
 
 
