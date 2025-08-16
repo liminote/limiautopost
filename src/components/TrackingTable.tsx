@@ -393,7 +393,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col className="w-20ch" /> {/* 6 內容 */}
           <col className="w-12ch" /> {/* 7 標籤 */}
           <col /> {/* 8 連結 */}
-          <col className="w-8ch" /> {/* 9 發佈日期 */}
+          <col className="w-12ch" /> {/* 9 發佈日期 */}
           <col /> {/* 10 讚 */}
           <col /> {/* 11 留言 */}
           <col /> {/* 12 分享 */}
