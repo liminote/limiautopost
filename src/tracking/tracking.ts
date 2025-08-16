@@ -114,7 +114,7 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
   const email = getSession()?.email || ''
   const seenPostIds = new Set<string>()
   
-  const created = items.map((it, index) => {
+  const created = items.map((it) => {
     // 若標題相同，沿用既有的 articleId（同一篇原文不換編號）
     const titleKey = (it.articleTitle || '').trim()
     const foundSameTitle = titleKey
