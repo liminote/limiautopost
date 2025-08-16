@@ -1,20 +1,14 @@
 import type { Handler } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
+import { getLatestToken } from './_tokenStore'
 
 export const handler: Handler = async (event) => {
   try {
     const id = event.queryStringParameters?.id
     if (!id) return { statusCode: 400, body: 'Missing id' }
 
-    const store = getStore(
-      process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
-        ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
-        : { name: 'threads_tokens' }
-    )
-    const listed = await store.list({ prefix: 'threads:' })
-    if (!listed?.blobs?.length) return { statusCode: 401, body: 'Not linked' }
-    const key = listed.blobs[0].key
-    const data = await store.get(key, { type: 'json' }) as { access_token?: string; username?: string } | null
+    const latest = await getLatestToken()
+    if (!latest) return { statusCode: 401, body: 'Not linked' }
+    const data = latest.data as { access_token?: string; username?: string }
     if (!data?.access_token) return { statusCode: 401, body: 'Missing access token' }
 
     let permalink: string | undefined

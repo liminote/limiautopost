@@ -1,5 +1,5 @@
 import type { Handler } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
+import { getLatestToken } from './_tokenStore'
 
 export const handler: Handler = async () => {
   let reasonCode: string | undefined
@@ -8,18 +8,12 @@ export const handler: Handler = async () => {
   const envOk = !!(process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URL)
   if (!envOk) status = 'not_configured'
   try {
-    const store = getStore(
-      process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
-        ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
-        : { name: 'threads_tokens' }
-    )
-    const listed = await store.list({ prefix: 'threads:' })
-    const has = (listed?.blobs?.length || 0) > 0
+    const latest = await getLatestToken()
+    const has = !!latest
     if (!has) {
       status = envOk ? 'ready' : 'not_configured'
     } else {
-      const key = listed!.blobs![0].key
-      const data = await store.get(key, { type: 'json' }) as { access_token?: string; username?: string; user_id?: string } | null
+      const data = latest!.data as { access_token?: string; username?: string; user_id?: string } | null
       if (data?.access_token) {
         // 先嘗試 /me
         let ok = false

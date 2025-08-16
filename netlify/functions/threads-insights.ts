@@ -1,5 +1,5 @@
 import type { Handler } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
+import { getLatestToken } from './_tokenStore'
 
 // GET /.netlify/functions/threads-insights?id={threads_post_id}
 export const handler: Handler = async (event) => {
@@ -7,15 +7,9 @@ export const handler: Handler = async (event) => {
   const id = event.queryStringParameters?.id
   if (!id) return { statusCode: 400, body: 'Missing id' }
   try {
-    const store = getStore(
-      process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
-        ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
-        : { name: 'threads_tokens' }
-    )
-    const listed = await store.list({ prefix: 'threads:' })
-    if (!listed?.blobs?.length) return { statusCode: 401, body: 'Not linked' }
-    const key = listed.blobs[0].key
-    const data = await store.get(key, { type: 'json' }) as { access_token?: string } | null
+    const latest = await getLatestToken()
+    if (!latest) return { statusCode: 401, body: 'Not linked' }
+    const data = latest.data as { access_token?: string }
     if (!data?.access_token) return { statusCode: 401, body: 'Missing access token' }
 
     const accessToken = data.access_token
