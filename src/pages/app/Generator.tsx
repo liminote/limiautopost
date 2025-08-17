@@ -122,6 +122,27 @@ export default function Generator() {
     return cards.some(c => c.checked)
   }, [cards])
 
+  const onClear = () => {
+    if (title || article) {
+      if (confirm('確定要清空所有內容嗎？')) {
+        setTitle('')
+        setArticle('')
+        // 清除 localStorage 中的保存內容
+        if (session) {
+          try {
+            localStorage.removeItem(`generator:${session.email}:title`)
+            localStorage.removeItem(`generator:${session.email}:article`)
+            localStorage.removeItem(`generator:${session.email}:cards`)
+          } catch (e) {
+            console.warn('清除保存的內容失敗:', e)
+          }
+        }
+        // 清空生成的卡片
+        setCards([])
+      }
+    }
+  }
+
   const onGenerate = () => {
     if (selectedTemplates.length === 0) {
       alert('請先在「個人設定」中選擇至少一個模板')
@@ -200,7 +221,7 @@ export default function Generator() {
     const articleId = /A\d{3}/.exec(selected[0]?.label || '')?.[0] || nextArticleId()
     
     try {
-      const result = addTracked(selected.map(c => ({
+      addTracked(selected.map(c => ({
         articleId,
         branchCode: c.code,
         postId: '',
@@ -242,6 +263,18 @@ export default function Generator() {
             <textarea className="mt-1 textarea w-full text-sm" style={{ height: '20rem' }} value={article} onChange={e=>setArticle(e.target.value)} placeholder="貼上完整長文…" />
           </div>
           <div className="flex gap-2">
+            <button 
+              className="btn" 
+              style={{ 
+                backgroundColor: 'var(--yinmn-blue-300)', 
+                color: 'var(--yinmn-blue)', 
+                border: '1px solid var(--yinmn-blue-300)'
+              }}
+              onClick={onClear}
+              disabled={!title && !article}
+            >
+              清空內容
+            </button>
             <button className="ml-auto btn btn-primary disabled:opacity-50" disabled={!article || generating} onClick={onGenerate}>
               {generating ? '生成中…' : '開始生成貼文'}
             </button>

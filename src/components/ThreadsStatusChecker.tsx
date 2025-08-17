@@ -12,6 +12,7 @@ export default function ThreadsStatusChecker() {
     setError(null)
     
     try {
+      if (!session) return
       const response = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, { 
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-store' }

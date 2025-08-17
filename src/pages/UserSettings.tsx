@@ -3,7 +3,6 @@ import CardManager from '../components/CardManager'
 import { CardService } from '../services/cardService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
-import ThreadsStatusChecker from '../components/ThreadsStatusChecker'
 
 export default function UserSettings(){
   const session = useSession()
