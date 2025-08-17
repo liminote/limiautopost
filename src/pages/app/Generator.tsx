@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { addTracked, getTracked, nextArticleId } from '../../tracking/tracking'
 import type { TrackedPost } from '../../tracking/tracking'
 import GeneratedCard, { type GeneratedCardData } from '../../components/GeneratedCard'
@@ -26,27 +26,31 @@ export default function Generator() {
   const [selectedTemplates, setSelectedTemplates] = useState<BaseCard[]>([])
   // 追蹤列表刷新（暫存於本地，供加入追蹤後同步 UI 用）
   const [, setTracked] = useState<TrackedPost[]>([])
-  const refreshTracked = () => setTracked(getTracked())
   
   const cardService = CardService.getInstance()
 
   // 獲取當前用戶 ID
   const currentUserId = session?.email || 'anonymous'
 
-  useEffect(() => { refreshTracked() }, [])
+  // 使用 useCallback 來避免無限循環
+  const refreshTracked = useCallback(() => {
+    setTracked(getTracked())
+  }, [])
+
+  useEffect(() => { refreshTracked() }, [refreshTracked])
 
   // 載入用戶選擇的模板
   useEffect(() => {
+    if (!session) return // 未登入時不載入
+    
     const loadSelectedTemplates = () => {
-      if (!session) return // 未登入時不載入
-      
       const templates = cardService.getSelectedTemplates(currentUserId)
       setSelectedTemplates(templates)
       console.log('[Generator] 載入的選擇模板:', templates)
     }
 
     loadSelectedTemplates()
-  }, [session, currentUserId, cardService])
+  }, [session, currentUserId]) // 移除 cardService 依賴項
 
   // 載入保存的內容（頁面載入時）
   useEffect(() => {
@@ -117,9 +121,7 @@ export default function Generator() {
   }, [])
 
   const anyChecked = useMemo(() => {
-    const checked = cards.some(c => c.checked)
-    console.log('[Generator] anyChecked:', checked, 'cards:', cards.map(c => ({ id: c.id, checked: c.checked, platform: c.platform })))
-    return checked
+    return cards.some(c => c.checked)
   }, [cards])
 
   const onGenerate = () => {
