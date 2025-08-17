@@ -180,6 +180,9 @@ export default function Generator() {
         } else if (template.platform === 'instagram') {
           content = res[3] // 220字
           code = 'IG'
+        } else if (template.platform === 'general') {
+          content = res[0] // 預設使用最長內容
+          code = 'GE'
         } else {
           content = res[0] // 預設使用最長內容
           code = 'FB'
@@ -189,10 +192,12 @@ export default function Generator() {
           id: crypto.randomUUID(),
           platform: template.platform === 'threads' ? 'Threads' : 
                    template.platform === 'instagram' ? 'Instagram' : 
-                   template.platform === 'facebook' ? 'Facebook' : 'Threads',
+                   template.platform === 'facebook' ? 'Facebook' : 
+                   template.platform === 'general' ? 'Threads' : 'Threads',
           label: `${template.platform === 'threads' ? 'Threads' : 
                   template.platform === 'instagram' ? 'Instagram' : 
-                  template.platform === 'facebook' ? 'Facebook' : 'Threads'} - ${template.templateTitle} · ${articleId}`,
+                  template.platform === 'facebook' ? 'Facebook' : 
+                  template.platform === 'general' ? '通用' : 'Threads'} - ${template.templateTitle} · ${articleId}`,
           content: content || template.prompt || '請輸入內容',
           checked: false,
           code: code
