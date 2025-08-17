@@ -183,9 +183,12 @@ export default function Generator() {
         } else if (template.platform === 'general') {
           content = res[0] // 預設使用最長內容
           code = 'GE'
+        } else if (template.platform === 'facebook') {
+          content = res[0] // 預設使用最長內容
+          code = 'F1'
         } else {
           content = res[0] // 預設使用最長內容
-          code = 'FB'
+          code = 'T1'
         }
         
         return {
@@ -248,6 +251,9 @@ export default function Generator() {
       } catch (e) {
         console.warn('清除保存的內容失敗:', e)
       }
+      
+      // 導向追蹤列表頁面
+      window.location.href = '/tracking'
     } catch (error) {
       console.error('[onAddToTracking] 錯誤:', error)
       alert('加入追蹤列表失敗：' + String(error))
