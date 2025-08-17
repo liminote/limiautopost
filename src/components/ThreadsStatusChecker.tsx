@@ -13,7 +13,7 @@ export default function ThreadsStatusChecker() {
     
     try {
       if (!session) return
-      const response = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, { 
+      const response = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`, { 
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-store' }
       })

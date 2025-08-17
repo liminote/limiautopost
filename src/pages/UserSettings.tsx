@@ -56,10 +56,10 @@ export default function UserSettings(){
         
         // 從伺服器檢查狀態（非阻塞）
         try {
-          const j = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, { 
-            cache: 'no-store', 
-            headers: { 'Cache-Control': 'no-store' } 
-          }).then(r => r.ok ? r.json() : Promise.reject(new Error('status http')))
+                            const j = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`, { 
+                    cache: 'no-store', 
+                    headers: { 'Cache-Control': 'no-store' } 
+                  }).then(r => r.ok ? r.json() : Promise.reject(new Error('status http')))
           
           const serverLinked = j.status === 'linked'
           const serverUsername = j.username
@@ -130,10 +130,10 @@ export default function UserSettings(){
         // 延遲檢查狀態，確保 username 被設定
         setTimeout(async () => {
           try {
-            const response = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, {
-              cache: 'no-store',
-              headers: { 'Cache-Control': 'no-store' }
-            })
+                                const response = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`, {
+                      cache: 'no-store',
+                      headers: { 'Cache-Control': 'no-store' }
+                    })
             
             if (response.ok) {
               const data = await response.json()
@@ -291,7 +291,7 @@ export default function UserSettings(){
         {/* 允許管理者也能連結 Threads（單帳號同時具 admin/user 的情境） */}
         {true ? (
         <div className="flex gap-2">
-          <a className="btn btn-primary" href={`/api/threads/oauth/start?user=${encodeURIComponent(session?.email || '')}`}>{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
+          <a className="btn btn-primary" href={`/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(session?.email || '')}`}>{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
           {linked && (
             <button
               className="btn btn-ghost"
@@ -304,8 +304,8 @@ export default function UserSettings(){
                   // 嘗試斷開連結
                   const j = await (async () => {
                     try { 
-                      console.log('嘗試 /api/threads/disconnect...')
-                      return await (await fetch('/api/threads/disconnect', { method: 'POST' })).json() 
+                      console.log('嘗試 /.netlify/functions/threads-disconnect...')
+                      return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json() 
                     } catch (error) {
                       console.log('第一個 API 失敗，嘗試備用...', error)
                       return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json()
@@ -370,7 +370,7 @@ export default function UserSettings(){
             onClick={async () => {
               try {
                 console.log('強制同步 Threads 狀態...')
-                const response = await fetch(`/api/threads/status?user=${encodeURIComponent(session?.email || '')}`, {
+                const response = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session?.email || '')}`, {
                   cache: 'no-store',
                   headers: { 'Cache-Control': 'no-store' }
                 })
