@@ -3,6 +3,7 @@ import CardManager from '../components/CardManager'
 import { CardService } from '../services/cardService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
+import ThreadsStatusChecker from '../components/ThreadsStatusChecker'
 
 export default function UserSettings(){
   const session = useSession()
@@ -41,7 +42,7 @@ export default function UserSettings(){
     
     const run = async () => {
       try {
-        const j = await fetch('/api/threads/status', { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
+        const j = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
         const prev = linked
         const nextLinked = j.status === 'linked'
         // 若先前已連結，但狀態短暫回落（store 延遲或快取），先維持連結並稍後重試
@@ -154,7 +155,7 @@ export default function UserSettings(){
         {/* 允許管理者也能連結 Threads（單帳號同時具 admin/user 的情境） */}
         {true ? (
         <div className="flex gap-2">
-          <a className="btn btn-primary" href="/api/threads/oauth/start">{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
+          <a className="btn btn-primary" href={`/api/threads/oauth/start?user=${encodeURIComponent(session?.email || '')}`}>{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
           {linked && (
             <button
               className="btn btn-ghost"

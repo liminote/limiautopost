@@ -1,16 +1,32 @@
 import type { Handler } from '@netlify/functions'
-import { getLatestToken } from './_tokenStore'
+import { getTokenForUser, getLatestToken } from './_tokenStore'
 
 export const handler: Handler = async (event) => {
   let reasonCode: string | undefined
   let username: string | undefined
   let status: 'not_configured' | 'ready' | 'linked' | 'link_failed' = 'ready'
   let tokenSavedAt: string | undefined
-  const cookieLinked = (event.headers?.cookie || '').includes('threads_linked=1')
+  
+  // 從 query 參數或 cookie 取得使用者資訊
+  const userEmail = event.queryStringParameters?.user || ''
+  const cookieLinked = userEmail 
+    ? (event.headers?.cookie || '').includes(`threads_linked_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}=1`)
+    : (event.headers?.cookie || '').includes('threads_linked=1')
+    
   const envOk = !!(process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URL)
   if (!envOk) status = 'not_configured'
+  
   try {
-    const latest = await getLatestToken()
+    let latest: { key: string; data: any } | null = null
+    
+    if (userEmail) {
+      // 使用新的使用者隔離方式
+      latest = await getTokenForUser(userEmail)
+    } else {
+      // 向後相容：舊的全域方式
+      latest = await getLatestToken()
+    }
+    
     const has = !!latest
     if (!has) {
       status = envOk ? 'ready' : 'not_configured'
@@ -53,9 +69,18 @@ export const handler: Handler = async (event) => {
   } catch (e) {
     status = 'link_failed'; reasonCode = 'store_error'
   }
+  
   // 若沒有 token 但剛授權完（cookie 還在），仍視為 linked，避免 UI 假性斷開
   if ((status === 'ready' || status === 'link_failed') && cookieLinked) status = 'linked'
-  return { statusCode: 200, headers: { 'content-type': 'application/json', 'Cache-Control': 'no-store, no-cache, must-revalidate' }, body: JSON.stringify({ status, username, reasonCode, tokenSavedAt }) }
+  
+  return { 
+    statusCode: 200, 
+    headers: { 
+      'content-type': 'application/json', 
+      'Cache-Control': 'no-store, no-cache, must-revalidate' 
+    }, 
+    body: JSON.stringify({ status, username, reasonCode, tokenSavedAt, userEmail }) 
+  }
 }
 
 
