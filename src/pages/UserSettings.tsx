@@ -217,12 +217,19 @@ export default function UserSettings(){
         const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
         const localUsername = localStorage.getItem(`threads:${session.email}:username`)
         
+        console.log('localStorage 變化，同步狀態:', { localLinked, localUsername })
+        
         setLinked(localLinked)
-        if (localUsername) setUsername(localUsername)
-        if (localLinked) {
-          setStatusMsg('Threads 已連接')
+        if (localUsername) {
+          setUsername(localUsername)
+          setStatusMsg(`Threads 已連接（${localUsername}）`)
         } else {
-          setStatusMsg(null)
+          setUsername(null)
+          if (localLinked) {
+            setStatusMsg('Threads 已連接，但缺少帳號資訊')
+          } else {
+            setStatusMsg(null)
+          }
         }
       }
     }
@@ -292,15 +299,48 @@ export default function UserSettings(){
               onClick={async ()=>{
                 try {
                   setBusy(true)
+                  console.log('開始斷開 Threads 連結...')
+                  
+                  // 嘗試斷開連結
                   const j = await (async () => {
-                    try { return await (await fetch('/api/threads/disconnect', { method: 'POST' })).json() } catch {}
-                    return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json()
+                    try { 
+                      console.log('嘗試 /api/threads/disconnect...')
+                      return await (await fetch('/api/threads/disconnect', { method: 'POST' })).json() 
+                    } catch (error) {
+                      console.log('第一個 API 失敗，嘗試備用...', error)
+                      return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json()
+                    }
                   })()
+                  
+                  console.log('斷開連結回應:', j)
+                  
                   if (j.ok) {
-                    setLinked(false); setUsername(null); setStatusMsg('已斷開連結')
-                  } else { setStatusMsg('斷開連結失敗') }
-                } catch { setStatusMsg('斷開連結失敗') }
-                finally { setBusy(false) }
+                    // 更新組件狀態
+                    setLinked(false)
+                    setUsername(null)
+                    setStatusMsg('已斷開 Threads 連結')
+                    
+                    // 清除本地快取
+                    try {
+                      localStorage.removeItem(`threads:${session?.email}:linked`)
+                      localStorage.removeItem(`threads:${session?.email}:username`)
+                      console.log('已清除本地快取')
+                    } catch (error) {
+                      console.warn('清除本地快取失敗:', error)
+                    }
+                    
+                    console.log('Threads 斷開連結成功')
+                  } else { 
+                    console.error('斷開連結失敗:', j)
+                    setStatusMsg(`斷開連結失敗: ${j.error || '未知錯誤'}`) 
+                  }
+                } catch (error) { 
+                  console.error('斷開連結異常:', error)
+                  setStatusMsg('斷開連結失敗: 網路錯誤') 
+                }
+                finally { 
+                  setBusy(false) 
+                }
               }}
             >斷開連結</button>
           )}
@@ -325,6 +365,61 @@ export default function UserSettings(){
             className="ml-2 text-xs text-blue-600 underline hover:text-blue-800"
           >
             診斷狀態
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                console.log('強制同步 Threads 狀態...')
+                const response = await fetch(`/api/threads/status?user=${encodeURIComponent(session?.email || '')}`, {
+                  cache: 'no-store',
+                  headers: { 'Cache-Control': 'no-store' }
+                })
+                
+                if (response.ok) {
+                  const data = await response.json()
+                  console.log('伺服器狀態:', data)
+                  
+                  const serverLinked = data.status === 'linked'
+                  const serverUsername = data.username
+                  
+                  // 強制同步狀態
+                  setLinked(serverLinked)
+                  setUsername(serverUsername)
+                  
+                  // 同步到 localStorage
+                  try {
+                    localStorage.setItem(`threads:${session?.email}:linked`, serverLinked ? '1' : '0')
+                    if (serverUsername) {
+                      localStorage.setItem(`threads:${session?.email}:username`, serverUsername)
+                    } else {
+                      localStorage.removeItem(`threads:${session?.email}:username`)
+                    }
+                  } catch (error) {
+                    console.warn('同步 localStorage 失敗:', error)
+                  }
+                  
+                  if (serverLinked) {
+                    if (serverUsername) {
+                      setStatusMsg(`Threads 已連接（${serverUsername}）`)
+                    } else {
+                      setStatusMsg('Threads 已連接，但缺少帳號資訊')
+                    }
+                  } else {
+                    setStatusMsg(null)
+                  }
+                  
+                  alert('狀態同步完成！')
+                } else {
+                  alert('狀態同步失敗：無法連接到伺服器')
+                }
+              } catch (error) {
+                console.error('強制同步失敗:', error)
+                alert('狀態同步失敗：網路錯誤')
+              }
+            }}
+            className="ml-2 text-xs text-green-600 underline hover:text-green-800"
+          >
+            強制同步
           </button>
         </div>}
       </div>
