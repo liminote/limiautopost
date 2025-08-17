@@ -13,7 +13,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@netlify/blobs": "^6.2.0",
+    "@netlify/blobs": "^6.5.0",
+    "@netlify/functions": "^4.2.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.0"
