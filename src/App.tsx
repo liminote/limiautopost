@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import AdminUsers from './pages/admin/AdminUsers'
 import TrackingPage from './pages/app/Tracking'
 import Login from './pages/Login'
@@ -23,13 +24,43 @@ function TopNav() {
 
   const handleNavClick = (to: string, label: string) => {
     console.log(`點擊導航: ${label} -> ${to}`)
+    console.log('當前路徑:', loc.pathname)
+    console.log('目標路徑:', to)
+    console.log('session:', session)
+    
     try {
+      // 嘗試使用 React Router 導航
+      console.log('嘗試 React Router 導航...')
       nav(to)
-      console.log(`導航成功: ${label} -> ${to}`)
+      console.log(`React Router 導航成功: ${label} -> ${to}`)
     } catch (error) {
-      console.error(`導航失敗: ${label} -> ${to}`, error)
+      console.error(`React Router 導航失敗: ${label} -> ${to}`, error)
+      
+      // 備用方案：使用 window.location
+      console.log('使用備用導航方案: window.location')
+      try {
+        window.location.href = to
+        console.log('備用導航成功')
+      } catch (fallbackError) {
+        console.error('備用導航也失敗:', fallbackError)
+      }
     }
   }
+
+  // 測試導航功能
+  const testNavigation = () => {
+    console.log('=== 導航功能測試 ===')
+    console.log('當前路徑:', loc.pathname)
+    console.log('session:', session)
+    console.log('isAdmin:', hasRole('admin', session))
+    console.log('useNavigate 函數:', typeof nav)
+    console.log('useLocation 函數:', typeof loc)
+  }
+
+  // 在組件載入時測試
+  useEffect(() => {
+    testNavigation()
+  }, [])
 
   return (
     <>
@@ -44,6 +75,7 @@ function TopNav() {
             <button
               onClick={() => handleNavClick('/admin', 'Admin Mode')}
               className={`admin-link ${active('/admin') ? 'active' : ''}`}
+              style={{ cursor: 'pointer', padding: '8px 16px', border: '1px solid #ccc', borderRadius: '4px' }}
             >Admin Mode</button>
           )}
           {session ? (
@@ -51,15 +83,18 @@ function TopNav() {
           <button
             onClick={() => handleNavClick('/app', '貼文生成器')}
             className={active('/app') ? 'active' : ''}
+            style={{ cursor: 'pointer', padding: '8px 16px', border: '1px solid #ccc', borderRadius: '4px' }}
           >貼文生成器</button>
           <button
             onClick={() => handleNavClick('/tracking', '追蹤列表')}
             className={active('/tracking') ? 'active' : ''}
+            style={{ cursor: 'pointer', padding: '8px 16px', border: '1px solid #ccc', borderRadius: '4px' }}
           >追蹤列表</button>
           {/* 使用者選單 */}
           <button
             onClick={() => handleNavClick('/settings', '設定')}
             className={active('/settings') ? 'active' : ''}
+            style={{ cursor: 'pointer', padding: '8px 16px', border: '1px solid #ccc', borderRadius: '4px' }}
           >設定</button>
           {username && <span className="text-sm text-muted">hi {username}</span>}
           {session && (
@@ -82,6 +117,30 @@ function TopNav() {
 function App() {
   const session = useSession()
   const isAdmin = hasRole('admin', session)
+  
+  // 全域錯誤處理
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('全域 JavaScript 錯誤:', event.error)
+      console.error('錯誤訊息:', event.message)
+      console.error('錯誤檔案:', event.filename)
+      console.error('錯誤行號:', event.lineno)
+      console.error('錯誤列號:', event.colno)
+    }
+    
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('未處理的 Promise 拒絕:', event.reason)
+    }
+    
+    window.addEventListener('error', handleError)
+    window.addEventListener('unhandledrejection', handleUnhandledRejection)
+    
+    return () => {
+      window.removeEventListener('error', handleError)
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+    }
+  }, [])
+  
   return (
     <BrowserRouter>
       <ErrorBoundary>

@@ -4,6 +4,7 @@ import { CardService } from '../services/cardService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
 import ThreadsDiagnostic from '../components/ThreadsDiagnostic'
+import TestNavigation from '../components/TestNavigation'
 
 export default function UserSettings(){
   const session = useSession()
@@ -213,11 +214,14 @@ export default function UserSettings(){
         {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
       </div>
 
-      {/* Threads 連接診斷工具 */}
-      <div className="card card-body text-sm text-gray-600 space-y-2">
-        <h2 className="font-semibold">Threads 連接診斷</h2>
-        <ThreadsDiagnostic />
-      </div>
+                        {/* Threads 連接診斷工具 */}
+                  <div className="card card-body text-sm text-gray-600 space-y-2">
+                    <h2 className="font-semibold">Threads 連接診斷</h2>
+                    <ThreadsDiagnostic />
+                  </div>
+                  
+                  {/* 測試導航組件 */}
+                  <TestNavigation />
 
       {/* 模板選擇管理 */}
       <div className="card card-body text-sm text-gray-600 space-y-2">
