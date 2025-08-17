@@ -3,7 +3,7 @@ import CardManager from '../components/CardManager'
 import { CardService } from '../services/cardService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
-import ThreadsDiagnostic from '../components/ThreadsDiagnostic'
+
 
 
 export default function UserSettings(){
@@ -300,11 +300,7 @@ export default function UserSettings(){
         </div>}
       </div>
 
-                        {/* Threads 連接診斷工具 */}
-                  <div className="card card-body text-sm text-gray-600 space-y-2">
-                    <h2 className="font-semibold">Threads 連接診斷</h2>
-                    <ThreadsDiagnostic />
-                  </div>
+
                   
 
 
