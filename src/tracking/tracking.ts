@@ -151,7 +151,6 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       likes: 0,
       comments: 0,
       shares: 0,
-      saves: 0,
       tags: [],
       ...it,
       articleId: resolvedArticleId,

@@ -398,7 +398,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col className="w-9ch" /> {/* 3 平台 */}
           <col className="w-8ch" /> {/* 4 狀態 */}
           <col className="w-12ch" /> {/* 5 原文標題 */}
-          <col className="w-20ch" /> {/* 6 內容 */}
+          <col className="w-14ch" /> {/* 6 內容 */}
           <col className="w-12ch" /> {/* 7 標籤 */}
           <col /> {/* 8 連結 */}
           <col className="w-12ch" /> {/* 9 發佈日期 */}
@@ -480,8 +480,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
               <td className="px-3 py-2 border-t text-gray-600 align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
-                <div className="w-20ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
-                  {(r.content || '').slice(0, 36)}{(r.content || '').length > 36 ? '…' : ''}
+                <div className="w-14ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
+                  {(r.content || '').slice(0, 28)}{(r.content || '').length > 28 ? '…' : ''}
                 </div>
               </td>
               <td className="px-3 py-2 border-t align-top" style={{ width: '9ch' }}>
@@ -768,7 +768,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <input
                   type="number"
                   min="0"
-                  className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={r.likes || ''}
                   onChange={(e) => {
                     const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
@@ -782,7 +782,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <input
                   type="number"
                   min="0"
-                  className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={r.comments || ''}
                   onChange={(e) => {
                     const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
@@ -796,7 +796,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <input
                   type="number"
                   min="0"
-                  className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={r.shares || ''}
                   onChange={(e) => {
                     const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
