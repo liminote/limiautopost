@@ -3,6 +3,7 @@ import BrandLogo from '../components/BrandLogo'
 import { signIn, getSession } from '../auth/auth'
 import { findUserByEmail, ensureUser } from '../auth/users'
 import { useNavigate } from 'react-router-dom'
+import LoginDebugger from '../components/LoginDebugger'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -63,6 +64,20 @@ export default function Login() {
           <button type="button" onClick={resetLocal} className="w-full mt-2 text-xs text-gray-500 hover:text-gray-800">重置本機帳號（本機測試用）</button>
         )}
       </form>
+      
+      {import.meta.env.DEV && (
+        <div className="mt-8">
+          <LoginDebugger />
+          <div className="mt-4 text-center">
+            <a 
+              href="/login-test" 
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              開啟完整診斷工具
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

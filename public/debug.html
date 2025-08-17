@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入問題診斷</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>登入問題診斷工具</h1>
+    
+    <div class="card">
+        <h2>瀏覽器功能檢查</h2>
+        <div id="browser-check"></div>
+        <button class="btn" onclick="checkBrowser()">檢查瀏覽器功能</button>
+    </div>
+    
+    <div class="card">
+        <h2>localStorage 測試</h2>
+        <div id="localstorage-check"></div>
+        <button class="btn" onclick="testLocalStorage()">測試 localStorage</button>
+        <button class="btn btn-danger" onclick="clearLocalStorage()">清除 localStorage</button>
+    </div>
+    
+    <div class="card">
+        <h2>模擬登入流程</h2>
+        <div id="login-simulation"></div>
+        <button class="btn" onclick="simulateLogin()">模擬登入</button>
+        <button class="btn" onclick="checkSession()">檢查登入狀態</button>
+    </div>
+    
+    <div class="card">
+        <h2>手動測試</h2>
+        <div>
+            <label>Email: <input type="email" id="test-email" value="operatic@gmail.com"></label><br><br>
+            <label>密碼: <input type="password" id="test-password" value="operatic123"></label><br><br>
+            <button class="btn" onclick="manualLogin()">手動登入</button>
+        </div>
+    </div>
+
+    <script>
+        function checkBrowser() {
+            const div = document.getElementById('browser-check');
+            const checks = {
+                'localStorage': typeof localStorage !== 'undefined',
+                'JSON': typeof JSON !== 'undefined',
+                'crypto': typeof crypto !== 'undefined',
+                'crypto.randomUUID': typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function',
+                'Date': typeof Date !== 'undefined'
+            };
+            
+            let html = '<h3>檢查結果：</h3>';
+            for (const [feature, supported] of Object.entries(checks)) {
+                const status = supported ? '✅ 支援' : '❌ 不支援';
+                const color = supported ? 'success' : 'error';
+                html += `<div class="${color}">${feature}: ${status}</div>`;
+            }
+            
+            div.innerHTML = html;
+        }
+        
+        function testLocalStorage() {
+            const div = document.getElementById('localstorage-check');
+            
+            try {
+                // 測試寫入
+                localStorage.setItem('test-key', 'test-value');
+                const readValue = localStorage.getItem('test-key');
+                
+                if (readValue === 'test-value') {
+                    localStorage.removeItem('test-key');
+                    div.innerHTML = '<div class="success">✅ localStorage 正常工作</div>';
+                } else {
+                    div.innerHTML = '<div class="error">❌ localStorage 讀寫不一致</div>';
+                }
+            } catch (error) {
+                div.innerHTML = `<div class="error">❌ localStorage 錯誤: ${error.message}</div>`;
+            }
+        }
+        
+        function clearLocalStorage() {
+            try {
+                localStorage.clear();
+                document.getElementById('localstorage-check').innerHTML = '<div class="success">✅ localStorage 已清除</div>';
+            } catch (error) {
+                document.getElementById('localstorage-check').innerHTML = `<div class="error">❌ 清除失敗: ${error.message}</div>`;
+            }
+        }
+        
+        function simulateLogin() {
+            const div = document.getElementById('login-simulation');
+            
+            try {
+                // 模擬建立使用者
+                const testUser = {
+                    id: crypto.randomUUID(),
+                    email: 'test@example.com',
+                    password: 'test123',
+                    createdAt: new Date().toISOString().split('T')[0],
+                    enabled: true
+                };
+                
+                // 儲存到 localStorage
+                const users = JSON.parse(localStorage.getItem('limiautopost:users') || '[]');
+                users.push(testUser);
+                localStorage.setItem('limiautopost:users', JSON.stringify(users));
+                
+                // 建立 session
+                const session = {
+                    email: testUser.email,
+                    roles: ['user']
+                };
+                localStorage.setItem('limiautopost:session', JSON.stringify(session));
+                
+                div.innerHTML = '<div class="success">✅ 模擬登入成功</div>';
+            } catch (error) {
+                div.innerHTML = `<div class="error">❌ 模擬登入失敗: ${error.message}</div>`;
+            }
+        }
+        
+        function checkSession() {
+            const div = document.getElementById('login-simulation');
+            
+            try {
+                const session = JSON.parse(localStorage.getItem('limiautopost:session') || 'null');
+                const users = JSON.parse(localStorage.getItem('limiautopost:users') || '[]');
+                
+                if (session) {
+                    div.innerHTML = `
+                        <div class="success">✅ 已登入</div>
+                        <div>Session: ${JSON.stringify(session, null, 2)}</div>
+                        <div>使用者數量: ${users.length}</div>
+                    `;
+                } else {
+                    div.innerHTML = '<div class="warning">⚠️ 未登入</div>';
+                }
+            } catch (error) {
+                div.innerHTML = `<div class="error">❌ 檢查失敗: ${error.message}</div>`;
+            }
+        }
+        
+        function manualLogin() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            
+            try {
+                const users = JSON.parse(localStorage.getItem('limiautopost:users') || '[]');
+                const user = users.find(u => u.email === email);
+                
+                if (!user) {
+                    alert('使用者不存在');
+                    return;
+                }
+                
+                if (user.password !== password) {
+                    alert('密碼錯誤');
+                    return;
+                }
+                
+                if (user.enabled === false) {
+                    alert('帳號未啟用');
+                    return;
+                }
+                
+                // 建立 session
+                const session = {
+                    email: user.email,
+                    roles: ['user']
+                };
+                localStorage.setItem('limiautopost:session', JSON.stringify(session));
+                
+                alert('登入成功！');
+                checkSession();
+            } catch (error) {
+                alert(`登入失敗: ${error.message}`);
+            }
+        }
+        
+        // 頁面載入時自動檢查
+        window.onload = function() {
+            checkBrowser();
+            testLocalStorage();
+        };
+    </script>
+</body>
+</html>

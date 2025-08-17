@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate 
 import AdminUsers from './pages/admin/AdminUsers'
 import TrackingPage from './pages/app/Tracking'
 import Login from './pages/Login'
+import LoginTest from './pages/LoginTest'
 import Generator from './pages/app/Generator.tsx'
 import AIGenerator from './pages/app/AIGenerator'
 import { hasRole, signOut, mustChangePassword, useSession } from './auth/auth'
@@ -74,6 +75,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={session ? <Navigate to="/app" replace /> : <Login />} />
+              <Route path="/login-test" element={<LoginTest />} />
               {/* Admin */}
               <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/login" replace />} />
               <Route path="/admin/users" element={isAdmin ? <AdminUsers /> : <Navigate to="/login" replace />} />
