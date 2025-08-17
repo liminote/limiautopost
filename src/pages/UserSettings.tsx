@@ -23,9 +23,8 @@ export default function UserSettings(){
       return null 
     } 
   })
-  const [busy, setBusy] = useState(false)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
-  const [polling, setPolling] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   // 模板管理相關狀態
   const [availableTemplates, setAvailableTemplates] = useState<BaseCard[]>([])
@@ -39,65 +38,65 @@ export default function UserSettings(){
     
     const run = async () => {
       try {
-        const j = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : Promise.reject(new Error('status http')))
-        const prev = linked
+        // 先從本地快取讀取狀態
+        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
+        const localUsername = localStorage.getItem(`threads:${session.email}:username`)
+        
+        // 設定初始狀態
+        if (localLinked) {
+          setLinked(true)
+          if (localUsername) setUsername(localUsername)
+        }
+        
+        // 從伺服器檢查狀態
+        const j = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, { 
+          cache: 'no-store', 
+          headers: { 'Cache-Control': 'no-store' } 
+        }).then(r => r.ok ? r.json() : Promise.reject(new Error('status http')))
+        
         const nextLinked = j.status === 'linked'
-        // 若先前已連結，但狀態短暫回落（store 延遲或快取），先維持連結並稍後重試
-        if (!nextLinked && prev) {
-          setStatusMsg('正在確認 Threads 連結狀態（稍後自動重試）')
-          if (!polling) {
-            setPolling(true)
-            let attempts = 0
-            const timer = setInterval(async () => {
-              attempts++
-              try {
-                const j2 = await fetch('/api/threads/status', { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : null)
-                if (j2?.status === 'linked') {
-                  setLinked(true)
-                  if (j2.username) setUsername(j2.username)
-                  if (j2.tokenSavedAt) setStatusMsg(`Token 取得於 ${new Date(j2.tokenSavedAt).toLocaleString()}`)
-                  clearInterval(timer); setPolling(false)
-                }
-              } catch {}
-              if (attempts >= 6) { clearInterval(timer); setPolling(false) }
-            }, 5000)
-          }
+        setLinked(nextLinked)
+        
+        if (nextLinked) {
+          if (j.username) setUsername(j.username)
+          if (j.tokenSavedAt) setStatusMsg(`Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}`)
         } else {
-          setLinked(nextLinked)
-          if (nextLinked) setStatusMsg(j.tokenSavedAt ? `Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}` : null)
+          setStatusMsg(null)
         }
-        if (j.username) setUsername(j.username)
-        if (j.tokenSavedAt) {
-          setStatusMsg(`Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}`)
-        }
+        
         // 同步快取
         try {
-          localStorage.setItem(`threads:${session.email}:linked`, j.status === 'linked' ? '1' : '0')
+          localStorage.setItem(`threads:${session.email}:linked`, nextLinked ? '1' : '0')
           if (j.username) localStorage.setItem(`threads:${session.email}:username`, j.username)
         } catch {}
-      } catch {}
-      // 若剛從 OAuth 回來，帶 threads=linked 時立即顯示成功訊息並清掉參數
+      } catch (error) {
+        console.warn('Threads 狀態檢查失敗:', error)
+        // 如果 API 失敗，保持本地狀態
+        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
+        if (localLinked) {
+          setLinked(true)
+          const localUsername = localStorage.getItem(`threads:${session.email}:username`)
+          if (localUsername) setUsername(localUsername)
+        }
+      }
+      
+      // 處理 OAuth 回調
       try {
         const qs = new URLSearchParams(location.search)
         if (qs.get('threads') === 'linked') {
           setLinked(true)
-          setStatusMsg(null)
-          // 讀取本地快取 username
-          try { const u = localStorage.getItem(`threads:${session.email}:username`); if (u) setUsername(u) } catch {}
-          // 清除 query 以避免重新整理又出現
+          setStatusMsg('Threads 連接成功！')
+          
+          // 清除 query 參數
           const url = new URL(location.href)
           url.searchParams.delete('threads')
           history.replaceState({}, '', url.toString())
-          // 回來後再打一次狀態拿 tokenSavedAt
-          try {
-            const j2 = await fetch('/api/threads/status', { cache: 'no-store', headers: { 'Cache-Control': 'no-store' } }).then(r=> r.ok ? r.json() : null)
-            if (j2?.tokenSavedAt) setStatusMsg(`Token 取得於 ${new Date(j2.tokenSavedAt).toLocaleString()}`)
-          } catch {}
         }
       } catch {}
     }
+    
     run()
-  }, [session?.email, linked, polling])
+  }, [session?.email])
 
   // 載入模板管理資訊
   useEffect(() => {

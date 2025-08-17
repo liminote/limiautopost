@@ -85,8 +85,8 @@ function App() {
               <Route path="/settings" element={!session ? <Navigate to="/login" replace /> : <UserSettings />} />
               {/* User */}
               <Route path="/force-change-password" element={<ForceChangePassword />} />
-              <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <TrackingPage />)} />
-              <Route path="/app" element={!session ? <Navigate to="/login" replace /> : (mustChangePassword() ? <Navigate to="/force-change-password" replace /> : <Generator />)} />
+              <Route path="/tracking" element={!session ? <Navigate to="/login" replace /> : <TrackingPage />} />
+              <Route path="/app" element={!session ? <Navigate to="/login" replace /> : <Generator />} />
               <Route path="*" element={<Navigate to={session ? (isAdmin ? '/admin' : '/app') : '/'} replace />} />
             </Routes>
           </main>
