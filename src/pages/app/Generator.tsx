@@ -5,6 +5,7 @@ import GeneratedCard, { type GeneratedCardData } from '../../components/Generate
 import { CardService } from '../../services/cardService'
 import type { BaseCard } from '../../types/cards'
 import { useSession } from '../../auth/auth'
+import { PLATFORM_CONFIG, generateCode, mapPlatform, getPlatformLabel, type PlatformType } from '../../config/platformConfig'
 
 type Platform = 'Threads' | 'Instagram' | 'Facebook' | 'General'
 
@@ -163,50 +164,29 @@ export default function Generator() {
       console.log('[Generator] 選擇的模板:', selectedTemplates.map((t, i) => ({ index: i, platform: t.platform, title: t.templateTitle })))
       
       const newCards: Card[] = selectedTemplates.map((template, index) => {
-        let content = ''
-        let code = ''
+        const platform = template.platform as PlatformType
+        const config = PLATFORM_CONFIG[platform]
         
-        // 根據模板類型和平台生成內容
-        if (template.platform === 'threads') {
-          // 根據模板順序選擇不同長度的內容和編號
-          if (index === 0) {
-            content = res[0] // 500字
-            code = 'T1'
-          } else if (index === 1) {
-            content = res[1] // 350字
-            code = 'T2'
-          } else if (index === 2) {
-            content = res[2] // 200字
-            code = 'T3'
-          } else {
-            // 超過3個模板時，使用 T4, T5, T6...
-            content = res[0] // 預設使用最長內容
-            code = `T${index + 1}`
-          }
-        } else if (template.platform === 'instagram') {
-          content = res[3] // 220字
-          code = 'I1'
-        } else if (template.platform === 'general') {
-          content = res[0] // 預設使用最長內容
-          code = 'G1'
-        } else if (template.platform === 'facebook') {
-          content = res[0] // 預設使用最長內容
-          code = 'F1'
+        // 根據平台配置生成內容和編號
+        let content = ''
+        if (platform === 'threads') {
+          // Threads 平台根據模板順序選擇不同長度
+          if (index === 0) content = res[0] // 500字
+          else if (index === 1) content = res[1] // 350字
+          else if (index === 2) content = res[2] // 200字
+          else content = res[0] // 超過3個模板時使用最長內容
         } else {
-          content = res[0] // 預設使用最長內容
-          code = 'T1'
+          // 其他平台使用配置的內容索引
+          content = res[config.contentIndex]
         }
+        
+        // 生成編號
+        const code = generateCode(platform, index)
         
         const card: Card = {
           id: crypto.randomUUID(),
-          platform: template.platform === 'threads' ? 'Threads' : 
-                   template.platform === 'instagram' ? 'Instagram' : 
-                   template.platform === 'facebook' ? 'Facebook' : 
-                   template.platform === 'general' ? 'General' : 'Threads',
-          label: `${template.platform === 'threads' ? 'Threads' : 
-                  template.platform === 'instagram' ? 'Instagram' : 
-                  template.platform === 'facebook' ? 'Facebook' : 
-                  template.platform === 'general' ? '通用' : 'Threads'} - ${template.templateTitle} · ${articleId}`,
+          platform: mapPlatform(platform),
+          label: `${getPlatformLabel(platform)} - ${template.templateTitle} · ${articleId}`,
           content: content || template.prompt || '請輸入內容',
           checked: false,
           code: code

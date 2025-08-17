@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, useEffect, useCallback } from 'react'
 import TagInput from './TagInput'
 import { getTracked, removeTracked, updateTracked, type TrackedPost } from '../tracking/tracking'
+import { PLATFORM_DISPLAY_MAP, PLATFORM_CONFIG } from '../config/platformConfig'
 // import removed: mock metrics no longer used
 
 export default function TrackingTable({ rows, setRows, loading }: { rows: TrackedPost[]; setRows: (r: TrackedPost[]) => void; loading?: boolean }){
@@ -441,8 +442,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-3 border-t align-top">{r.postId}</td>
               <td className="px-3 py-3 border-t align-top" style={{ minWidth: '6ch', textAlign: 'center' }}>
                 {(() => {
-                  const code = r.platform === 'Instagram' ? 'IG' : r.platform === 'Facebook' ? 'FB' : r.platform === 'General' ? 'GE' : 'TD'
-                  const color = r.platform === 'Instagram' ? '#ec4899' : r.platform === 'Facebook' ? '#2563eb' : r.platform === 'General' ? '#92400e' : '#0ea5a1'
+                  const code = PLATFORM_DISPLAY_MAP[r.platform] || 'TD'
+                  const color = r.platform === 'Instagram' ? PLATFORM_CONFIG.instagram.color :
+                               r.platform === 'Facebook' ? PLATFORM_CONFIG.facebook.color :
+                               r.platform === 'General' ? PLATFORM_CONFIG.general.color :
+                               PLATFORM_CONFIG.threads.color
                   return (
                     <span className="ui-chip" style={{ padding: '0 6px', color }}>
                       {code}

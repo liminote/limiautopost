@@ -94,9 +94,15 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
   const list = getTracked()
   // 準備序號累計：以 articleId + 平台字母 為 key，避免新增多筆時重複
   const counters = new Map<string, number>()
-  const normLetter = (platform: TrackedPost['platform']): 'T' | 'G' | 'F' | 'I' => (
-    platform === 'Threads' ? 'T' : platform === 'Instagram' ? 'I' : platform === 'General' ? 'G' : 'F'
-  )
+  const normLetter = (platform: TrackedPost['platform']): 'T' | 'G' | 'F' | 'I' => {
+    const platformMap = {
+      Threads: 'T',
+      Instagram: 'I',
+      General: 'G',
+      Facebook: 'F'
+    } as const
+    return platformMap[platform] || 'T'
+  }
   // 從既有資料建立初始計數，Instagram 以前可能是 I 開頭，視為 G
   for (const x of list) {
     const m = /^([TIFG])(\d+)$/.exec(x.branchCode)
