@@ -398,7 +398,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col className="w-9ch" /> {/* 3 平台 */}
           <col className="w-8ch" /> {/* 4 狀態 */}
           <col className="w-12ch" /> {/* 5 原文標題 */}
-          <col className="w-18ch" /> {/* 6 內容 */}
+          <col className="w-15ch" /> {/* 6 內容 */}
           <col className="w-12ch" /> {/* 7 標籤 */}
           <col style={{ width: '6ch' }} /> {/* 8 連結 */}
           <col className="w-12ch" /> {/* 9 發佈日期 */}
@@ -479,9 +479,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-3 border-t align-top" style={{ width: '12ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.articleTitle || '（無標題）'); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
                 <div style={{ width: '12ch', overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
-              <td className="px-3 py-3 border-t text-gray-600 align-top" style={{ width: '18ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
-                <div style={{ width: '18ch', overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
-                  {(r.content || '').slice(0, 36)}{(r.content || '').length > 36 ? '…' : ''}
+              <td className="px-3 py-3 border-t text-gray-600 align-top" style={{ width: '15ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
+                <div style={{ width: '15ch', overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
+                  {(r.content || '').slice(0, 30)}{(r.content || '').length > 30 ? '…' : ''}
                 </div>
               </td>
               <td className="px-3 py-3 border-t align-top" style={{ width: '9ch' }}>
