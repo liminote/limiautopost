@@ -21,6 +21,16 @@ function TopNav() {
   const username = session?.email?.split('@')[0] || ''
   // 版本列已隱藏，不再取得版本字串
 
+  const handleNavClick = (to: string, label: string) => {
+    console.log(`點擊導航: ${label} -> ${to}`)
+    try {
+      nav(to)
+      console.log(`導航成功: ${label} -> ${to}`)
+    } catch (error) {
+      console.error(`導航失敗: ${label} -> ${to}`, error)
+    }
+  }
+
   return (
     <>
     {/* 隱藏版本列（保持空白以免占位影響布局） */}
@@ -31,20 +41,26 @@ function TopNav() {
         </Link>
         <nav className="text-sm flex items-center gap-4">
           {hasRole('admin', session) && (
-            <Link to="/admin" className={`admin-link ${active('/admin') ? 'active' : ''}`}>Admin Mode</Link>
+            <button
+              onClick={() => handleNavClick('/admin', 'Admin Mode')}
+              className={`admin-link ${active('/admin') ? 'active' : ''}`}
+            >Admin Mode</button>
           )}
           {session ? (
           <>
-          <Link
-            to="/app"
+          <button
+            onClick={() => handleNavClick('/app', '貼文生成器')}
             className={active('/app') ? 'active' : ''}
-          >貼文生成器</Link>
-          <Link
-            to="/tracking"
+          >貼文生成器</button>
+          <button
+            onClick={() => handleNavClick('/tracking', '追蹤列表')}
             className={active('/tracking') ? 'active' : ''}
-          >追蹤列表</Link>
+          >追蹤列表</button>
           {/* 使用者選單 */}
-          <Link to="/settings" className={active('/settings') ? 'active' : ''}>設定</Link>
+          <button
+            onClick={() => handleNavClick('/settings', '設定')}
+            className={active('/settings') ? 'active' : ''}
+          >設定</button>
           {username && <span className="text-sm text-muted">hi {username}</span>}
           {session && (
             <button

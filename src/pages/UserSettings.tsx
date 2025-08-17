@@ -127,6 +127,42 @@ export default function UserSettings(){
     }
   }, [session?.email, cardService])
 
+  // 頁面載入時立即從本地快取恢復 Threads 狀態
+  useEffect(() => {
+    if (!session) return
+    
+    // 從本地快取恢復狀態
+    const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
+    const localUsername = localStorage.getItem(`threads:${session.email}:username`)
+    
+    if (localLinked) {
+      setLinked(true)
+      if (localUsername) setUsername(localUsername)
+      setStatusMsg('Threads 已連接')
+    }
+  }, [session?.email])
+
+  // 監聽頁面可見性變化，當頁面重新可見時檢查狀態
+  useEffect(() => {
+    if (!session) return
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // 頁面重新可見時，檢查本地狀態
+        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
+        const localUsername = localStorage.getItem(`threads:${session.email}:username`)
+        
+        if (localLinked) {
+          setLinked(true)
+          if (localUsername) setUsername(localUsername)
+        }
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [session?.email])
+
   // 切換模板選擇
   const toggleTemplateSelection = (cardId: string) => {
     if (!session) return
