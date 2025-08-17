@@ -34,9 +34,6 @@ export default function UserSettings(){
 
   const cardService = CardService.getInstance()
 
-  // 獲取當前用戶 ID
-  const currentUserId = session?.email || 'anonymous'
-
   useEffect(() => {
     if (!session) return // 未登入時不執行
     
@@ -75,8 +72,8 @@ export default function UserSettings(){
         }
         // 同步快取
         try {
-          localStorage.setItem(`threads:${currentUserId}:linked`, j.status === 'linked' ? '1' : '0')
-          if (j.username) localStorage.setItem(`threads:${currentUserId}:username`, j.username)
+          localStorage.setItem(`threads:${session.email}:linked`, j.status === 'linked' ? '1' : '0')
+          if (j.username) localStorage.setItem(`threads:${session.email}:username`, j.username)
         } catch {}
       } catch {}
       // 若剛從 OAuth 回來，帶 threads=linked 時立即顯示成功訊息並清掉參數
@@ -86,7 +83,7 @@ export default function UserSettings(){
           setLinked(true)
           setStatusMsg(null)
           // 讀取本地快取 username
-          try { const u = localStorage.getItem(`threads:${currentUserId}:username`); if (u) setUsername(u) } catch {}
+          try { const u = localStorage.getItem(`threads:${session.email}:username`); if (u) setUsername(u) } catch {}
           // 清除 query 以避免重新整理又出現
           const url = new URL(location.href)
           url.searchParams.delete('threads')
@@ -100,14 +97,14 @@ export default function UserSettings(){
       } catch {}
     }
     run()
-  }, [session, currentUserId])
+  }, [session?.email, linked, polling])
 
   // 載入模板管理資訊
   useEffect(() => {
     if (!session) return // 未登入時不載入
     
     const loadTemplateManagement = () => {
-      const management = cardService.getTemplateManagement(currentUserId)
+      const management = cardService.getTemplateManagement(session.email)
       setAvailableTemplates(management.availableTemplates)
       setSelectedTemplates(management.selectedTemplates)
       setMaxSelections(management.maxSelectedTemplates)
@@ -129,16 +126,17 @@ export default function UserSettings(){
       window.removeEventListener('userCardUpdated', handleUserCardChange)
       window.removeEventListener('userCardDeleted', handleUserCardChange)
     }
-  }, [session, currentUserId, cardService])
+  }, [session?.email, cardService])
 
   // 切換模板選擇
   const toggleTemplateSelection = (cardId: string) => {
-    const userId = 'current-user' // TODO: 獲取真實用戶 ID
-    const success = cardService.toggleUserSelection(userId, cardId)
+    if (!session) return
+    
+    const success = cardService.toggleUserSelection(session.email, cardId)
     
     if (success) {
       // 重新載入模板管理資訊
-      const management = cardService.getTemplateManagement(userId)
+      const management = cardService.getTemplateManagement(session.email)
       setAvailableTemplates(management.availableTemplates)
       setSelectedTemplates(management.selectedTemplates)
     }

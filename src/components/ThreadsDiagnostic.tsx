@@ -64,10 +64,15 @@ export default function ThreadsDiagnostic() {
 
   useEffect(() => {
     if (session) {
-      checkHealth()
-      checkStatus()
+      // 延遲執行以避免頁面載入時立即觸發多個 API 呼叫
+      const timer = setTimeout(() => {
+        checkHealth()
+        checkStatus()
+      }, 1000)
+      
+      return () => clearTimeout(timer)
     }
-  }, [session])
+  }, [session?.email])
 
   if (!session) {
     return (
