@@ -17,9 +17,23 @@ export const handler: Handler = async (event) => {
   let appUserEmail: string | undefined
   try {
     if (state && state.includes('user:')) {
-      appUserEmail = state.split('user:')[1]
+      // 修復：正確解析 state 格式 "user:email:random"
+      const parts = state.split('user:')
+      if (parts.length > 1) {
+        const userPart = parts[1]
+        // 移除隨機數部分，只保留郵箱
+        const emailPart = userPart.split(':')[0]
+        if (emailPart && emailPart.includes('@')) {
+          appUserEmail = emailPart
+          console.log('從 state 解析到用戶郵箱:', appUserEmail)
+        }
+      }
     }
-  } catch {}
+  } catch (error) {
+    console.error('解析 state 參數失敗:', error)
+  }
+  
+  console.log('OAuth 回調處理:', { code: !!code, state, appUserEmail })
   
   try {
     const res = await fetch(`${AUTH_HOST}/oauth/access_token`, {
@@ -43,9 +57,13 @@ export const handler: Handler = async (event) => {
     try {
       if (appUserEmail) {
         // 使用新的使用者隔離儲存方式
-        await saveTokenForUser(appUserEmail, { ...data, username, savedAt: new Date().toISOString() })
+        const tokenData = { ...data, username, savedAt: new Date().toISOString() }
+        console.log('儲存用戶 token:', { appUserEmail, username, userId: data.user_id })
+        await saveTokenForUser(appUserEmail, tokenData)
+        console.log('用戶 token 儲存成功')
       } else {
         // 向後相容：舊的儲存方式
+        console.log('使用舊的儲存方式（無用戶郵箱）')
         const store = getStore(
           process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
             ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
@@ -53,8 +71,11 @@ export const handler: Handler = async (event) => {
         )
         const key = `threads:${data.user_id}`
         await store.set(key, JSON.stringify({ ...data, username, savedAt: new Date().toISOString() }))
+        console.log('舊方式 token 儲存成功')
       }
-    } catch {}
+    } catch (error) {
+      console.error('Token 儲存失敗:', error)
+    }
     
     // 設置 cookie 作為前端快速檢查（7 天，加入使用者識別）
     const cookieValue = appUserEmail 
