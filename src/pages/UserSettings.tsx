@@ -39,65 +39,80 @@ export default function UserSettings(){
     
     const run = async () => {
       try {
-        // 先從本地快取讀取狀態
+        // 優先從本地快取讀取狀態
         const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
         const localUsername = localStorage.getItem(`threads:${session.email}:username`)
         
-        // 設定初始狀態
+        // 立即設定本地狀態，確保 UI 響應
         if (localLinked) {
           setLinked(true)
           if (localUsername) setUsername(localUsername)
+          setStatusMsg('Threads 已連接')
         }
         
-        // 從伺服器檢查狀態
-        const j = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, { 
-          cache: 'no-store', 
-          headers: { 'Cache-Control': 'no-store' } 
-        }).then(r => r.ok ? r.json() : Promise.reject(new Error('status http')))
-        
-        const nextLinked = j.status === 'linked'
-        setLinked(nextLinked)
-        
-        if (nextLinked) {
-          if (j.username) setUsername(j.username)
-          if (j.tokenSavedAt) setStatusMsg(`Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}`)
-        } else {
-          setStatusMsg(null)
-        }
-        
-        // 同步快取
+        // 從伺服器檢查狀態（非阻塞）
         try {
-          localStorage.setItem(`threads:${session.email}:linked`, nextLinked ? '1' : '0')
-          if (j.username) localStorage.setItem(`threads:${session.email}:username`, j.username)
-        } catch {}
-      } catch (error) {
-        console.warn('Threads 狀態檢查失敗:', error)
-        // 如果 API 失敗，保持本地狀態
-        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
-        if (localLinked) {
-          setLinked(true)
-          const localUsername = localStorage.getItem(`threads:${session.email}:username`)
-          if (localUsername) setUsername(localUsername)
-        }
-      }
-      
-      // 處理 OAuth 回調
-      try {
-        const qs = new URLSearchParams(location.search)
-        if (qs.get('threads') === 'linked') {
-          setLinked(true)
-          setStatusMsg('Threads 連接成功！')
+          const j = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, { 
+            cache: 'no-store', 
+            headers: { 'Cache-Control': 'no-store' } 
+          }).then(r => r.ok ? r.json() : Promise.reject(new Error('status http')))
           
-          // 清除 query 參數
-          const url = new URL(location.href)
-          url.searchParams.delete('threads')
-          history.replaceState({}, '', url.toString())
+          const serverLinked = j.status === 'linked'
+          
+          // 如果伺服器狀態與本地狀態不同，更新本地狀態
+          if (serverLinked !== localLinked) {
+            setLinked(serverLinked)
+            if (serverLinked) {
+              if (j.username) setUsername(j.username)
+              if (j.tokenSavedAt) setStatusMsg(`Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}`)
+            } else {
+              setUsername(null)
+              setStatusMsg(null)
+            }
+            
+            // 同步到本地快取
+            try {
+              localStorage.setItem(`threads:${session.email}:linked`, serverLinked ? '1' : '0')
+              if (j.username) localStorage.setItem(`threads:${session.email}:username`, j.username)
+            } catch {}
+          }
+        } catch (error) {
+          console.warn('Threads 狀態檢查失敗:', error)
+          // 如果 API 失敗，保持本地狀態不變
         }
-      } catch {}
+      } catch (error) {
+        console.error('Threads 狀態管理錯誤:', error)
+      }
     }
     
     run()
   }, [session?.email])
+
+  // 處理 OAuth 回調
+  useEffect(() => {
+    if (!session) return
+    
+    try {
+      const qs = new URLSearchParams(location.search)
+      if (qs.get('threads') === 'linked') {
+        // OAuth 成功回調
+        setLinked(true)
+        setStatusMsg('Threads 連接成功！')
+        
+        // 立即保存到本地快取
+        try {
+          localStorage.setItem(`threads:${session.email}:linked`, '1')
+        } catch {}
+        
+        // 清除 query 參數
+        const url = new URL(location.href)
+        url.searchParams.delete('threads')
+        history.replaceState({}, '', url.toString())
+      }
+    } catch (error) {
+      console.warn('OAuth 回調處理失敗:', error)
+    }
+  }, [session?.email, location.search])
 
   // 載入模板管理資訊
   useEffect(() => {
@@ -128,11 +143,57 @@ export default function UserSettings(){
     }
   }, [session?.email, cardService])
 
-  // 頁面載入時立即從本地快取恢復 Threads 狀態
+  // 監聽頁面可見性變化，當頁面重新可見時恢復狀態
   useEffect(() => {
     if (!session) return
     
-    // 從本地快取恢復狀態
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // 頁面重新可見時，立即從本地快取恢復狀態
+        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
+        const localUsername = localStorage.getItem(`threads:${session.email}:username`)
+        
+        if (localLinked) {
+          setLinked(true)
+          if (localUsername) setUsername(localUsername)
+          setStatusMsg('Threads 已連接')
+        }
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [session?.email])
+
+  // 監聽 localStorage 變化，確保狀態同步
+  useEffect(() => {
+    if (!session) return
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `threads:${session.email}:linked` || e.key === `threads:${session.email}:username`) {
+        // localStorage 發生變化時，重新讀取狀態
+        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
+        const localUsername = localStorage.getItem(`threads:${session.email}:username`)
+        
+        setLinked(localLinked)
+        if (localUsername) setUsername(localUsername)
+        if (localLinked) {
+          setStatusMsg('Threads 已連接')
+        } else {
+          setStatusMsg(null)
+        }
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [session?.email])
+
+  // 頁面載入和卸載時的狀態管理
+  useEffect(() => {
+    if (!session) return
+    
+    // 頁面載入時立即恢復狀態
     const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
     const localUsername = localStorage.getItem(`threads:${session.email}:username`)
     
@@ -141,28 +202,20 @@ export default function UserSettings(){
       if (localUsername) setUsername(localUsername)
       setStatusMsg('Threads 已連接')
     }
-  }, [session?.email])
-
-  // 監聽頁面可見性變化，當頁面重新可見時檢查狀態
-  useEffect(() => {
-    if (!session) return
     
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // 頁面重新可見時，檢查本地狀態
-        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
-        const localUsername = localStorage.getItem(`threads:${session.email}:username`)
-        
-        if (localLinked) {
-          setLinked(true)
-          if (localUsername) setUsername(localUsername)
-        }
+    // 頁面卸載前保存狀態
+    const handleBeforeUnload = () => {
+      if (linked) {
+        try {
+          localStorage.setItem(`threads:${session.email}:linked`, '1')
+          if (username) localStorage.setItem(`threads:${session.email}:username`, username)
+        } catch {}
       }
     }
     
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [session?.email])
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [session?.email, linked, username])
 
   // 切換模板選擇
   const toggleTemplateSelection = (cardId: string) => {
