@@ -160,6 +160,8 @@ export default function Generator() {
       const articleId = nextArticleId()
       
       // 根據用戶選擇的模板生成卡片
+      console.log('[Generator] 選擇的模板:', selectedTemplates.map((t, i) => ({ index: i, platform: t.platform, title: t.templateTitle })))
+      
       const newCards: Card[] = selectedTemplates.map((template, index) => {
         let content = ''
         let code = ''
@@ -195,7 +197,7 @@ export default function Generator() {
           code = 'T1'
         }
         
-        return {
+        const card: Card = {
           id: crypto.randomUUID(),
           platform: template.platform === 'threads' ? 'Threads' : 
                    template.platform === 'instagram' ? 'Instagram' : 
@@ -209,6 +211,10 @@ export default function Generator() {
           checked: false,
           code: code
         }
+        
+        console.log(`[Generator] 生成卡片 ${index}:`, { platform: template.platform, code, title: template.templateTitle })
+        
+        return card
       })
       
       setCards(newCards)
