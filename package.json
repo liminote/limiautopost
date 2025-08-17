@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
+    "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:threads": "vitest run --reporter=verbose src/__tests__/services/threadsService.test.ts src/__tests__/components/UserSettings.test.tsx src/__tests__/netlify/threads-functions.test.ts",
+    "test:unit": "vitest run src/__tests__/services/ src/__tests__/components/",
+    "test:netlify": "vitest run src/__tests__/netlify/"
   },
   "dependencies": {
     "@netlify/blobs": "^6.5.0",
