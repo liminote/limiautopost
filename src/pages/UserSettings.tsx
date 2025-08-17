@@ -46,8 +46,12 @@ export default function UserSettings(){
         // 立即設定本地狀態，確保 UI 響應
         if (localLinked) {
           setLinked(true)
-          if (localUsername) setUsername(localUsername)
-          setStatusMsg('Threads 已連接')
+          if (localUsername) {
+            setUsername(localUsername)
+            setStatusMsg(`Threads 已連接（${localUsername}）`)
+          } else {
+            setStatusMsg('Threads 已連接，但缺少帳號資訊')
+          }
         }
         
         // 從伺服器檢查狀態（非阻塞）
@@ -58,22 +62,36 @@ export default function UserSettings(){
           }).then(r => r.ok ? r.json() : Promise.reject(new Error('status http')))
           
           const serverLinked = j.status === 'linked'
+          const serverUsername = j.username
           
-          // 如果伺服器狀態與本地狀態不同，更新本地狀態
-          if (serverLinked !== localLinked) {
-            setLinked(serverLinked)
-            if (serverLinked) {
-              if (j.username) setUsername(j.username)
-              if (j.tokenSavedAt) setStatusMsg(`Token 取得於 ${new Date(j.tokenSavedAt).toLocaleString()}`)
+          // 更新狀態
+          setLinked(serverLinked)
+          
+          if (serverLinked) {
+            if (serverUsername) {
+              setUsername(serverUsername)
+              setStatusMsg(`Threads 已連接（${serverUsername}）`)
+              // 同步到本地快取
+              try {
+                localStorage.setItem(`threads:${session.email}:linked`, '1')
+                localStorage.setItem(`threads:${session.email}:username`, serverUsername)
+              } catch {}
             } else {
               setUsername(null)
-              setStatusMsg(null)
+              setStatusMsg('Threads 已連接，但無法取得帳號資訊')
+              // 同步到本地快取
+              try {
+                localStorage.setItem(`threads:${session.email}:linked`, '1')
+                localStorage.removeItem(`threads:${session.email}:username`)
+              } catch {}
             }
-            
+          } else {
+            setUsername(null)
+            setStatusMsg(null)
             // 同步到本地快取
             try {
-              localStorage.setItem(`threads:${session.email}:linked`, serverLinked ? '1' : '0')
-              if (j.username) localStorage.setItem(`threads:${session.email}:username`, j.username)
+              localStorage.setItem(`threads:${session.email}:linked`, '0')
+              localStorage.removeItem(`threads:${session.email}:username`)
             } catch {}
           }
         } catch (error) {
@@ -291,12 +309,23 @@ export default function UserSettings(){
         {linked && <div className="text-green-700 text-sm">
           已成功連結 Threads 帳號
           {username ? `（${username}）` : '（載入中...）'}
-          <br />
-          <span className="text-xs text-gray-500">
-            狀態: {linked ? '已連接' : '未連接'} | 
-            Username: {username || '未取得'} | 
-            本地快取: {localStorage.getItem(`threads:${session?.email}:username`) || '無'}
-          </span>
+          <button
+            onClick={() => {
+              const localLinked = localStorage.getItem(`threads:${session?.email}:linked`)
+              const localUsername = localStorage.getItem(`threads:${session?.email}:username`)
+              console.log('Threads 狀態診斷:', {
+                linked,
+                username,
+                localLinked,
+                localUsername,
+                sessionEmail: session?.email
+              })
+              alert(`狀態診斷:\n連接狀態: ${linked}\nUsername: ${username || '未取得'}\n本地快取連接: ${localLinked}\n本地快取Username: ${localUsername || '無'}`)
+            }}
+            className="ml-2 text-xs text-blue-600 underline hover:text-blue-800"
+          >
+            診斷狀態
+          </button>
         </div>}
       </div>
 
