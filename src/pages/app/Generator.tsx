@@ -41,12 +41,18 @@ export default function Generator() {
 
   // 載入用戶選擇的模板
   useEffect(() => {
-    if (!session) return // 未登入時不載入
+    console.log('[Generator] useEffect 觸發，session:', session, 'currentUserId:', currentUserId)
+    
+    if (!session) {
+      console.log('[Generator] 未登入，跳過模板載入')
+      return // 未登入時不載入
+    }
     
     const loadSelectedTemplates = () => {
+      console.log('[Generator] 開始載入模板，調用 cardService.getSelectedTemplates')
       const templates = cardService.getSelectedTemplates(currentUserId)
-      setSelectedTemplates(templates)
       console.log('[Generator] 載入的選擇模板:', templates)
+      setSelectedTemplates(templates)
     }
 
     loadSelectedTemplates()
@@ -125,56 +131,66 @@ export default function Generator() {
   }, [cards])
 
   const onGenerate = () => {
+    console.log('[onGenerate] 開始執行，selectedTemplates:', selectedTemplates)
+    console.log('[onGenerate] article 長度:', article.length)
+    
     if (selectedTemplates.length === 0) {
       alert('請先在「個人設定」中選擇至少一個模板')
+      return
+    }
+
+    if (!article.trim()) {
+      alert('請先輸入文章內容')
       return
     }
 
     setGenerating(true)
     setTimeout(() => {
       const res = generateFrom(article)
+      console.log('[onGenerate] generateFrom 結果:', res)
       const articleId = nextArticleId()
       
-              // 根據用戶選擇的模板生成卡片
-        const newCards: Card[] = selectedTemplates.map((template, index) => {
-          let content = ''
-          let code = ''
-          
-          // 根據模板類型和平台生成內容
-          if (template.platform === 'threads') {
-            // 根據模板順序選擇不同長度的內容
-            if (index === 0) {
-              content = res[0] // 500字
-              code = 'T1'
-            } else if (index === 1) {
-              content = res[1] // 350字
-              code = 'T2'
-            } else {
-              content = res[2] // 200字
-              code = 'T3'
-            }
-          } else if (template.platform === 'instagram') {
-            content = res[3] // 220字
-            code = 'IG'
+      // 根據用戶選擇的模板生成卡片
+      const newCards: Card[] = selectedTemplates.map((template, index) => {
+        let content = ''
+        let code = ''
+        
+        // 根據模板類型和平台生成內容
+        if (template.platform === 'threads') {
+          // 根據模板順序選擇不同長度的內容
+          if (index === 0) {
+            content = res[0] // 500字
+            code = 'T1'
+          } else if (index === 1) {
+            content = res[1] // 350字
+            code = 'T2'
           } else {
-            content = res[0] // 預設使用最長內容
-            code = 'FB'
+            content = res[2] // 200字
+            code = 'T3'
           }
-          
-          return {
-            id: crypto.randomUUID(),
-            platform: template.platform === 'threads' ? 'Threads' : 
-                     template.platform === 'instagram' ? 'Instagram' : 
-                     template.platform === 'facebook' ? 'Facebook' : 'Threads',
-            label: `${template.platform === 'threads' ? 'Threads' : 
-                    template.platform === 'instagram' ? 'Instagram' : 
-                    template.platform === 'facebook' ? 'Facebook' : 'Threads'} - ${template.templateTitle} · ${articleId}`,
-            content: content || template.prompt || '請輸入內容',
-            checked: false,
-            code: code
-          }
-        })
+        } else if (template.platform === 'instagram') {
+          content = res[3] // 220字
+          code = 'IG'
+        } else {
+          content = res[0] // 預設使用最長內容
+          code = 'FB'
+        }
+        
+        return {
+          id: crypto.randomUUID(),
+          platform: template.platform === 'threads' ? 'Threads' : 
+                   template.platform === 'instagram' ? 'Instagram' : 
+                   template.platform === 'facebook' ? 'Facebook' : 'Threads',
+          label: `${template.platform === 'threads' ? 'Threads' : 
+                  template.platform === 'instagram' ? 'Instagram' : 
+                  template.platform === 'facebook' ? 'Facebook' : 'Threads'} - ${template.templateTitle} · ${articleId}`,
+          content: content || template.prompt || '請輸入內容',
+          checked: false,
+          code: code
+        }
+      })
       
+      console.log('[onGenerate] 生成的卡片:', newCards)
       setCards(newCards)
       setGenerating(false)
     }, 300)
