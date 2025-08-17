@@ -74,9 +74,9 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 
-[[edge_functions]]
-  path = "/*"
-  function = "protect"
+# [[edge_functions]]
+#   path = "/*"
+#   function = "protect"
 
 [[redirects]]
   from = "/api/threads/oauth/*"
