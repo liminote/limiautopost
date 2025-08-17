@@ -402,10 +402,10 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col className="w-12ch" /> {/* 7 標籤 */}
           <col /> {/* 8 連結 */}
           <col className="w-12ch" /> {/* 9 發佈日期 */}
-          <col /> {/* 10 讚 */}
-          <col /> {/* 11 留言 */}
-          <col /> {/* 12 分享 */}
-          <col /> {/* 13 備註 */}
+          <col style={{ width: '8ch' }} /> {/* 10 讚 */}
+          <col style={{ width: '8ch' }} /> {/* 11 留言 */}
+          <col style={{ width: '8ch' }} /> {/* 12 分享 */}
+          <col style={{ width: '8ch' }} /> {/* 13 備註 */}
           <col className="w-8ch" /> {/* 14 建立時間 */}
           <col /> {/* 15 操作 */}
         </colgroup>
@@ -768,7 +768,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <input
                   type="number"
                   min="0"
-                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-10 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={r.likes || ''}
                   onChange={(e) => {
                     const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
@@ -782,7 +782,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <input
                   type="number"
                   min="0"
-                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-10 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={r.comments || ''}
                   onChange={(e) => {
                     const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
@@ -796,7 +796,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <input
                   type="number"
                   min="0"
-                  className="w-12 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-10 px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={r.shares || ''}
                   onChange={(e) => {
                     const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
