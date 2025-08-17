@@ -6,7 +6,7 @@ import { CardService } from '../../services/cardService'
 import type { BaseCard } from '../../types/cards'
 import { useSession } from '../../auth/auth'
 
-type Platform = 'Threads' | 'Instagram' | 'Facebook'
+type Platform = 'Threads' | 'Instagram' | 'Facebook' | 'General'
 
 type Card = {
   id: string
@@ -166,23 +166,27 @@ export default function Generator() {
         
         // 根據模板類型和平台生成內容
         if (template.platform === 'threads') {
-          // 根據模板順序選擇不同長度的內容
+          // 根據模板順序選擇不同長度的內容和編號
           if (index === 0) {
             content = res[0] // 500字
             code = 'T1'
           } else if (index === 1) {
             content = res[1] // 350字
             code = 'T2'
-          } else {
+          } else if (index === 2) {
             content = res[2] // 200字
             code = 'T3'
+          } else {
+            // 超過3個模板時，使用 T4, T5, T6...
+            content = res[0] // 預設使用最長內容
+            code = `T${index + 1}`
           }
         } else if (template.platform === 'instagram') {
           content = res[3] // 220字
           code = 'IG'
         } else if (template.platform === 'general') {
           content = res[0] // 預設使用最長內容
-          code = 'GE'
+          code = 'G1'
         } else if (template.platform === 'facebook') {
           content = res[0] // 預設使用最長內容
           code = 'F1'
@@ -196,7 +200,7 @@ export default function Generator() {
           platform: template.platform === 'threads' ? 'Threads' : 
                    template.platform === 'instagram' ? 'Instagram' : 
                    template.platform === 'facebook' ? 'Facebook' : 
-                   template.platform === 'general' ? 'Threads' : 'Threads',
+                   template.platform === 'general' ? 'General' : 'Threads',
           label: `${template.platform === 'threads' ? 'Threads' : 
                   template.platform === 'instagram' ? 'Instagram' : 
                   template.platform === 'facebook' ? 'Facebook' : 
