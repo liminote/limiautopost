@@ -400,14 +400,14 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col className="w-12ch" /> {/* 5 原文標題 */}
           <col className="w-15ch" /> {/* 6 內容 */}
           <col className="w-12ch" /> {/* 7 標籤 */}
-          <col style={{ width: '8ch' }} /> {/* 8 連結 */}
+          <col style={{ width: '10ch' }} /> {/* 8 連結 */}
           <col className="w-12ch" /> {/* 9 發佈日期 */}
           <col style={{ width: '8ch' }} /> {/* 10 讚 */}
           <col style={{ width: '8ch' }} /> {/* 11 留言 */}
           <col style={{ width: '8ch' }} /> {/* 12 分享 */}
           <col style={{ width: '8ch' }} /> {/* 13 備註 */}
           <col className="w-8ch" /> {/* 14 建立時間 */}
-          <col /> {/* 15 操作 */}
+          <col style={{ width: '10ch' }} /> {/* 15 操作 */}
         </colgroup>
         <thead style={{ fontSize: '14px', position: 'sticky', top: 0, background: 'var(--ui-bg)', zIndex: 5, boxShadow: '0 1px 0 var(--ui-border)' }}>
           <tr>
