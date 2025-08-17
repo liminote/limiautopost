@@ -8,13 +8,13 @@ export async function mockPublishToThreads(content: string): Promise<{ id: strin
   return res.json()
 }
 
-export async function mockFetchMetrics(id: string): Promise<{ id: string; likes: number; comments: number; shares: number; saves: number }> {
+export async function mockFetchMetrics(id: string): Promise<{ id: string; likes: number; comments: number; shares: number }> {
   const res = await fetch('/.netlify/functions/threads-metrics?id=' + encodeURIComponent(id))
   if (!res.ok) throw new Error('讀取失敗')
   return res.json()
 }
 
-export async function fetchRealMetrics(id: string): Promise<{ id: string; likes: number; comments: number; shares: number; saves: number }> {
+export async function fetchRealMetrics(id: string): Promise<{ id: string; likes: number; comments: number; shares: number }> {
   const res = await fetch('/.netlify/functions/threads-insights?id=' + encodeURIComponent(id))
   if (!res.ok) throw new Error(await res.text())
   return res.json()

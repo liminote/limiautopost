@@ -8,9 +8,8 @@ export async function handler(event: any) {
   const likes = (seed % 50) + 10
   const comments = (seed % 10) + 1
   const shares = (seed % 7)
-  const saves = (seed % 9)
   await new Promise(r => setTimeout(r, 200))
-  return { statusCode: 200, body: JSON.stringify({ id, likes, comments, shares, saves }) }
+  return { statusCode: 200, body: JSON.stringify({ id, likes, comments, shares }) }
 }
 
 

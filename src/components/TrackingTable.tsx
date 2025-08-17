@@ -12,7 +12,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const anchorRectRef = useRef<DOMRect | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [publishingId, setPublishingId] = useState<string | null>(null)
-  const [syncingId, setSyncingId] = useState<string | null>(null)
+
   const [isCheckingSchedule, setIsCheckingSchedule] = useState(false)
   const [scheduleDialog, setScheduleDialog] = useState<{ show: boolean; row: TrackedPost | null; input: string }>({ show: false, row: null, input: '' })
   const [publishDateDialog, setPublishDateDialog] = useState<{ show: boolean; row: TrackedPost | null; input: string }>({ show: false, row: null, input: '' })
@@ -382,6 +382,14 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
         >
           {isCheckingSchedule ? '檢查中...' : '手動檢查排程'}
         </button>
+      </div>
+      
+      {/* 互動數據說明 */}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="text-sm text-blue-800">
+          <strong>互動數據說明：</strong>由於 Threads API 限制，愛心、留言、分享數量已改為手動輸入模式。
+          請根據實際情況輸入數字，系統會自動記錄更新時間。
+        </div>
       </div>
       <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
@@ -756,10 +764,48 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </button>
                 </div>
               </td>
-              <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
-              <td className="px-3 py-2 border-t ui-gap-x"><span className="text-gray-400">N/A（API 限制）</span></td>
               <td className="px-3 py-2 border-t ui-gap-x">
-                <span className="text-gray-400">N/A（API 限制）</span>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={r.likes || ''}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
+                    updateTracked(r.id, { likes: value })
+                    setRows(rows.map(x => x.id === r.id ? { ...x, likes: value } : x))
+                  }}
+                  placeholder="0"
+                />
+              </td>
+              <td className="px-3 py-2 border-t ui-gap-x">
+                <input
+                  type="number"
+                  min="0"
+                  className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={r.comments || ''}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
+                    updateTracked(r.id, { comments: value })
+                    setRows(rows.map(x => x.id === r.id ? { ...x, comments: value } : x))
+                  }}
+                  placeholder="0"
+                />
+              </td>
+              <td className="px-3 py-2 border-t ui-gap-x">
+                <input
+                  type="number"
+                  min="0"
+                  className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={r.shares || ''}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? undefined : parseInt(e.target.value) || 0
+                    const when = new Date().toISOString()
+                    updateTracked(r.id, { shares: value, metricsSyncedAt: when })
+                    setRows(rows.map(x => x.id === r.id ? { ...x, shares: value, metricsSyncedAt: when } : x))
+                  }}
+                  placeholder="0"
+                />
               </td>
               <td className="px-3 py-2 border-t align-top">
                 {r.notes && r.notes.trim() ? (
@@ -785,30 +831,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-2 border-t align-top">
                 <div className="flex flex-col gap-1 items-end justify-end">
                   {r.threadsPostId && (
-                    <span className="has-tip" data-tip={`已停用：API 限制\n最後同步：${r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}`}>
-                      <button className="icon-btn" style={{ background: 'var(--yinmn-blue)', color:'#fff', borderColor:'var(--yinmn-blue)' }} disabled={true} onClick={async ()=>{
-                        try {
-                          setSyncingId(r.id)
-                          const m = await import('../api/threads').then(m=> m.fetchRealMetrics(r.threadsPostId!))
-                          const when = new Date().toISOString()
-                          updateTracked(r.id, { likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when })
-                          setRows(rows.map(x=> x.id===r.id? { ...x, likes: m.likes, comments: m.comments, shares: m.shares, saves: m.saves, metricsSyncedAt: when }: x))
-                        } catch (e: any) {
-                          const msg = String(e)
-                          if (msg.includes('TOKEN_EXPIRED') || msg.includes('401')) {
-                            if (confirm('Threads 授權已過期，是否現在重新連結？')) {
-                              window.location.href = '/api/threads/oauth/start'
-                            }
-                          } else if (msg.includes('NOT_SUPPORTED') || msg.includes('501')) {
-                            alert('此 API 暫不提供該貼文的互動數（Threads Graph API 限制）。')
-                          } else {
-                            alert('同步失敗：' + msg)
-                          }
-                        } finally { setSyncingId(null) }
-                      }}>
-                        {syncingId===r.id
-                          ? (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12a9 9 0 1 1 18 0"/></svg>)
-                          : (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 22v-6h6"/><path d="M3 16a9 9 0 0 0 15 5"/><path d="M21 8a9 9 0 0 0-15-5"/></svg>)}
+                    <span className="has-tip" data-tip={`手動輸入模式\n最後更新：${r.metricsSyncedAt ? formatLocal(r.metricsSyncedAt) : '—'}`}>
+                      <button className="icon-btn" style={{ background: 'var(--yinmn-blue)', color:'#fff', borderColor:'var(--yinmn-blue)' }} disabled={true} title="已改為手動輸入模式">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                       </button>
                     </span>
                   )}

@@ -18,7 +18,6 @@ export type TrackedPost = {
   likes?: number
   comments?: number
   shares?: number
-  saves?: number
   status?: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed'
   scheduledAt?: string // ISO
   jobId?: string
@@ -91,7 +90,7 @@ export function getTracked(): TrackedPost[] {
   }
 }
 
-export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'createdAt' | 'likes' | 'comments' | 'shares' | 'saves' | 'tags' | 'branchCode'> & { branchCode?: string }>): TrackedPost[] {
+export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'createdAt' | 'likes' | 'comments' | 'shares' | 'tags' | 'branchCode'> & { branchCode?: string }>): TrackedPost[] {
   const list = getTracked()
   // 準備序號累計：以 articleId + 平台字母 為 key，避免新增多筆時重複
   const counters = new Map<string, number>()

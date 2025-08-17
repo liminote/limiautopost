@@ -59,7 +59,7 @@ export const handler: Handler = async (event) => {
       return null
     }
 
-    let likes = 0, comments = 0, shares = 0, saves = 0
+    let likes = 0, comments = 0, shares = 0
     try {
       const lc = await getEdgeCount(['likes'])
       if (lc !== null) likes = lc
@@ -67,8 +67,6 @@ export const handler: Handler = async (event) => {
       if (cc !== null) comments = cc
       const sc = await getEdgeCount(['reposts','reshares','re-shares'])
       if (sc !== null) shares = sc
-      const svc = await getEdgeCount(['saves','bookmarks'])
-      if (svc !== null) saves = svc
     } catch (err: any) {
       if (err?.tokenExpired) {
         return {
@@ -88,7 +86,7 @@ export const handler: Handler = async (event) => {
     if (onlyUnsupported) {
       return { statusCode: 501, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: false, error: 'NOT_SUPPORTED', detail: attempts }) }
     }
-    const payload: any = { ok: true, id, likes, comments, shares, saves }
+    const payload: any = { ok: true, id, likes, comments, shares }
     if (diag) payload.attempts = attempts
     return { statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }
   } catch (e) {
