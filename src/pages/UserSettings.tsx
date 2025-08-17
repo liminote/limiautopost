@@ -97,7 +97,7 @@ export default function UserSettings(){
       if (qs.get('threads') === 'linked') {
         // OAuth 成功回調
         setLinked(true)
-        setStatusMsg('Threads 連接成功！')
+        setStatusMsg('Threads 連接成功！正在取得帳號資訊...')
         
         // 立即保存到本地快取
         try {
@@ -108,6 +108,30 @@ export default function UserSettings(){
         const url = new URL(location.href)
         url.searchParams.delete('threads')
         history.replaceState({}, '', url.toString())
+        
+        // 延遲檢查狀態，確保 username 被設定
+        setTimeout(async () => {
+          try {
+            const response = await fetch(`/api/threads/status?user=${encodeURIComponent(session.email)}`, {
+              cache: 'no-store',
+              headers: { 'Cache-Control': 'no-store' }
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.username) {
+                setUsername(data.username)
+                localStorage.setItem(`threads:${session.email}:username`, data.username)
+                setStatusMsg(`Threads 連接成功！帳號：${data.username}`)
+              } else {
+                setStatusMsg('Threads 連接成功！但無法取得帳號資訊')
+              }
+            }
+          } catch (error) {
+            console.warn('無法取得 Threads 帳號資訊:', error)
+            setStatusMsg('Threads 連接成功！但無法取得帳號資訊')
+          }
+        }, 1000)
       }
     } catch (error) {
       console.warn('OAuth 回調處理失敗:', error)
@@ -264,7 +288,16 @@ export default function UserSettings(){
           )}
         </div>
         ) : null}
-        {linked && <div className="text-green-700 text-sm">已成功連結 Threads 帳號{username ? `（${username}）` : ''}</div>}
+        {linked && <div className="text-green-700 text-sm">
+          已成功連結 Threads 帳號
+          {username ? `（${username}）` : '（載入中...）'}
+          <br />
+          <span className="text-xs text-gray-500">
+            狀態: {linked ? '已連接' : '未連接'} | 
+            Username: {username || '未取得'} | 
+            本地快取: {localStorage.getItem(`threads:${session?.email}:username`) || '無'}
+          </span>
+        </div>}
       </div>
 
                         {/* Threads 連接診斷工具 */}

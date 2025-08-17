@@ -67,9 +67,13 @@ function TopNav() {
     {/* 隱藏版本列（保持空白以免占位影響布局） */}
     <header className="nav">
       <div className="container-app h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3">
+        <button
+          onClick={() => handleNavClick('/', '首頁')}
+          className="flex items-center gap-3"
+          style={{ cursor: 'pointer', background: 'none', border: 'none', padding: '0' }}
+        >
           <span className="text-2xl font-bold" style={{ fontFamily: 'Noto Serif TC, serif', color: 'var(--yinmn-blue)' }}>隙音貼文生成器</span>
-        </Link>
+        </button>
         <nav className="text-sm flex items-center gap-4">
           {hasRole('admin', session) && (
             <button
