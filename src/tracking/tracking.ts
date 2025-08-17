@@ -121,9 +121,9 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       : undefined
     const resolvedArticleId = foundSameTitle ? foundSameTitle.articleId : it.articleId
 
-    // 依平台自動產生編碼：T1/T2/T3/T4...、G1/G2（IG→G）、F1/F2、GE（通用）
+    // 依平台自動產生編碼：T1/T2/T3/T4...、G1/G2、F1/F2
     let branchCode = it.branchCode
-    const keep = typeof branchCode === 'string' && /^[TGF]\d+$|^IG$/.test(branchCode)
+    const keep = typeof branchCode === 'string' && /^[TGF]\d+$/.test(branchCode)
     if (!keep) {
       const letter = normLetter(it.platform)
       const key = `${resolvedArticleId}-${letter}`
