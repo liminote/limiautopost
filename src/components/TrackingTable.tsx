@@ -443,9 +443,9 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             <tr><td colSpan={15} className="px-3 py-6 text-center text-gray-500">尚無資料</td></tr>
           ) : rows.map(r => (
             <tr key={r.id}>
-              <td className="px-3 py-2 border-t align-top">{r.articleId}</td>
-              <td className="px-3 py-2 border-t align-top">{r.postId}</td>
-              <td className="px-3 py-2 border-t align-top" style={{ minWidth: '6ch', textAlign: 'center' }}>
+              <td className="px-3 py-3 border-t align-top">{r.articleId}</td>
+              <td className="px-3 py-3 border-t align-top">{r.postId}</td>
+              <td className="px-3 py-3 border-t align-top" style={{ minWidth: '6ch', textAlign: 'center' }}>
                 {(() => {
                   const code = r.platform === 'Instagram' ? 'IG' : r.platform === 'Facebook' ? 'FB' : 'TD'
                   const color = r.platform === 'Instagram' ? '#ec4899' : r.platform === 'Facebook' ? '#2563eb' : '#0ea5a1'
@@ -456,7 +456,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   )
                 })()}
               </td>
-              <td className="px-3 py-2 border-t align-top" style={{ minWidth: '8ch' }}>
+              <td className="px-3 py-3 border-t align-top" style={{ minWidth: '8ch' }}>
                 {(() => {
                   const statusText = r.status === 'failed' ? '失敗' : 
                                    r.status === 'published' ? '成功' : 
@@ -476,15 +476,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   )
                 })()}
               </td>
-              <td className="px-3 py-2 border-t align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.articleTitle || '（無標題）'); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
+              <td className="px-3 py-3 border-t align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.articleTitle || '（無標題）'); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
                 <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
-              <td className="px-3 py-2 border-t text-gray-600 align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
+              <td className="px-3 py-3 border-t text-gray-600 align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
                 <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
                   {(r.content || '').slice(0, 24)}{(r.content || '').length > 24 ? '…' : ''}
                 </div>
               </td>
-              <td className="px-3 py-2 border-t align-top" style={{ width: '9ch' }}>
+              <td className="px-3 py-3 border-t align-top" style={{ width: '9ch' }}>
                 <TagInput
                   className="w-9ch"
                   value={r.tags || []}
@@ -492,7 +492,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   suggestions={Array.from(new Set(getTracked().flatMap(x => x.tags || [])))}
                 />
               </td>
-              <td className="px-3 py-2 border-t align-top">
+              <td className="px-3 py-3 border-t align-top">
                 {r.permalink ? (
                   <div className="flex items-center gap-1">
                     {/* 連結 icon：雙鏈節，語意更直覺 */}
@@ -748,7 +748,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </div>
                 )}
               </td>
-              <td className="px-3 py-2 border-t align-top">
+              <td className="px-3 py-3 border-t align-top">
                 <div className="flex items-center gap-1">
                   <span className="text-gray-700">
                     {r.scheduledAt && r.status !== 'published' && r.status !== 'publishing' ? `排程：${formatLocal(r.scheduledAt)}` : (r.publishDate ? formatPublishDate(r.publishDate) : '-')}
@@ -764,7 +764,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   </button>
                 </div>
               </td>
-              <td className="px-3 py-2 border-t ui-gap-x">
+              <td className="px-3 py-3 border-t ui-gap-x">
                 <input
                   type="number"
                   min="0"
@@ -778,7 +778,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   placeholder="0"
                 />
               </td>
-              <td className="px-3 py-2 border-t ui-gap-x">
+              <td className="px-3 py-3 border-t ui-gap-x">
                 <input
                   type="number"
                   min="0"
@@ -792,7 +792,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   placeholder="0"
                 />
               </td>
-              <td className="px-3 py-2 border-t ui-gap-x">
+              <td className="px-3 py-3 border-t ui-gap-x">
                 <input
                   type="number"
                   min="0"
@@ -807,7 +807,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   placeholder="0"
                 />
               </td>
-              <td className="px-3 py-2 border-t align-top">
+              <td className="px-3 py-3 border-t align-top">
                 {r.notes && r.notes.trim() ? (
                   <div className="flex flex-col items-start gap-1">
                     <button

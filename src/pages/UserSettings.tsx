@@ -346,7 +346,7 @@ export default function UserSettings(){
           )}
         </div>
         ) : null}
-        {linked && <div className="text-green-700 text-sm">
+        {linked && <div className="text-gray-700 text-sm">
           已成功連結 Threads 帳號
           {username ? `（${username}）` : '（載入中...）'}
           <button
@@ -417,7 +417,7 @@ export default function UserSettings(){
                 alert('狀態同步失敗：網路錯誤')
               }
             }}
-            className="ml-2 text-xs text-green-600 underline hover:text-green-800"
+            className="ml-2 text-xs text-gray-600 underline hover:text-gray-800"
           >
             強制同步
           </button>
@@ -500,8 +500,6 @@ export default function UserSettings(){
 
       {/* AI 卡片管理 */}
       <div className="card card-body text-sm text-gray-600 space-y-2">
-        <h2 className="font-semibold">AI 卡片管理</h2>
-        <p className="text-gray-500">管理你的自定義 AI 生成卡片，創建專屬的內容生成模板</p>
         <CardManager />
       </div>
     </div>

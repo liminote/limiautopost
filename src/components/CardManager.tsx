@@ -71,7 +71,10 @@ export default function CardManager() {
     <div className="space-y-6">
       {/* 標題和操作按鈕 */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">我的卡片</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">我的卡片</h2>
+          <p className="text-gray-500 text-sm mt-1">管理你的自定義 AI 生成卡片，創建專屬的內容生成模板</p>
+        </div>
         <button
           onClick={() => setShowCreateForm(true)}
           className="px-4 py-2 bg-[color:var(--yinmn-blue)] text-white rounded-md hover:bg-[color:var(--yinmn-blue-600)]"
