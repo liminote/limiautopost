@@ -384,13 +384,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
         </button>
       </div>
       
-      {/* 互動數據說明 */}
-      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="text-sm text-blue-800">
-          <strong>互動數據說明：</strong>由於 Threads API 限制，愛心、留言、分享數量已改為手動輸入模式。
-          請根據實際情況輸入數字，系統會自動記錄更新時間。
-        </div>
-      </div>
+
       <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>
         <colgroup>
           <col className="w-8ch" /> {/* 1 原文編號 */}
@@ -399,7 +393,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col className="w-8ch" /> {/* 4 狀態 */}
           <col className="w-12ch" /> {/* 5 原文標題 */}
           <col className="w-15ch" /> {/* 6 內容 */}
-          <col className="w-12ch" /> {/* 7 標籤 */}
+          <col className="w-14ch" /> {/* 7 標籤 */}
           <col style={{ width: '10ch' }} /> {/* 8 連結 */}
           <col className="w-12ch" /> {/* 9 發佈日期 */}
           <col style={{ width: '8ch' }} /> {/* 10 讚 */}
@@ -479,14 +473,14 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-3 border-t align-top" style={{ width: '12ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.articleTitle || '（無標題）'); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
                 <div style={{ width: '12ch', overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
-              <td className="px-6 py-3 border-t text-gray-600 align-top text-center" style={{ width: '15ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
-                <div style={{ width: '15ch', overflow: 'hidden', display: 'block', pointerEvents: 'none', textAlign: 'center' }}>
+              <td className="px-8 py-3 border-t text-gray-600 align-top text-center" style={{ width: '15ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
+                <div style={{ width: '13ch', overflow: 'hidden', display: 'block', pointerEvents: 'none', textAlign: 'center', margin: '0 auto' }}>
                   {(r.content || '').slice(0, 30)}{(r.content || '').length > 30 ? '…' : ''}
                 </div>
               </td>
-              <td className="px-3 py-3 border-t align-top" style={{ width: '9ch' }}>
+              <td className="px-3 py-3 border-t align-top" style={{ width: '14ch' }}>
                 <TagInput
-                  className="w-9ch"
+                  className="w-14ch"
                   value={r.tags || []}
                   onChange={(tags)=>{ updateTracked(r.id,{ tags }); setRows(rows.map(x=> x.id===r.id? { ...x, tags }: x)); }}
                   suggestions={Array.from(new Set(getTracked().flatMap(x => x.tags || [])))}
