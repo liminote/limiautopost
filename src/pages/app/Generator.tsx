@@ -163,7 +163,10 @@ export default function Generator() {
       // 根據用戶選擇的模板生成卡片
       console.log('[Generator] 選擇的模板:', selectedTemplates.map((t, i) => ({ index: i, platform: t.platform, title: t.templateTitle })))
       
-      const newCards: Card[] = selectedTemplates.map((template, index) => {
+      // 為每個平台獨立計數
+      const platformCounters = { threads: 0, instagram: 0, general: 0, facebook: 0 }
+      
+      const newCards: Card[] = selectedTemplates.map((template) => {
         const platform = template.platform as PlatformType
         const config = PLATFORM_CONFIG[platform]
         
@@ -171,17 +174,18 @@ export default function Generator() {
         let content = ''
         if (platform === 'threads') {
           // Threads 平台根據模板順序選擇不同長度
-          if (index === 0) content = res[0] // 500字
-          else if (index === 1) content = res[1] // 350字
-          else if (index === 2) content = res[2] // 200字
+          if (platformCounters.threads === 0) content = res[0] // 500字
+          else if (platformCounters.threads === 1) content = res[1] // 350字
+          else if (platformCounters.threads === 2) content = res[2] // 200字
           else content = res[0] // 超過3個模板時使用最長內容
         } else {
           // 其他平台使用配置的內容索引
           content = res[config.contentIndex]
         }
         
-        // 生成編號
-        const code = generateCode(platform, index)
+        // 生成編號（使用平台專用計數器）
+        const code = generateCode(platform, platformCounters[platform])
+        platformCounters[platform]++ // 增加該平台的計數器
         
         const card: Card = {
           id: crypto.randomUUID(),
@@ -192,7 +196,7 @@ export default function Generator() {
           code: code
         }
         
-        console.log(`[Generator] 生成卡片 ${index}:`, { platform: template.platform, code, title: template.templateTitle })
+        console.log(`[Generator] 生成卡片 ${platformCounters[platform]}:`, { platform: template.platform, code, title: template.templateTitle })
         
         return card
       })
