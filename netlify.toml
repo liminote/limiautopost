@@ -5,62 +5,14 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["netlify/functions/**/*"]
 
-# API routes must come before SPA fallback
+# 確保 Functions 在 SPA 回退之前處理
 [[redirects]]
-  from = "/api/threads/oauth/start"
-  to = "/.netlify/functions/threads-oauth-start"
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
-
-[[redirects]]
-  from = "/api/threads/oauth/callback"
-  to = "/.netlify/functions/threads-oauth-callback"
-  status = 200
-
-[[redirects]]
-  from = "/api/ping"
-  to = "/.netlify/functions/ping"
-  status = 200
-
-[[redirects]]
-  from = "/api/threads/linked"
-  to = "/.netlify/functions/threads-linked"
-  status = 200
-
-[[redirects]]
-  from = "/api/debug/blobs-write"
-  to = "/.netlify/functions/blobs-test-write"
-  status = 200
-
-[[redirects]]
-  from = "/api/health"
-  to = "/.netlify/functions/health"
-  status = 200
-
-[[redirects]]
-  from = "/api/threads/status"
-  to = "/.netlify/functions/threads-status"
-  status = 200
-
-[[redirects]]
-  from = "/api/threads/disconnect"
-  to = "/.netlify/functions/threads-disconnect"
-  status = 200
-
-[[redirects]]
-  from = "/api/threads/publish"
-  to = "/.netlify/functions/threads-publish"
-  status = 200
-
-[[redirects]]
-  from = "/api/threads/permalink"
-  to = "/.netlify/functions/threads-permalink"
-  status = 200
-
-[[redirects]]
-  from = "/api/threads/latest"
-  to = "/.netlify/functions/threads-latest"
-  status = 200
+  force = true
 
 # 單頁應用：所有路由回退到 index.html
 [[redirects]]
@@ -73,12 +25,5 @@
   for = "/*"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
-
-
-
-[[redirects]]
-  from = "/api/threads/oauth/*"
-  to = "/.netlify/functions/threads-oauth/:splat"
-  status = 200
 
 

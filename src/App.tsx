@@ -28,21 +28,21 @@ function TopNav() {
     console.log('目標路徑:', to)
     console.log('session:', session)
     
+    // 直接使用 window.location 導航，因為測試導航證明這個方法有效
+    console.log('使用 window.location 導航...')
     try {
-      // 嘗試使用 React Router 導航
-      console.log('嘗試 React Router 導航...')
-      nav(to)
-      console.log(`React Router 導航成功: ${label} -> ${to}`)
+      window.location.href = to
+      console.log(`導航成功: ${label} -> ${to}`)
     } catch (error) {
-      console.error(`React Router 導航失敗: ${label} -> ${to}`, error)
+      console.error(`導航失敗: ${label} -> ${to}`, error)
       
-      // 備用方案：使用 window.location
-      console.log('使用備用導航方案: window.location')
+      // 備用方案：嘗試 React Router
       try {
-        window.location.href = to
-        console.log('備用導航成功')
+        console.log('嘗試 React Router 備用導航...')
+        nav(to)
+        console.log('React Router 備用導航成功')
       } catch (fallbackError) {
-        console.error('備用導航也失敗:', fallbackError)
+        console.error('React Router 備用導航也失敗:', fallbackError)
       }
     }
   }

@@ -4,7 +4,7 @@ import { CardService } from '../services/cardService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
 import ThreadsDiagnostic from '../components/ThreadsDiagnostic'
-import TestNavigation from '../components/TestNavigation'
+
 
 export default function UserSettings(){
   const session = useSession()
@@ -220,8 +220,7 @@ export default function UserSettings(){
                     <ThreadsDiagnostic />
                   </div>
                   
-                  {/* 測試導航組件 */}
-                  <TestNavigation />
+
 
       {/* 模板選擇管理 */}
       <div className="card card-body text-sm text-gray-600 space-y-2">
