@@ -163,31 +163,22 @@ export class CardService {
 
   // 模板選擇相關方法
   public getUserSelections(userId: string): Set<string> {
-    console.log(`[CardService] getUserSelections 被調用，userId: ${userId}`)
-    
     if (!userId || userId === 'anonymous') {
       console.warn('[CardService] 無效的用戶 ID:', userId)
       return new Set()
     }
 
     if (!this.userSelections.has(userId)) {
-      console.log(`[CardService] 用戶 ${userId} 沒有選擇記錄，開始載入`)
       // 從 localStorage 載入用戶選擇
       this.loadUserSelectionsFromStorage()
       
       // 如果還是沒有，為新用戶設置預設選擇
       if (!this.userSelections.has(userId)) {
-        console.log(`[CardService] 用戶 ${userId} 仍然沒有選擇記錄，設置預設選擇`)
         // 為新用戶自動選擇預設的系統模板
         const defaultSelections = new Set(defaultSystemCards.filter(card => card.isSelected).map(card => card.id))
         this.userSelections.set(userId, defaultSelections)
         this.saveUserSelectionsToStorage()
-        console.log(`為新用戶 ${userId} 設置預設模板選擇:`, Array.from(defaultSelections))
-      } else {
-        console.log(`[CardService] 用戶 ${userId} 從 localStorage 載入選擇:`, Array.from(this.userSelections.get(userId)!))
       }
-    } else {
-      console.log(`[CardService] 用戶 ${userId} 已有選擇記錄:`, Array.from(this.userSelections.get(userId)!))
     }
     
     return this.userSelections.get(userId)!
@@ -292,21 +283,14 @@ export class CardService {
 
   // 獲取用戶選擇的模板
   public getSelectedTemplates(userId: string): BaseCard[] {
-    console.log(`[CardService] getSelectedTemplates 被調用，userId: ${userId}`)
-    
     if (!userId || userId === 'anonymous') {
       console.warn('[CardService] 無效的用戶 ID:', userId)
       return []
     }
 
     const userSelections = this.getUserSelections(userId)
-    console.log(`[CardService] 用戶選擇:`, Array.from(userSelections))
-    
     const allCards = this.getAllCards(userId)
-    console.log(`[CardService] 所有可用卡片:`, allCards.map(c => ({ id: c.id, name: c.name, isSelected: c.isSelected })))
-    
     const selectedTemplates = allCards.filter(card => userSelections.has(card.id))
-    console.log(`[CardService] 過濾後的選擇模板:`, selectedTemplates.map(c => ({ id: c.id, name: c.name })))
     
     return selectedTemplates
   }

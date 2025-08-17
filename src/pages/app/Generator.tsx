@@ -29,9 +29,6 @@ export default function Generator() {
   
   const cardService = CardService.getInstance()
 
-  // 獲取當前用戶 ID
-  const currentUserId = session?.email || 'anonymous'
-
   // 使用 useCallback 來避免無限循環
   const refreshTracked = useCallback(() => {
     setTracked(getTracked())
@@ -41,31 +38,26 @@ export default function Generator() {
 
   // 載入用戶選擇的模板
   useEffect(() => {
-    console.log('[Generator] useEffect 觸發，session:', session, 'currentUserId:', currentUserId)
-    
     if (!session) {
-      console.log('[Generator] 未登入，跳過模板載入')
       return // 未登入時不載入
     }
     
     const loadSelectedTemplates = () => {
-      console.log('[Generator] 開始載入模板，調用 cardService.getSelectedTemplates')
-      const templates = cardService.getSelectedTemplates(currentUserId)
-      console.log('[Generator] 載入的選擇模板:', templates)
+      const templates = cardService.getSelectedTemplates(session.email)
       setSelectedTemplates(templates)
     }
 
     loadSelectedTemplates()
-  }, [session, currentUserId]) // 移除 cardService 依賴項
+  }, [session?.email]) // 只依賴 session.email，避免無限迴圈
 
   // 載入保存的內容（頁面載入時）
   useEffect(() => {
     if (!session) return // 未登入時不載入
     
     try {
-      const savedTitle = localStorage.getItem(`generator:${currentUserId}:title`)
-      const savedArticle = localStorage.getItem(`generator:${currentUserId}:article`)
-      const savedCards = localStorage.getItem(`generator:${currentUserId}:cards`)
+      const savedTitle = localStorage.getItem(`generator:${session.email}:title`)
+      const savedArticle = localStorage.getItem(`generator:${session.email}:article`)
+      const savedCards = localStorage.getItem(`generator:${session.email}:cards`)
       
       if (savedTitle) setTitle(savedTitle)
       if (savedArticle) setArticle(savedArticle)
@@ -80,20 +72,20 @@ export default function Generator() {
     } catch (e) {
       console.warn('載入保存的內容失敗:', e)
     }
-  }, [session, currentUserId])
+  }, [session?.email])
 
   // 保存內容到 localStorage（當內容變化時）
   useEffect(() => {
     if (!session) return // 未登入時不保存
     
     try {
-      localStorage.setItem(`generator:${currentUserId}:title`, title)
-      localStorage.setItem(`generator:${currentUserId}:article`, article)
-      localStorage.setItem(`generator:${currentUserId}:cards`, JSON.stringify(cards))
+      localStorage.setItem(`generator:${session.email}:title`, title)
+      localStorage.setItem(`generator:${session.email}:article`, article)
+      localStorage.setItem(`generator:${session.email}:cards`, JSON.stringify(cards))
     } catch (e) {
       console.warn('保存內容失敗:', e)
     }
-  }, [title, article, cards, session, currentUserId])
+  }, [title, article, cards, session?.email])
 
   // 頁面卸載時清除保存的內容（重新載入時會清除）
   useEffect(() => {
@@ -101,9 +93,9 @@ export default function Generator() {
       if (!session) return
       
       try {
-        localStorage.removeItem(`generator:${currentUserId}:title`)
-        localStorage.removeItem(`generator:${currentUserId}:article`)
-        localStorage.removeItem(`generator:${currentUserId}:cards`)
+        localStorage.removeItem(`generator:${session.email}:title`)
+        localStorage.removeItem(`generator:${session.email}:article`)
+        localStorage.removeItem(`generator:${session.email}:cards`)
       } catch (e) {
         console.warn('清除保存的內容失敗:', e)
       }
@@ -113,7 +105,7 @@ export default function Generator() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [session, currentUserId])
+  }, [session?.email])
 
   // SEO
   useEffect(() => {
@@ -131,9 +123,6 @@ export default function Generator() {
   }, [cards])
 
   const onGenerate = () => {
-    console.log('[onGenerate] 開始執行，selectedTemplates:', selectedTemplates)
-    console.log('[onGenerate] article 長度:', article.length)
-    
     if (selectedTemplates.length === 0) {
       alert('請先在「個人設定」中選擇至少一個模板')
       return
@@ -147,7 +136,6 @@ export default function Generator() {
     setGenerating(true)
     setTimeout(() => {
       const res = generateFrom(article)
-      console.log('[onGenerate] generateFrom 結果:', res)
       const articleId = nextArticleId()
       
       // 根據用戶選擇的模板生成卡片
@@ -190,7 +178,6 @@ export default function Generator() {
         }
       })
       
-      console.log('[onGenerate] 生成的卡片:', newCards)
       setCards(newCards)
       setGenerating(false)
     }, 300)
@@ -203,18 +190,14 @@ export default function Generator() {
 
 
   const onAddToTracking = () => {
-    console.log('[onAddToTracking] 開始執行')
     const selected = cards.filter(c => c.checked)
-    console.log('[onAddToTracking] 選取的卡片:', selected.map(c => ({ id: c.id, platform: c.platform, content: c.content.substring(0, 50) })))
     
     if (!selected.length) {
-      console.log('[onAddToTracking] 沒有選取任何卡片')
       return
     }
     
     // 從第一張卡片的 label 取出 Axxx（若沒有，臨時給一個）
     const articleId = /A\d{3}/.exec(selected[0]?.label || '')?.[0] || nextArticleId()
-    console.log('[onAddToTracking] 使用的 articleId:', articleId)
     
     try {
       const result = addTracked(selected.map(c => ({
@@ -225,16 +208,17 @@ export default function Generator() {
         content: c.content,
         platform: c.platform,
       })))
-      console.log('[onAddToTracking] addTracked 結果:', result)
       alert('已加入追蹤列表：' + selected.length + ' 筆')
       setCards(prev => prev.map(c => ({ ...c, checked: false })))
       refreshTracked()
       
       // 成功加入追蹤後，清除保存的內容
       try {
-        localStorage.removeItem(`generator:${currentUserId}:title`)
-        localStorage.removeItem(`generator:${currentUserId}:article`)
-        localStorage.removeItem(`generator:${currentUserId}:cards`)
+        if (session) {
+          localStorage.removeItem(`generator:${session.email}:title`)
+          localStorage.removeItem(`generator:${session.email}:article`)
+          localStorage.removeItem(`generator:${session.email}:cards`)
+        }
       } catch (e) {
         console.warn('清除保存的內容失敗:', e)
       }
