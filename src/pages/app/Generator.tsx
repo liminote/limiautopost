@@ -267,7 +267,7 @@ export default function Generator() {
               className="btn" 
               style={{ 
                 backgroundColor: 'var(--yinmn-blue-300)', 
-                color: 'var(--yinmn-blue)', 
+                color: 'white', 
                 border: '1px solid var(--yinmn-blue-300)'
               }}
               onClick={onClear}
@@ -275,7 +275,7 @@ export default function Generator() {
             >
               清空內容
             </button>
-            <button className="ml-auto btn btn-primary disabled:opacity-50" disabled={!article || generating} onClick={onGenerate}>
+            <button className="btn btn-primary disabled:opacity-50" disabled={!article || generating} onClick={onGenerate}>
               {generating ? '生成中…' : '開始生成貼文'}
             </button>
           </div>
