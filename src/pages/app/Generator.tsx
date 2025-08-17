@@ -185,10 +185,10 @@ export default function Generator() {
           }
         } else if (template.platform === 'instagram') {
           content = res[3] // 220字
-          code = 'G1'
+          code = 'I1'
         } else if (template.platform === 'general') {
           content = res[0] // 預設使用最長內容
-          code = 'G2'
+          code = 'G1'
         } else if (template.platform === 'facebook') {
           content = res[0] // 預設使用最長內容
           code = 'F1'

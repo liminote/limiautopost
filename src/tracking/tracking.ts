@@ -94,8 +94,8 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
   const list = getTracked()
   // 準備序號累計：以 articleId + 平台字母 為 key，避免新增多筆時重複
   const counters = new Map<string, number>()
-  const normLetter = (platform: TrackedPost['platform']): 'T' | 'G' | 'F' => (
-    platform === 'Threads' ? 'T' : platform === 'Instagram' ? 'G' : platform === 'General' ? 'G' : 'F'
+  const normLetter = (platform: TrackedPost['platform']): 'T' | 'G' | 'F' | 'I' => (
+    platform === 'Threads' ? 'T' : platform === 'Instagram' ? 'I' : platform === 'General' ? 'G' : 'F'
   )
   // 從既有資料建立初始計數，Instagram 以前可能是 I 開頭，視為 G
   for (const x of list) {
@@ -121,9 +121,9 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       : undefined
     const resolvedArticleId = foundSameTitle ? foundSameTitle.articleId : it.articleId
 
-    // 依平台自動產生編碼：T1/T2/T3/T4...、G1/G2/G3...、F1/F2
+    // 依平台自動產生編碼：T1/T2/T3/T4...、G1/G2/G3...、I1/I2/I3...、F1/F2
     let branchCode = it.branchCode
-    const keep = typeof branchCode === 'string' && /^[TGF]\d+$/.test(branchCode)
+    const keep = typeof branchCode === 'string' && /^[TGFI]\d+$/.test(branchCode)
     if (!keep) {
       const letter = normLetter(it.platform)
       const key = `${resolvedArticleId}-${letter}`

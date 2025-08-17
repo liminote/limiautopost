@@ -441,7 +441,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-3 border-t align-top">{r.postId}</td>
               <td className="px-3 py-3 border-t align-top" style={{ minWidth: '6ch', textAlign: 'center' }}>
                 {(() => {
-                  const code = r.platform === 'Instagram' ? 'G1' : r.platform === 'Facebook' ? 'FB' : r.platform === 'General' ? 'G2' : 'TD'
+                  const code = r.platform === 'Instagram' ? 'IG' : r.platform === 'Facebook' ? 'FB' : r.platform === 'General' ? 'GE' : 'TD'
                   const color = r.platform === 'Instagram' ? '#ec4899' : r.platform === 'Facebook' ? '#2563eb' : r.platform === 'General' ? '#92400e' : '#0ea5a1'
                   return (
                     <span className="ui-chip" style={{ padding: '0 6px', color }}>
