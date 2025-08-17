@@ -13,8 +13,12 @@ export default function TagInput({ value, onChange, suggestions, className }: {
   const add = (tag: string) => {
     const t = tag.trim()
     if (!t) return
-    if (exist.has(t)) { setText(''); return }
-    onChange([...value, t]); setText('')
+    if (exist.has(t)) { 
+      setText(''); 
+      return 
+    }
+    onChange([...value, t]); 
+    setText('') // 確保清空輸入框
   }
   const remove = (tag: string) => onChange(value.filter(t => t !== tag))
 

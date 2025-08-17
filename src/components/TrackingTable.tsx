@@ -473,8 +473,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-3 border-t align-top" style={{ width: '12ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.articleTitle || '（無標題）'); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
                 <div style={{ width: '12ch', overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
-              <td className="px-8 py-3 border-t text-gray-600 align-top text-center" style={{ width: '15ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
-                <div style={{ width: '13ch', overflow: 'hidden', display: 'block', pointerEvents: 'none', textAlign: 'center', margin: '0 auto' }}>
+              <td className="px-8 py-3 border-t text-gray-600 align-top" style={{ width: '15ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
+                <div style={{ width: '13ch', overflow: 'hidden', display: 'block', pointerEvents: 'none', textAlign: 'left' }}>
                   {(r.content || '').slice(0, 30)}{(r.content || '').length > 30 ? '…' : ''}
                 </div>
               </td>
