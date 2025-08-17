@@ -398,7 +398,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
           <col className="w-9ch" /> {/* 3 平台 */}
           <col className="w-8ch" /> {/* 4 狀態 */}
           <col className="w-12ch" /> {/* 5 原文標題 */}
-          <col className="w-12ch" /> {/* 6 內容 */}
+          <col className="w-16ch" /> {/* 6 內容 */}
           <col className="w-12ch" /> {/* 7 標籤 */}
           <col /> {/* 8 連結 */}
           <col className="w-12ch" /> {/* 9 發佈日期 */}
@@ -480,8 +480,8 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
               <td className="px-3 py-3 border-t text-gray-600 align-top" onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
-                <div className="w-12ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
-                  {(r.content || '').slice(0, 24)}{(r.content || '').length > 24 ? '…' : ''}
+                <div className="w-16ch" style={{ overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>
+                  {(r.content || '').slice(0, 32)}{(r.content || '').length > 32 ? '…' : ''}
                 </div>
               </td>
               <td className="px-3 py-3 border-t align-top" style={{ width: '9ch' }}>

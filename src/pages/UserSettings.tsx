@@ -287,62 +287,66 @@ export default function UserSettings(){
       {/* Threads 連結設定 */}
       <div className="card card-body text-sm text-gray-600 space-y-2">
         <h2 className="font-semibold">Threads 連結</h2>
-        {statusMsg && <div className="text-red-600 text-sm">{statusMsg}</div>}
+
         {/* 允許管理者也能連結 Threads（單帳號同時具 admin/user 的情境） */}
         {true ? (
         <div className="flex gap-2">
           <a className="btn btn-primary" href={`/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(session?.email || '')}`}>{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
           {linked && (
-            <button
-              className="btn btn-ghost"
-              disabled={busy}
-              onClick={async ()=>{
-                try {
-                  setBusy(true)
-                  console.log('開始斷開 Threads 連結...')
-                  
-                  // 嘗試斷開連結
-                  const j = await (async () => {
-                    try { 
-                      console.log('嘗試 /.netlify/functions/threads-disconnect...')
-                      return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json() 
-                    } catch (error) {
-                      console.log('第一個 API 失敗，嘗試備用...', error)
-                      return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json()
-                    }
-                  })()
-                  
-                  console.log('斷開連結回應:', j)
-                  
-                  if (j.ok) {
-                    // 更新組件狀態
-                    setLinked(false)
-                    setUsername(null)
-                    setStatusMsg('已斷開 Threads 連結')
+            <div>
+              <button
+                className="btn btn-ghost"
+                disabled={busy}
+                onClick={async ()=>{
+                  try {
+                    setBusy(true)
+                    console.log('開始斷開 Threads 連結...')
                     
-                    // 清除本地快取
-                    try {
-                      localStorage.removeItem(`threads:${session?.email}:linked`)
-                      localStorage.removeItem(`threads:${session?.email}:username`)
-                      console.log('已清除本地快取')
-                    } catch (error) {
-                      console.warn('清除本地快取失敗:', error)
-                    }
+                    // 嘗試斷開連結
+                    const j = await (async () => {
+                      try { 
+                        console.log('嘗試 /.netlify/functions/threads-disconnect...')
+                        return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json() 
+                      } catch (error) {
+                        console.log('第一個 API 失敗，嘗試備用...', error)
+                        return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json()
+                      }
+                    })()
                     
-                    console.log('Threads 斷開連結成功')
-                  } else { 
-                    console.error('斷開連結失敗:', j)
-                    setStatusMsg(`斷開連結失敗: ${j.error || '未知錯誤'}`) 
+                    console.log('斷開連結回應:', j)
+                    
+                    if (j.ok) {
+                      // 更新組件狀態
+                      setLinked(false)
+                      setUsername(null)
+                      
+                      // 清除本地快取
+                      try {
+                        localStorage.removeItem(`threads:${session?.email}:linked`)
+                        localStorage.removeItem(`threads:${session?.email}:username`)
+                        console.log('已清除本地快取')
+                      } catch (error) {
+                        console.warn('清除本地快取失敗:', error)
+                      }
+                      
+                      console.log('Threads 斷開連結成功')
+                    } else { 
+                      console.error('斷開連結失敗:', j)
+                      alert(`斷開連結失敗: ${j.error || '未知錯誤'}`)
+                    }
+                  } catch (error) { 
+                    console.error('斷開連結異常:', error)
+                    alert('斷開連結失敗: 網路錯誤')
                   }
-                } catch (error) { 
-                  console.error('斷開連結異常:', error)
-                  setStatusMsg('斷開連結失敗: 網路錯誤') 
-                }
-                finally { 
-                  setBusy(false) 
-                }
-              }}
-            >斷開連結</button>
+                  finally { 
+                    setBusy(false) 
+                  }
+                }}
+              >斷開連結</button>
+              {statusMsg && statusMsg.includes('失敗') && (
+                <div className="text-red-600 text-xs mt-1">{statusMsg}</div>
+              )}
+            </div>
           )}
         </div>
         ) : null}
