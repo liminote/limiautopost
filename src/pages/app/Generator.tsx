@@ -188,7 +188,7 @@ export default function Generator() {
           code = 'G1'
         } else if (template.platform === 'general') {
           content = res[0] // 預設使用最長內容
-          code = 'GE'
+          code = 'G2'
         } else if (template.platform === 'facebook') {
           content = res[0] // 預設使用最長內容
           code = 'F1'
