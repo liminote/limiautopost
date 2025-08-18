@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { addTracked, getTracked, nextArticleId } from '../../tracking/tracking'
+import { addTracked, getTracked, removeTracked, clearTracked, nextArticleId } from '../../tracking/tracking'
 import type { TrackedPost } from '../../tracking/tracking'
 import GeneratedCard, { type GeneratedCardData } from '../../components/GeneratedCard'
 import { CardService } from '../../services/cardService'
+import { GeminiService } from '../../services/geminiService'
 import type { BaseCard } from '../../types/cards'
 import { useSession } from '../../auth/auth'
-import { PLATFORM_CONFIG, generateCode, mapPlatform, getPlatformLabel, type PlatformType } from '../../config/platformConfig'
 
-type Platform = 'Threads' | 'Instagram' | 'Facebook' | 'General'
+type PlatformType = 'threads' | 'instagram' | 'facebook' | 'general'
+type Platform = 'Threads' | 'Instagram' | 'Facebook'
 
 type Card = {
   id: string
@@ -29,6 +30,7 @@ export default function Generator() {
   const [, setTracked] = useState<TrackedPost[]>([])
   
   const cardService = CardService.getInstance()
+  const geminiService = GeminiService.getInstance()
 
   // 使用 useCallback 來避免無限循環
   const refreshTracked = useCallback(() => {
@@ -144,73 +146,111 @@ export default function Generator() {
     }
   }
 
-  const onGenerate = () => {
+  const onGenerate = async () => {
     if (selectedTemplates.length === 0) {
-      alert('請先在「個人設定」中選擇至少一個模板')
+      alert('請先選擇模板')
       return
     }
 
     if (!article.trim()) {
-      alert('請先輸入文章內容')
+      alert('請輸入文章內容')
       return
     }
 
     setGenerating(true)
-    setTimeout(() => {
-      const res = generateFrom(article)
+    
+    try {
+      console.log('[Generator] 開始 AI 生成，選擇的模板數量:', selectedTemplates.length)
+      
       const articleId = nextArticleId()
+      const newCards: Card[] = []
       
-      // 根據用戶選擇的模板生成卡片
-      console.log('[Generator] 選擇的模板:', selectedTemplates.map((t, i) => ({ index: i, platform: t.platform, title: t.templateTitle })))
-      
-      // 為每個平台獨立計數
-      const platformCounters = { threads: 0, instagram: 0, general: 0, facebook: 0 }
-      
-      const newCards: Card[] = selectedTemplates.map((template) => {
+      // 為每個選中的模板生成內容
+      for (let i = 0; i < selectedTemplates.length; i++) {
+        const template = selectedTemplates[i]
         const platform = template.platform as PlatformType
-        const config = PLATFORM_CONFIG[platform]
         
-        // 根據平台配置生成內容和編號
-        let content = ''
+        // 根據平台和模板順序決定目標字數
+        let targetLength = 300 // 預設字數
         if (platform === 'threads') {
-          // Threads 平台根據模板順序選擇不同長度
-          if (platformCounters.threads === 0) content = res[0] // 500字
-          else if (platformCounters.threads === 1) content = res[1] // 350字
-          else if (platformCounters.threads === 2) content = res[2] // 200字
-          else content = res[0] // 超過3個模板時使用最長內容
+          if (i === 0) targetLength = 500      // 第一則
+          else if (i === 1) targetLength = 350 // 第二則
+          else if (i === 2) targetLength = 200 // 第三則
+          else targetLength = 300               // 其他
+        } else if (platform === 'instagram') {
+          targetLength = 220
+        } else if (platform === 'facebook') {
+          targetLength = 300
+        }
+        
+        console.log(`[Generator] 生成模板 ${i + 1}/${selectedTemplates.length}:`, {
+          platform: template.platform,
+          title: template.templateTitle,
+          targetLength
+        })
+        
+        // 調用 Gemini AI 生成內容
+        const result = await geminiService.generatePostFromTemplate(
+          template.prompt,
+          article,
+          targetLength
+        )
+        
+        if (result.success && result.content) {
+          const code = generateCode(platform, i)
+          const card: Card = {
+            id: crypto.randomUUID(),
+            platform: mapPlatform(platform),
+            label: `${getPlatformLabel(platform)} - ${template.templateTitle} · ${articleId}`,
+            content: result.content,
+            checked: false,
+            code: code
+          }
+          newCards.push(card)
+          console.log(`[Generator] 模板 ${i + 1} 生成成功，字數:`, result.content.length)
         } else {
-          // 其他平台使用配置的內容索引
-          content = res[config.contentIndex]
+          console.error(`[Generator] 模板 ${i + 1} 生成失敗:`, result.error)
+          // 生成失敗時，使用備用的簡單截取
+          const fallbackContent = generateFallbackContent(article, targetLength)
+          const code = generateCode(platform, i)
+          const card: Card = {
+            id: crypto.randomUUID(),
+            platform: mapPlatform(platform),
+            label: `${getPlatformLabel(platform)} - ${template.templateTitle} · ${articleId} (備用)`,
+            content: fallbackContent,
+            checked: false,
+            code: code
+          }
+          newCards.push(card)
         }
-        
-        // 生成編號（使用平台專用計數器）
-        const code = generateCode(platform, platformCounters[platform])
-        platformCounters[platform]++ // 增加該平台的計數器
-        
-        const card: Card = {
-          id: crypto.randomUUID(),
-          platform: mapPlatform(platform),
-          label: `${getPlatformLabel(platform)} - ${template.templateTitle} · ${articleId}`,
-          content: content || template.prompt || '請輸入內容',
-          checked: false,
-          code: code
-        }
-        
-        console.log(`[Generator] 生成卡片 ${platformCounters[platform]}:`, { platform: template.platform, code, title: template.templateTitle })
-        
-        return card
-      })
+      }
       
       setCards(newCards)
+      console.log('[Generator] AI 生成完成，總共生成卡片:', newCards.length)
+      
+    } catch (error) {
+      console.error('[Generator] AI 生成過程發生錯誤:', error)
+      alert('生成失敗，請稍後再試')
+    } finally {
       setGenerating(false)
-    }, 300)
+    }
   }
 
   const onCopy = async (content: string) => {
-    try { await navigator.clipboard.writeText(content); alert('已複製到剪貼簿') } catch { alert('複製失敗') }
+    try { 
+      await navigator.clipboard.writeText(content)
+      alert('已複製到剪貼簿') 
+    } catch { 
+      alert('複製失敗') 
+    }
   }
 
-
+  const addManual = () => {
+    setCards(prev => ([
+      ...prev,
+      { id: crypto.randomUUID(), platform: 'Threads', label: '手動新增', content: '', checked: false, code: 'MAN' }
+    ]))
+  }
 
   const onAddToTracking = () => {
     const selected = cards.filter(c => c.checked)
@@ -229,7 +269,7 @@ export default function Generator() {
         postId: '',
         articleTitle: title,
         content: c.content,
-        platform: c.platform,
+        platform: c.platform as 'Threads' | 'Instagram' | 'Facebook',
       })))
       alert('已加入追蹤列表：' + selected.length + ' 筆')
       setCards(prev => prev.map(c => ({ ...c, checked: false })))
@@ -255,75 +295,84 @@ export default function Generator() {
   }
 
   return (
-    <div className="ui-12" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', position: 'relative' }}>
-      {/* 左：輸入與設定 */}
-      <div className="space-y-4">
-        <div className="card card-body space-y-3">
-          <div>
-            <label className="block text-sm text-gray-600">標題</label>
-            <input className="mt-1 input w-full text-base" value={title} onChange={e=>setTitle(e.target.value)} placeholder="輸入原文標題" />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600">文章</label>
-            <textarea className="mt-1 textarea w-full text-sm" style={{ height: '20rem' }} value={article} onChange={e=>setArticle(e.target.value)} placeholder="貼上完整長文…" />
-          </div>
-          <div className="flex gap-2">
-            <button 
-              className="btn" 
-              style={{ 
-                backgroundColor: 'var(--yinmn-blue-300)', 
-                color: 'white', 
-                border: '1px solid var(--yinmn-blue-300)'
-              }}
-              onClick={onClear}
-              disabled={!title && !article}
-            >
-              清空內容
-            </button>
-            <button className="btn btn-primary disabled:opacity-50" disabled={!article || generating} onClick={onGenerate}>
-              {generating ? '生成中…' : '開始生成貼文'}
-            </button>
+    <div className="ui-12" style={{ padding: 'var(--ui-12)' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 左：輸入與設定 */}
+        <div className="space-y-4">
+          <div className="card card-body space-y-3">
+            <div>
+              <label className="block text-sm text-gray-600">標題</label>
+              <input className="mt-1 input w-full text-base" value={title} onChange={e=>setTitle(e.target.value)} placeholder="輸入原文標題" />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600">文章</label>
+              <textarea className="mt-1 textarea w-full text-sm" style={{ height: '20rem' }} value={article} onChange={e=>setArticle(e.target.value)} placeholder="貼上完整長文…" />
+            </div>
+            <div className="flex gap-2">
+              <button 
+                className="btn" 
+                style={{ 
+                  backgroundColor: 'var(--yinmn-blue-300)', 
+                  color: 'white', 
+                  border: '1px solid var(--yinmn-blue-300)'
+                }}
+                onClick={onClear}
+                disabled={!title && !article}
+              >
+                清空內容
+              </button>
+              <button className="btn btn-primary disabled:opacity-50" disabled={!article || generating || selectedTemplates.length === 0} onClick={onGenerate}>
+                {generating ? 'AI 生成中…' : '開始 AI 生成貼文'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 右：結果卡片（2/3） */}
-      <div className="space-y-4">
-        {selectedTemplates.length === 0 ? (
-          <div className="card card-body text-center">
-            <div className="text-lg text-gray-600 mb-2">尚未選擇模板</div>
-            <div className="text-sm text-gray-500 mb-4">請先在「個人設定」中選擇要使用的模板</div>
-            <a href="/settings" className="btn btn-primary">前往個人設定</a>
-          </div>
-        ) : cards.length === 0 ? (
-          <div className="text-sm text-gray-500">尚未有結果，請先輸入文章並點「開始生成貼文」。</div>
-        ) : (
-           <div className="grid grid-cols-1 gap-4">
-            <div className="flex items-center gap-3">
-              <div className="ml-auto flex items-center gap-3">
-                <button
-                  className="text-xs text-gray-600 hover:text-gray-900"
-                  onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: true })))}
-                >全選</button>
-                <button
-                  className="text-xs text-gray-600 hover:text-gray-900"
-                  onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: false })))}
-                >全不選</button>
-              </div>
+        {/* 右：結果卡片（2/3） */}
+        <div className="lg:col-span-2 space-y-4">
+          {selectedTemplates.length === 0 ? (
+            <div className="card card-body text-center">
+              <div className="text-lg text-gray-600 mb-2">尚未選擇模板</div>
+              <div className="text-sm text-gray-500 mb-4">請先在「個人設定」中選擇要使用的模板</div>
+              <a href="/settings" className="btn btn-primary">前往個人設定</a>
             </div>
-            {cards.map((c, idx) => (
-              <GeneratedCard
-                key={c.id}
-                card={c as unknown as GeneratedCardData}
-                bgVar={idx % 4 === 0 ? '--card-tint-1' : idx % 4 === 1 ? '--card-tint-2' : idx % 4 === 2 ? '--card-tint-3' : '--card-tint-4'}
-                onToggleChecked={(id, checked)=> setCards(prev => prev.map(x => x.id===id? { ...x, checked }: x))}
-                onPlatformChange={(id, platform)=> setCards(prev => prev.map(x => x.id===id? { ...x, platform: platform as Platform }: x))}
-                onContentChange={(id, content)=> setCards(prev => prev.map(x => x.id===id? { ...x, content }: x))}
-                onCopy={(content)=> onCopy(content)}
-              />
-            ))}
+          ) : cards.length === 0 ? (
+            <div className="text-sm text-gray-500">尚未有結果，請先輸入文章並點「開始 AI 生成貼文」。</div>
+          ) : (
+             <div className="grid grid-cols-1 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="ml-auto flex items-center gap-3">
+                  <button
+                    className="text-xs text-gray-600 hover:text-gray-900"
+                    onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: true })))}
+                  >全選</button>
+                  <button
+                    className="text-xs text-gray-600 hover:text-gray-900"
+                    onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: false })))}
+                  >全不選</button>
+                </div>
+              </div>
+              {cards.map((c, idx) => (
+                <GeneratedCard
+                  key={c.id}
+                  card={c as unknown as GeneratedCardData}
+                  bgVar={idx % 4 === 0 ? '--card-tint-1' : idx % 4 === 1 ? '--card-tint-2' : idx % 4 === 2 ? '--card-tint-3' : '--card-tint-4'}
+                  onToggleChecked={(id, checked)=> setCards(prev => prev.map(x => x.id===id? { ...x, checked }: x))}
+                  onPlatformChange={(id, platform)=> setCards(prev => prev.map(x => x.id===id? { ...x, platform: platform as Platform }: x))}
+                  onContentChange={(id, content)=> setCards(prev => prev.map(x => x.id===id? { ...x, content }: x))}
+                  onCopy={(content)=> onCopy(c.content)}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <button className="btn btn-outline" onClick={addManual}>＋ 手動新增卡片</button>
+            {anyChecked && (
+              <button className="ml-auto btn btn-primary" onClick={onAddToTracking}>將選取項目加入追蹤列表</button>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* 追蹤列表移至 /tracking；此頁僅保留「加入追蹤」行為 */}
@@ -342,19 +391,49 @@ export default function Generator() {
   )
 }
 
-function generateFrom(text: string): [string, string, string, string] {
+// 輔助函數
+function generateCode(platform: PlatformType, index: number): string {
+  const platformMap = {
+    threads: 'T',
+    instagram: 'I',
+    facebook: 'F',
+    general: 'G'
+  }
+  return `${platformMap[platform]}${index + 1}`
+}
+
+function mapPlatform(platform: PlatformType): Platform {
+  const platformMap = {
+    threads: 'Threads',
+    instagram: 'Instagram',
+    facebook: 'Facebook',
+    general: 'Threads' // 預設為 Threads
+  }
+  return platformMap[platform] as Platform
+}
+
+function getPlatformLabel(platform: PlatformType): string {
+  const platformMap = {
+    threads: 'Threads',
+    instagram: 'Instagram',
+    facebook: 'Facebook',
+    general: 'General'
+  }
+  return platformMap[platform]
+}
+
+// 備用內容生成函數（當 AI 生成失敗時使用）
+function generateFallbackContent(text: string, targetLength: number): string {
   const cleaned = text.replace(/\n+/g, '\n').trim()
   const parts = cleaned.split(/(?<=[。！？!?.])\s*/)
-  const makeLen = (limit: number) => {
-    if (!cleaned) return ''
-    let out = ''
-    for (const s of parts) {
-      if ((out + s).length > limit) break
-      out += s
-    }
-    if (!out) out = cleaned.slice(0, limit)
-    return out
+  
+  let out = ''
+  for (const s of parts) {
+    if ((out + s).length > targetLength) break
+    out += s
   }
-  return [makeLen(500), makeLen(350), makeLen(200), makeLen(220)]
+  
+  if (!out) out = cleaned.slice(0, targetLength)
+  return out
 }
 

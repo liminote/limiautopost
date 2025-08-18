@@ -17,6 +17,7 @@
     "test:netlify": "vitest run src/__tests__/netlify/"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@netlify/blobs": "^6.5.0",
     "@netlify/functions": "^4.2.1",
     "react": "^19.1.1",
