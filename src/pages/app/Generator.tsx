@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { addTracked, getTracked, removeTracked, clearTracked, nextArticleId } from '../../tracking/tracking'
+import { addTracked, getTracked, nextArticleId } from '../../tracking/tracking'
 import type { TrackedPost } from '../../tracking/tracking'
 import GeneratedCard, { type GeneratedCardData } from '../../components/GeneratedCard'
 import { CardService } from '../../services/cardService'
@@ -105,43 +105,21 @@ export default function Generator() {
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-    }
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [session?.email])
 
-  // SEO
-  useEffect(() => {
-    document.title = '貼文生成器 - limiautopost'
-    let m = document.querySelector('meta[name="description"]') as HTMLMetaElement | null
-    if (!m) { m = document.createElement('meta'); m.name = 'description'; document.head.appendChild(m) }
-    m.content = '生成 Threads/IG 文案的結果卡片，緊湊操作與一致對齊。'
-    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
-    if (!link) { link = document.createElement('link'); link.rel = 'canonical'; document.head.appendChild(link) }
-    link.href = location.href
-  }, [])
-
-  const anyChecked = useMemo(() => {
-    return cards.some(c => c.checked)
-  }, [cards])
-
   const onClear = () => {
-    if (title || article) {
-      if (confirm('確定要清空所有內容嗎？')) {
-        setTitle('')
-        setArticle('')
-        // 清除 localStorage 中的保存內容
-        if (session) {
-          try {
-            localStorage.removeItem(`generator:${session.email}:title`)
-            localStorage.removeItem(`generator:${session.email}:article`)
-            localStorage.removeItem(`generator:${session.email}:cards`)
-          } catch (e) {
-            console.warn('清除保存的內容失敗:', e)
-          }
-        }
-        // 清空生成的卡片
-        setCards([])
+    setTitle('')
+    setArticle('')
+    setCards([])
+    
+    if (session) {
+      try {
+        localStorage.removeItem(`generator:${session.email}:title`)
+        localStorage.removeItem(`generator:${session.email}:article`)
+        localStorage.removeItem(`generator:${session.email}:cards`)
+      } catch (e) {
+        console.warn('清除保存的內容失敗:', e)
       }
     }
   }
@@ -170,30 +148,17 @@ export default function Generator() {
         const template = selectedTemplates[i]
         const platform = template.platform as PlatformType
         
-        // 根據平台和模板順序決定目標字數
-        let targetLength = 300 // 預設字數
-        if (platform === 'threads') {
-          if (i === 0) targetLength = 500      // 第一則
-          else if (i === 1) targetLength = 350 // 第二則
-          else if (i === 2) targetLength = 200 // 第三則
-          else targetLength = 300               // 其他
-        } else if (platform === 'instagram') {
-          targetLength = 220
-        } else if (platform === 'facebook') {
-          targetLength = 300
-        }
-        
         console.log(`[Generator] 生成模板 ${i + 1}/${selectedTemplates.length}:`, {
           platform: template.platform,
           title: template.templateTitle,
-          targetLength
+          prompt: template.prompt.substring(0, 100) + '...'
         })
         
-        // 調用 Gemini AI 生成內容
+        // 調用 Gemini AI 生成內容，字數完全由 Prompt 決定
         const result = await geminiService.generatePostFromTemplate(
           template.prompt,
           article,
-          targetLength
+          0 // 傳入 0 表示字數由 Prompt 決定
         )
         
         if (result.success && result.content) {
@@ -210,8 +175,8 @@ export default function Generator() {
           console.log(`[Generator] 模板 ${i + 1} 生成成功，字數:`, result.content.length)
         } else {
           console.error(`[Generator] 模板 ${i + 1} 生成失敗:`, result.error)
-          // 生成失敗時，使用備用的簡單截取
-          const fallbackContent = generateFallbackContent(article, targetLength)
+          // 生成失敗時，使用備用的簡單截取（預設 300 字）
+          const fallbackContent = generateFallbackContent(article, 300)
           const code = generateCode(platform, i)
           const card: Card = {
             id: crypto.randomUUID(),
@@ -243,13 +208,6 @@ export default function Generator() {
     } catch { 
       alert('複製失敗') 
     }
-  }
-
-  const addManual = () => {
-    setCards(prev => ([
-      ...prev,
-      { id: crypto.randomUUID(), platform: 'Threads', label: '手動新增', content: '', checked: false, code: 'MAN' }
-    ]))
   }
 
   const onAddToTracking = () => {
@@ -294,85 +252,78 @@ export default function Generator() {
     }
   }
 
+  const anyChecked = useMemo(() => cards.some(c => c.checked), [cards])
+
   return (
-    <div className="ui-12" style={{ padding: 'var(--ui-12)' }}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 左：輸入與設定 */}
-        <div className="space-y-4">
-          <div className="card card-body space-y-3">
-            <div>
-              <label className="block text-sm text-gray-600">標題</label>
-              <input className="mt-1 input w-full text-base" value={title} onChange={e=>setTitle(e.target.value)} placeholder="輸入原文標題" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600">文章</label>
-              <textarea className="mt-1 textarea w-full text-sm" style={{ height: '20rem' }} value={article} onChange={e=>setArticle(e.target.value)} placeholder="貼上完整長文…" />
-            </div>
-            <div className="flex gap-2">
-              <button 
-                className="btn" 
-                style={{ 
-                  backgroundColor: 'var(--yinmn-blue-300)', 
-                  color: 'white', 
-                  border: '1px solid var(--yinmn-blue-300)'
-                }}
-                onClick={onClear}
-                disabled={!title && !article}
-              >
-                清空內容
-              </button>
-              <button className="btn btn-primary disabled:opacity-50" disabled={!article || generating || selectedTemplates.length === 0} onClick={onGenerate}>
-                {generating ? 'AI 生成中…' : '開始 AI 生成貼文'}
-              </button>
-            </div>
+    <div className="ui-12" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', position: 'relative' }}>
+      {/* 左：輸入與設定 */}
+      <div className="space-y-4">
+        <div className="card card-body space-y-3">
+          <div>
+            <label className="block text-sm text-gray-600">標題</label>
+            <input className="mt-1 input w-full text-base" value={title} onChange={e=>setTitle(e.target.value)} placeholder="輸入原文標題" />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600">文章</label>
+            <textarea className="mt-1 textarea w-full text-sm" style={{ height: '20rem' }} value={article} onChange={e=>setArticle(e.target.value)} placeholder="貼上完整長文…" />
+          </div>
+          <div className="flex gap-2">
+            <button 
+              className="btn" 
+              style={{ 
+                backgroundColor: 'var(--yinmn-blue-300)', 
+                color: 'white', 
+                border: '1px solid var(--yinmn-blue-300)'
+              }}
+              onClick={onClear}
+              disabled={!title && !article}
+            >
+              清空內容
+            </button>
+            <button className="btn btn-primary disabled:opacity-50" disabled={!article || generating || selectedTemplates.length === 0} onClick={onGenerate}>
+              {generating ? 'AI 生成中…' : '開始 AI 生成貼文'}
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* 右：結果卡片（2/3） */}
-        <div className="lg:col-span-2 space-y-4">
-          {selectedTemplates.length === 0 ? (
-            <div className="card card-body text-center">
-              <div className="text-lg text-gray-600 mb-2">尚未選擇模板</div>
-              <div className="text-sm text-gray-500 mb-4">請先在「個人設定」中選擇要使用的模板</div>
-              <a href="/settings" className="btn btn-primary">前往個人設定</a>
-            </div>
-          ) : cards.length === 0 ? (
-            <div className="text-sm text-gray-500">尚未有結果，請先輸入文章並點「開始 AI 生成貼文」。</div>
-          ) : (
-             <div className="grid grid-cols-1 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="ml-auto flex items-center gap-3">
-                  <button
-                    className="text-xs text-gray-600 hover:text-gray-900"
-                    onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: true })))}
-                  >全選</button>
-                  <button
-                    className="text-xs text-gray-600 hover:text-gray-900"
-                    onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: false })))}
-                  >全不選</button>
-                </div>
+      {/* 右：結果卡片（2/3） */}
+      <div className="space-y-4">
+        {selectedTemplates.length === 0 ? (
+          <div className="card card-body text-center">
+            <div className="text-lg text-gray-600 mb-2">尚未選擇模板</div>
+            <div className="text-sm text-gray-500 mb-4">請先在「個人設定」中選擇要使用的模板</div>
+            <a href="/settings" className="btn btn-primary">前往個人設定</a>
+          </div>
+        ) : cards.length === 0 ? (
+          <div className="text-sm text-gray-500">尚未有結果，請先輸入文章並點「開始 AI 生成貼文」。</div>
+        ) : (
+           <div className="grid grid-cols-1 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="ml-auto flex items-center gap-3">
+                <button
+                  className="text-xs text-gray-600 hover:text-gray-900"
+                  onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: true })))}
+                >全選</button>
+                <button
+                  className="text-xs text-gray-600 hover:text-gray-900"
+                  onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: false })))}
+                >全不選</button>
               </div>
-              {cards.map((c, idx) => (
-                <GeneratedCard
-                  key={c.id}
-                  card={c as unknown as GeneratedCardData}
-                  bgVar={idx % 4 === 0 ? '--card-tint-1' : idx % 4 === 1 ? '--card-tint-2' : idx % 4 === 2 ? '--card-tint-3' : '--card-tint-4'}
-                  onToggleChecked={(id, checked)=> setCards(prev => prev.map(x => x.id===id? { ...x, checked }: x))}
-                  onPlatformChange={(id, platform)=> setCards(prev => prev.map(x => x.id===id? { ...x, platform: platform as Platform }: x))}
-                  onContentChange={(id, content)=> setCards(prev => prev.map(x => x.id===id? { ...x, content }: x))}
-                  onCopy={(content)=> onCopy(c.content)}
-                />
-              ))}
             </div>
-          )}
-
-          <div className="flex items-center gap-3">
-            <button className="btn btn-outline" onClick={addManual}>＋ 手動新增卡片</button>
-            {anyChecked && (
-              <button className="ml-auto btn btn-primary" onClick={onAddToTracking}>將選取項目加入追蹤列表</button>
-            )}
+            {cards.map((c, idx) => (
+              <GeneratedCard
+                key={c.id}
+                card={c as unknown as GeneratedCardData}
+                bgVar={idx % 4 === 0 ? '--card-tint-1' : idx % 4 === 1 ? '--card-tint-2' : idx % 4 === 2 ? '--card-tint-3' : '--card-tint-4'}
+                onToggleChecked={(id, checked)=> setCards(prev => prev.map(x => x.id===id? { ...x, checked }: x))}
+                onPlatformChange={(id, platform)=> setCards(prev => prev.map(x => x.id===id? { ...x, platform: platform as Platform }: x))}
+                onContentChange={(id, content)=> setCards(prev => prev.map(x => x.id===id? { ...x, content }: x))}
+                onCopy={(content)=> onCopy(c.content)}
+              />
+            ))}
           </div>
-        </div>
+        )}
       </div>
 
       {/* 追蹤列表移至 /tracking；此頁僅保留「加入追蹤」行為 */}
