@@ -170,7 +170,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     setPublishDateDialog({ show: true, row, input: current })
   }
 
-  const handleScheduleSubmit = () => {
+  const handleScheduleSubmit = async () => {
     const { row, input } = scheduleDialog
     if (!row) return
     
@@ -194,6 +194,14 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     updateTracked(row.id, { scheduledAt: iso, status: 'scheduled' })
     setRows(rows.map(x=> x.id===row.id? { ...x, scheduledAt: iso, status: 'scheduled' }: x))
     setScheduleDialog({ show: false, row: null, input: '' })
+    
+    // 同步排程貼文到 Netlify Blobs
+    try {
+      const { syncScheduledPostsToBlobs } = await import('../tracking/tracking')
+      await syncScheduledPostsToBlobs()
+    } catch (error) {
+      console.error('同步排程貼文失敗:', error)
+    }
   }
 
   const handleScheduleCancel = () => {

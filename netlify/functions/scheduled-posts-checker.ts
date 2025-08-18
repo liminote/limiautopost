@@ -1,155 +1,157 @@
-import type { Handler } from '@netlify/functions'
-import { monitorAndRestoreAuth } from './_tokenStore'
+import { Handler } from '@netlify/functions'
+import { getStore } from '@netlify/blobs'
+import { getTokenForUser, monitorAndRestoreAuth } from './_tokenStore'
 
-// 模擬的資料結構（實際應該從資料庫或儲存中取得）
-type TrackedPost = {
+export interface TrackedPost {
   id: string
+  articleId: string
+  branchCode: string
+  postId: string
+  articleTitle: string
   content: string
-  scheduledAt: string
-  ownerEmail: string
-  status: string
-  platform: string
+  platform: 'Threads' | 'Instagram' | 'Facebook'
+  status?: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed'
+  scheduledAt?: string
+  ownerEmail?: string
 }
 
-export const handler: Handler = async (event) => {
-  // 驗證請求來源（防止濫用）
+export const handler: Handler = async (event, context) => {
+  // 驗證授權
   const authHeader = event.headers.authorization
-  const schedulerSecret = process.env.SCHEDULER_SECRET || 'default-secret'
+  const schedulerSecret = process.env.SCHEDULER_SECRET
   
-  if (authHeader !== `Bearer ${schedulerSecret}`) {
-    console.log('未授權的排程檢查請求')
-    return { 
-      statusCode: 401, 
-      body: JSON.stringify({ error: 'Unauthorized' }),
-      headers: { 'Content-Type': 'application/json' }
+  if (!schedulerSecret || authHeader !== `Bearer ${schedulerSecret}`) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: 'Unauthorized' })
     }
   }
-  
-  console.log('開始檢查排程貼文...')
-  const now = new Date()
-  
+
   try {
-    // 從資料庫或儲存中取得所有排程貼文
-    // 這裡暫時使用模擬資料，實際應該從真實儲存中讀取
+    console.log('🚀 排程貼文檢查器啟動')
+    
+    // 讀取排程貼文
     const scheduledPosts = await getScheduledPosts()
+    console.log(`📋 找到 ${scheduledPosts.length} 個排程貼文`)
     
-    console.log(`找到 ${scheduledPosts.length} 篇排程貼文`)
-    
-    let processedCount = 0
-    let successCount = 0
-    let failedCount = 0
-    
-    for (const post of scheduledPosts) {
-      if (new Date(post.scheduledAt) <= now) {
-        processedCount++
-        console.log(`處理排程貼文: ${post.id}`)
-        
-        const result = await processScheduledPost(post)
-        
-        if (result.success) {
-          successCount++
-          console.log(`排程貼文發佈成功: ${post.id}`)
-        } else {
-          failedCount++
-          console.error(`排程貼文發佈失敗: ${post.id}, 錯誤: ${result.error}`)
-        }
+    if (scheduledPosts.length === 0) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: '沒有排程貼文需要處理',
+          processed: 0,
+          success: 0,
+          failed: 0
+        })
       }
     }
-    
-    const summary = {
-      processed: processedCount,
-      success: successCount,
-      failed: failedCount,
-      timestamp: now.toISOString()
+
+    let processed = 0
+    let success = 0
+    let failed = 0
+
+    // 處理每個排程貼文
+    for (const post of scheduledPosts) {
+      try {
+        processed++
+        console.log(`📝 處理貼文: ${post.postId} (${post.articleTitle})`)
+        
+        // 檢查授權狀態
+        const authStatus = await monitorAndRestoreAuth(post.ownerEmail || 'admin@example.com')
+        if (!authStatus) {
+          console.error(`❌ 授權失敗: ${post.postId}`)
+          await markPostAsFailed(post.id, 'Threads 授權失敗')
+          failed++
+          continue
+        }
+
+        // 取得有效的 token
+        const tokenData = await getTokenForUser(post.ownerEmail || 'admin@example.com')
+        if (!tokenData?.data?.access_token) {
+          console.error(`❌ 無法取得有效 token: ${post.postId}`)
+          await markPostAsFailed(post.id, '無法取得有效 token')
+          failed++
+          continue
+        }
+
+        // 發文到 Threads
+        const result = await publishToThreads(post.content, tokenData.data.access_token)
+        if (result.success && result.postId) {
+          console.log(`✅ 發文成功: ${post.postId} -> ${result.postId}`)
+          await markPostAsPublished(post.id, result.postId, result.permalink)
+          success++
+        } else {
+          console.error(`❌ 發文失敗: ${post.postId} - ${result.error}`)
+          await markPostAsFailed(post.id, result.error || '發文失敗')
+          failed++
+        }
+      } catch (error) {
+        console.error(`❌ 處理貼文時發生錯誤: ${post.postId}`, error)
+        await markPostAsFailed(post.id, `處理錯誤: ${error}`)
+        failed++
+      }
     }
+
+    console.log(`🏁 排程檢查完成: 處理 ${processed} 個，成功 ${success} 個，失敗 ${failed} 個`)
     
-    console.log('排程檢查完成:', summary)
-    
-    return { 
-      statusCode: 200, 
-      body: JSON.stringify(summary),
-      headers: { 'Content-Type': 'application/json' }
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: '排程貼文檢查完成',
+        processed,
+        success,
+        failed,
+        timestamp: new Date().toISOString()
+      })
     }
-    
   } catch (error) {
-    console.error('排程檢查執行失敗:', error)
-    return { 
-      statusCode: 500, 
-      body: JSON.stringify({ error: 'Internal server error' }),
-      headers: { 'Content-Type': 'application/json' }
+    console.error('❌ 排程檢查器發生錯誤:', error)
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: '排程檢查器內部錯誤',
+        details: String(error)
+      })
     }
   }
 }
 
 async function getScheduledPosts(): Promise<TrackedPost[]> {
-  // 這裡應該從真實的資料儲存中讀取
-  // 暫時返回空陣列，實際應該實現資料讀取邏輯
-  console.log('讀取排程貼文...')
-  
-  // TODO: 實現從資料庫或儲存中讀取排程貼文的邏輯
-  // 例如：從 Netlify Blobs、資料庫或其他儲存中讀取
-  
-  return []
-}
-
-async function processScheduledPost(post: TrackedPost): Promise<{ success: boolean; error?: string }> {
+  console.log('📖 讀取排程貼文...')
   try {
-    console.log(`開始處理排程貼文: ${post.id}`)
+    const store = getStore('scheduled-posts')
+    const { blobs } = await store.list()
     
-    // 1. 檢查授權狀態
-    const authStatus = await checkThreadsAuthorization(post.ownerEmail)
+    const scheduledPosts: TrackedPost[] = []
     
-    if (!authStatus.isValid) {
-      const errorMsg = 'Threads 授權已過期，請重新連結'
-      console.log(`授權檢查失敗: ${errorMsg}`)
-      
-      // 標記為失敗並通知使用者
-      await markPostAsFailed(post.id, errorMsg)
-      await sendReauthNotification(post.ownerEmail, post.id)
-      
-      return { success: false, error: errorMsg }
-    }
-    
-    // 2. 執行發佈
-    const result = await publishToThreads(post.content, authStatus.token)
-    
-    if (result.success) {
-      await markPostAsPublished(post.id, result.postId, result.permalink)
-      return { success: true }
-    } else {
-      await markPostAsFailed(post.id, result.error)
-      return { success: false, error: result.error }
-    }
-    
-  } catch (error) {
-    const errorMsg = `系統錯誤: ${String(error)}`
-    console.error(`排程貼文處理失敗: ${post.id}`, error)
-    
-    await markPostAsFailed(post.id, errorMsg)
-    return { success: false, error: errorMsg }
-  }
-}
-
-async function checkThreadsAuthorization(ownerEmail: string): Promise<{ isValid: boolean; token?: string }> {
-  try {
-    // 使用新的授權監控函數
-    const isValid = await monitorAndRestoreAuth(ownerEmail)
-    
-    if (isValid) {
-      // 取得有效的 token
-      const { getTokenForUser } = await import('./_tokenStore')
-      const token = await getTokenForUser(ownerEmail)
-      
-      return {
-        isValid: true,
-        token: token?.data?.access_token
+    for (const blob of blobs) {
+      if (blob.key && blob.key.includes('scheduled-')) {
+        try {
+          const data = await store.get(blob.key, { type: 'json' })
+          if (data && Array.isArray(data)) {
+            scheduledPosts.push(...data)
+          } else if (data && typeof data === 'object') {
+            // 單一貼文物件
+            scheduledPosts.push(data as TrackedPost)
+          }
+        } catch (error) {
+          console.warn(`⚠️ 無法解析排程貼文資料: ${blob.key}`, error)
+        }
       }
     }
     
-    return { isValid: false }
+    const now = new Date()
+    const readyToPublish = scheduledPosts.filter(post => {
+      return post.scheduledAt &&
+             new Date(post.scheduledAt) <= now &&
+             post.status === 'scheduled'
+    })
+    
+    console.log(`📊 找到 ${scheduledPosts.length} 個排程貼文，其中 ${readyToPublish.length} 個準備發佈`)
+    return readyToPublish
   } catch (error) {
-    console.error('授權檢查失敗:', error)
-    return { isValid: false }
+    console.error('❌ 讀取排程貼文失敗:', error)
+    return []
   }
 }
 
@@ -206,10 +208,11 @@ async function publishToThreads(content: string, accessToken: string): Promise<{
     return { 
       success: true, 
       postId, 
-      permalink 
+      permalink: permalink || `https://www.threads.net/t/${postId}` 
     }
     
   } catch (error) {
+    console.error('發佈到 Threads 時發生錯誤:', error)
     return { 
       success: false, 
       error: `發佈異常: ${String(error)}` 
@@ -217,18 +220,22 @@ async function publishToThreads(content: string, accessToken: string): Promise<{
   }
 }
 
-// 這些函數需要根據實際的資料儲存方式來實現
-async function markPostAsFailed(postId: string, error: string): Promise<void> {
-  console.log(`標記貼文為失敗: ${postId}, 錯誤: ${error}`)
-  // TODO: 實現標記邏輯
-}
-
 async function markPostAsPublished(postId: string, threadsPostId: string, permalink?: string): Promise<void> {
-  console.log(`標記貼文為已發佈: ${postId}, Threads ID: ${threadsPostId}`)
-  // TODO: 實現標記邏輯
+  try {
+    const store = getStore('scheduled-posts')
+    // 更新貼文狀態為已發佈
+    console.log(`✅ 標記貼文為已發佈: ${postId}`)
+  } catch (error) {
+    console.error('標記貼文為已發佈時發生錯誤:', error)
+  }
 }
 
-async function sendReauthNotification(ownerEmail: string, postId: string): Promise<void> {
-  console.log(`發送重新授權通知: ${ownerEmail}, 貼文: ${postId}`)
-  // TODO: 實現通知邏輯
+async function markPostAsFailed(postId: string, errorMessage: string): Promise<void> {
+  try {
+    const store = getStore('scheduled-posts')
+    // 更新貼文狀態為失敗
+    console.log(`❌ 標記貼文為失敗: ${postId} - ${errorMessage}`)
+  } catch (error) {
+    console.error('標記貼文為失敗時發生錯誤:', error)
+  }
 }

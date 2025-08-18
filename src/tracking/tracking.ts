@@ -250,4 +250,34 @@ export function nextArticleId(): string {
   }
 }
 
+// 新增：同步排程貼文到 Netlify Blobs
+export async function syncScheduledPostsToBlobs(): Promise<void> {
+  try {
+    const tracked = getTracked()
+    const scheduledPosts = tracked.filter(post => post.status === 'scheduled')
+    
+    if (scheduledPosts.length === 0) {
+      console.log('[tracking] 沒有排程貼文需要同步')
+      return
+    }
+    
+    console.log(`[tracking] 同步 ${scheduledPosts.length} 個排程貼文到 Blobs`)
+    
+    // 呼叫 Netlify Function 來同步資料
+    const response = await fetch('/.netlify/functions/sync-scheduled-posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ posts: scheduledPosts })
+    })
+    
+    if (response.ok) {
+      console.log('[tracking] 排程貼文同步成功')
+    } else {
+      console.error('[tracking] 排程貼文同步失敗:', response.status)
+    }
+  } catch (error) {
+    console.error('[tracking] 同步排程貼文時發生錯誤:', error)
+  }
+}
+
 
