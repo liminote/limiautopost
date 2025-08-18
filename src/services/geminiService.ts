@@ -20,17 +20,30 @@ export class GeminiService {
 
   private constructor() {
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY
+    
+    // 詳細的環境變數檢查
+    console.log('[GeminiService] 環境變數檢查:')
+    console.log('- VITE_GEMINI_API_KEY:', this.apiKey)
+    console.log('- 環境變數類型:', typeof this.apiKey)
+    console.log('- 環境變數長度:', this.apiKey ? this.apiKey.length : 'N/A')
+    console.log('- 所有環境變數:', import.meta.env)
+    
     if (!this.apiKey) {
-      console.error('GEMINI_API_KEY 環境變數未設定')
+      console.error('❌ GEMINI_API_KEY 環境變數未設定')
       throw new Error('GEMINI_API_KEY 環境變數未設定，請檢查 Netlify 環境變數設定')
+    }
+    
+    if (this.apiKey === 'undefined' || this.apiKey === 'null') {
+      console.error('❌ GEMINI_API_KEY 環境變數值無效:', this.apiKey)
+      throw new Error('GEMINI_API_KEY 環境變數值無效')
     }
     
     try {
       this.genAI = new GoogleGenerativeAI(this.apiKey)
       this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-      console.log('GeminiService 初始化成功')
+      console.log('✅ GeminiService 初始化成功')
     } catch (error) {
-      console.error('GeminiService 初始化失敗:', error)
+      console.error('❌ GeminiService 初始化失敗:', error)
       throw new Error('GeminiService 初始化失敗')
     }
   }
@@ -135,38 +148,51 @@ ${originalContent}
    * 從 Prompt 中自動提取字數要求
    */
   private extractLengthFromPrompt(prompt: string): { min: number; max: number } | null {
-    // 匹配各種字數格式
+    console.log('[GeminiService] 開始提取字數要求，Prompt 內容:', prompt.substring(0, 200) + '...')
+    
+    // 匹配各種字數格式，支援更多分隔符號
     const patterns = [
-      /字數限制[：:]\s*(\d+)\s*[～~-]\s*(\d+)\s*字/, // 480～500 字
-      /字數[：:]\s*(\d+)\s*[～~-]\s*(\d+)\s*字/,     // 字數：480～500 字
-      /(\d+)\s*[～~-]\s*(\d+)\s*字/,                 // 480～500 字
-      /字數限制[：:]\s*(\d+)\s*字/,                  // 字數限制：500 字
-      /字數[：:]\s*(\d+)\s*字/,                      // 字數：500 字
-      /(\d+)\s*字/                                   // 500 字
+      /字數限制[：:]\s*(\d+)\s*[～~\-]\s*(\d+)\s*字/,     // 480～500 字、480~500 字、480-500 字
+      /字數[：:]\s*(\d+)\s*[～~\-]\s*(\d+)\s*字/,         // 字數：480～500 字
+      /(\d+)\s*[～~\-]\s*(\d+)\s*字/,                     // 480～500 字
+      /字數限制[：:]\s*(\d+)\s*字/,                       // 字數限制：500 字
+      /字數[：:]\s*(\d+)\s*字/,                           // 字數：500 字
+      /(\d+)\s*字/,                                        // 500 字
+      /字數限制[：:]\s*(\d+)\s*[～~\-]\s*(\d+)/,          // 480～500 (沒有「字」)
+      /字數[：:]\s*(\d+)\s*[～~\-]\s*(\d+)/,              // 字數：480～500
+      /(\d+)\s*[～~\-]\s*(\d+)/,                          // 480～500
+      /字數限制[：:]\s*(\d+)/,                             // 字數限制：500
+      /字數[：:]\s*(\d+)/,                                 // 字數：500
+      /(\d+)/                                              // 500 (最後的備用方案)
     ]
 
-    for (const pattern of patterns) {
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i]
       const match = prompt.match(pattern)
       if (match) {
+        console.log(`[GeminiService] 匹配到模式 ${i + 1}:`, match)
+        
         if (match.length === 3) {
           // 範圍格式：480～500 字
           const min = parseInt(match[1])
           const max = parseInt(match[2])
           if (min && max && min <= max) {
+            console.log(`[GeminiService] 提取到範圍字數: ${min}-${max}`)
             return { min, max }
           }
         } else if (match.length === 2) {
           // 單一數字格式：500 字
           const length = parseInt(match[1])
           if (length) {
+            console.log(`[GeminiService] 提取到單一字數: ${length}`)
             return { min: length, max: length }
           }
         }
       }
     }
 
-    console.warn('[GeminiService] 無法從 Prompt 中提取字數要求')
-    return null
+    console.warn('[GeminiService] 無法從 Prompt 中提取字數要求，使用預設值 300 字')
+    return { min: 300, max: 300 }
   }
 
   /**
