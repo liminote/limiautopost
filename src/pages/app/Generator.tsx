@@ -166,7 +166,7 @@ export default function Generator() {
           const card: Card = {
             id: crypto.randomUUID(),
             platform: mapPlatform(platform),
-            label: `${getPlatformLabel(platform)} - ${template.templateTitle} · ${articleId}`,
+            label: `${getPlatformLabel(platform)} - ${articleId} - ${template.templateTitle}`,
             content: result.content,
             checked: false,
             code: code
@@ -176,12 +176,12 @@ export default function Generator() {
         } else {
           console.error(`[Generator] 模板 ${i + 1} 生成失敗:`, result.error)
           // 生成失敗時，使用備用的簡單截取（預設 300 字）
-          const fallbackContent = generateFallbackContent(article, 300)
+          const fallbackContent = generateFallbackContent(article, 300, i)
           const code = generateCode(platform, i)
           const card: Card = {
             id: crypto.randomUUID(),
             platform: mapPlatform(platform),
-            label: `${getPlatformLabel(platform)} - ${template.templateTitle} · ${articleId} (備用)`,
+            label: `${getPlatformLabel(platform)} - ${articleId} - ${template.templateTitle} (備用)`,
             content: fallbackContent,
             checked: false,
             code: code
@@ -374,17 +374,26 @@ function getPlatformLabel(platform: PlatformType): string {
 }
 
 // 備用內容生成函數（當 AI 生成失敗時使用）
-function generateFallbackContent(text: string, targetLength: number): string {
+function generateFallbackContent(text: string, targetLength: number, templateIndex: number = 0): string {
   const cleaned = text.replace(/\n+/g, '\n').trim()
   const parts = cleaned.split(/(?<=[。！？!?.])\s*/)
   
+  // 根據模板索引選擇不同的起始位置，避免重複
+  const startIndex = (templateIndex * 2) % parts.length
+  const selectedParts = [...parts.slice(startIndex), ...parts.slice(0, startIndex)]
+  
   let out = ''
-  for (const s of parts) {
+  for (const s of selectedParts) {
     if ((out + s).length > targetLength) break
     out += s
   }
   
-  if (!out) out = cleaned.slice(0, targetLength)
+  if (!out) {
+    // 如果還是沒有內容，從不同位置截取
+    const startPos = (templateIndex * 100) % cleaned.length
+    out = cleaned.slice(startPos, startPos + targetLength)
+  }
+  
   return out
 }
 
