@@ -3,42 +3,50 @@ import { CardService } from '../../services/cardService'
 import AdminSubnav from '../../components/AdminSubnav'
 
 // 系統模板資料
-const SYSTEM_TEMPLATES = [
+const SYSTEM_TEMPLATES: Array<{
+  id: string
+  platform: Platform
+  title: string
+  features: string
+  prompt: string
+}> = [
   {
     id: 'system-threads-1',
-    platform: 'threads' as const,
+    platform: 'threads',
     title: '第一則貼文',
     features: '480-500字，完整觀點論述，獨立主題',
     prompt: '請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係'
   },
   {
     id: 'system-threads-2',
-    platform: 'threads' as const,
+    platform: 'threads',
     title: '第二則貼文',
     features: '330-350字，完整觀點論述，獨立主題',
     prompt: '請嚴格遵守以下規則生成 Threads 第二則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：330～350 字\n- 不能與其他貼文有上下文延續關係'
   },
   {
     id: 'system-threads-3',
-    platform: 'threads' as const,
+    platform: 'threads',
     title: '第三則貼文',
     features: '180-200字，完整觀點論述，獨立主題',
     prompt: '請嚴格遵守以下規則生成 Threads 第三則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：180～200 字\n- 不能與其他貼文有上下文延續關係'
   },
   {
     id: 'system-instagram',
-    platform: 'instagram' as const,
+    platform: 'instagram',
     title: 'Instagram 貼文',
     features: '溫暖語氣，開放式問題結尾，具洞察力',
     prompt: '請生成 Instagram 貼文：\n- 語氣溫暖但具洞察力\n- 可結尾搭配開放式問題（例如「你也有這樣的經驗嗎？」）\n- 長度可以略長於 Threads\n- 保持與主題相關的連貫性'
   }
 ]
 
-type Platform = typeof SYSTEM_TEMPLATES[0]['platform']
+type Platform = 'threads' | 'instagram' | 'facebook' | 'general'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   threads: 'Threads',
-  instagram: 'Instagram'
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  general: '通用'
 }
 
 export default function AIGenerator() {
@@ -141,14 +149,6 @@ export default function AIGenerator() {
       
       if (success) {
         console.log('✅ 模板已同步到 CardService 系統')
-        // 通知其他組件資料已變更（通過觸發一個假的更新）
-        await cardService.updateSystemTemplate(
-          editingId,
-          editForm.platform,
-          editForm.title,
-          editForm.features,
-          editForm.prompt
-        )
       } else {
         console.error('❌ 同步到 CardService 失敗')
       }
@@ -165,36 +165,6 @@ export default function AIGenerator() {
     setEditForm(prev => ({ ...prev, [field]: value }))
   }
 
-  // 重置為預設值
-  const resetToDefault = async () => {
-    if (confirm('確定要重置所有模板為預設值嗎？這會清除所有自定義修改。')) {
-      console.log('🔄 重置為預設值')
-      
-      try {
-        // 重置本地狀態
-        setTemplates(SYSTEM_TEMPLATES)
-        
-        // 重置 CardService 中的系統模板
-        for (const template of SYSTEM_TEMPLATES) {
-          await cardService.updateSystemTemplate(
-            template.id,
-            template.platform,
-            template.title,
-            template.features,
-            template.prompt
-          )
-        }
-        
-        setEditingId(null)
-        setEditForm({ platform: 'threads', title: '', features: '', prompt: '' })
-        
-        console.log('✅ 重置完成')
-      } catch (error) {
-        console.error('❌ 重置失敗:', error)
-      }
-    }
-  }
-
   return (
     <div className="space-y-6">
       <AdminSubnav />
@@ -203,16 +173,8 @@ export default function AIGenerator() {
         <h1 className="text-2xl font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>
           AI 生成器模板管理
         </h1>
-        <div className="flex items-center space-x-4">
-          <div className="text-sm text-gray-600">
-            管理四個預設模板的設定
-          </div>
-          <button
-            onClick={resetToDefault}
-            className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
-          >
-            重置為預設值
-          </button>
+        <div className="text-sm text-gray-600">
+          管理四個預設模板的設定
         </div>
       </div>
 
@@ -261,6 +223,8 @@ export default function AIGenerator() {
                   >
                     <option value="threads">Threads</option>
                     <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="general">通用</option>
                   </select>
                 ) : (
                   <div className="p-2 bg-gray-50 rounded border text-gray-900">
@@ -285,7 +249,7 @@ export default function AIGenerator() {
                 )}
               </div>
               
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">模板內容</label>
                 {editingId === template.id ? (
                   <textarea
