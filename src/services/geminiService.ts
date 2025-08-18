@@ -16,20 +16,33 @@ export class GeminiService {
   private static instance: GeminiService
   private genAI: GoogleGenerativeAI
   private model: any
+  private apiKey: string
 
   private constructor() {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY 環境變數未設定')
+    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY
+    if (!this.apiKey) {
+      console.error('GEMINI_API_KEY 環境變數未設定')
+      throw new Error('GEMINI_API_KEY 環境變數未設定，請檢查 Netlify 環境變數設定')
     }
     
-    this.genAI = new GoogleGenerativeAI(apiKey)
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    try {
+      this.genAI = new GoogleGenerativeAI(this.apiKey)
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+      console.log('GeminiService 初始化成功')
+    } catch (error) {
+      console.error('GeminiService 初始化失敗:', error)
+      throw new Error('GeminiService 初始化失敗')
+    }
   }
 
   public static getInstance(): GeminiService {
     if (!GeminiService.instance) {
-      GeminiService.instance = new GeminiService()
+      try {
+        GeminiService.instance = new GeminiService()
+      } catch (error) {
+        console.error('無法建立 GeminiService 實例:', error)
+        throw error
+      }
     }
     return GeminiService.instance
   }
