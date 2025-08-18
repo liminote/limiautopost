@@ -60,7 +60,16 @@ export default function AIGenerator() {
 
   // 開始編輯模板
   const startEdit = (template: TemplateEditData) => {
+    console.log('🔧 開始編輯模板:', template)
+    console.log('🔧 當前 editState:', editState)
+    
     setEditState({
+      template: { ...template },
+      isOpen: true,
+      message: null
+    })
+    
+    console.log('🔧 設置 editState 後:', {
       template: { ...template },
       isOpen: true,
       message: null
@@ -123,6 +132,9 @@ export default function AIGenerator() {
   }
 
   const { template: editingTemplate, isOpen, message: saveMessage } = editState
+
+  // 調試信息
+  console.log('🔍 渲染時的狀態:', { editingTemplate, isOpen, message: saveMessage })
 
   return (
     <div className="space-y-6">
@@ -198,6 +210,11 @@ export default function AIGenerator() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">編輯模板：{editingTemplate.templateTitle}</h3>
+            
+            {/* 調試信息 */}
+            <div className="mb-4 p-2 bg-yellow-100 text-yellow-800 rounded text-sm">
+              <strong>調試信息：</strong> isOpen={String(isOpen)}, editingTemplate={editingTemplate ? '存在' : '不存在'}
+            </div>
             
             <div className="space-y-4">
               {/* 平台選擇 */}
