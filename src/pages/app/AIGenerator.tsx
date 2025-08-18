@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AdminSubnav from '../../components/AdminSubnav'
 
 // 系統模板資料
@@ -40,19 +40,55 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   instagram: 'Instagram'
 }
 
+// localStorage 鍵名
+const STORAGE_KEY = 'limiautopost:system-templates'
+
 export default function AIGenerator() {
   const [templates, setTemplates] = useState(SYSTEM_TEMPLATES)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
+    platform: 'threads' as Platform,
     title: '',
     features: '',
     prompt: ''
   })
 
+  // 載入保存的模板資料
+  useEffect(() => {
+    const loadSavedTemplates = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          console.log('📖 載入保存的模板:', parsed)
+          setTemplates(parsed)
+        } else {
+          console.log('📖 沒有保存的模板，使用預設資料')
+        }
+      } catch (error) {
+        console.error('❌ 載入模板失敗:', error)
+      }
+    }
+
+    loadSavedTemplates()
+  }, [])
+
+  // 保存模板到 localStorage
+  const saveTemplatesToStorage = (newTemplates: typeof SYSTEM_TEMPLATES) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newTemplates))
+      console.log('💾 模板已保存到 localStorage')
+    } catch (error) {
+      console.error('❌ 保存模板失敗:', error)
+    }
+  }
+
   // 開始編輯
   const startEdit = (template: typeof SYSTEM_TEMPLATES[0]) => {
+    console.log('🔧 開始編輯模板:', template.id)
     setEditingId(template.id)
     setEditForm({
+      platform: template.platform,
       title: template.title,
       features: template.features,
       prompt: template.prompt
@@ -61,27 +97,44 @@ export default function AIGenerator() {
 
   // 取消編輯
   const cancelEdit = () => {
+    console.log('❌ 取消編輯')
     setEditingId(null)
-    setEditForm({ title: '', features: '', prompt: '' })
+    setEditForm({ platform: 'threads', title: '', features: '', prompt: '' })
   }
 
   // 保存編輯
   const saveEdit = () => {
     if (!editingId) return
     
-    setTemplates(prev => prev.map(t => 
+    console.log('💾 保存編輯:', editingId, editForm)
+    
+    const newTemplates = templates.map(t => 
       t.id === editingId 
         ? { ...t, ...editForm }
         : t
-    ))
+    )
+    
+    setTemplates(newTemplates)
+    saveTemplatesToStorage(newTemplates)
     
     setEditingId(null)
-    setEditForm({ title: '', features: '', prompt: '' })
+    setEditForm({ platform: 'threads', title: '', features: '', prompt: '' })
   }
 
   // 處理表單變化
   const handleChange = (field: keyof typeof editForm, value: string) => {
     setEditForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  // 重置為預設值
+  const resetToDefault = () => {
+    if (confirm('確定要重置所有模板為預設值嗎？這會清除所有自定義修改。')) {
+      console.log('🔄 重置為預設值')
+      setTemplates(SYSTEM_TEMPLATES)
+      saveTemplatesToStorage(SYSTEM_TEMPLATES)
+      setEditingId(null)
+      setEditForm({ platform: 'threads', title: '', features: '', prompt: '' })
+    }
   }
 
   return (
@@ -92,8 +145,16 @@ export default function AIGenerator() {
         <h1 className="text-2xl font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>
           AI 生成器模板管理
         </h1>
-        <div className="text-sm text-gray-600">
-          管理四個預設模板的設定
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-600">
+            管理四個預設模板的設定
+          </div>
+          <button
+            onClick={resetToDefault}
+            className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+          >
+            重置為預設值
+          </button>
         </div>
       </div>
 
@@ -132,6 +193,24 @@ export default function AIGenerator() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">平台</label>
+                {editingId === template.id ? (
+                  <select
+                    value={editForm.platform}
+                    onChange={(e) => handleChange('platform', e.target.value as Platform)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="threads">Threads</option>
+                    <option value="instagram">Instagram</option>
+                  </select>
+                ) : (
+                  <div className="p-2 bg-gray-50 rounded border text-gray-900">
+                    {PLATFORM_LABELS[template.platform]}
+                  </div>
+                )}
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">模板名稱</label>
                 {editingId === template.id ? (
