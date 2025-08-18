@@ -150,21 +150,27 @@ ${originalContent}
   private extractLengthFromPrompt(prompt: string): { min: number; max: number } | null {
     console.log('[GeminiService] 開始提取字數要求，Prompt 內容:', prompt.substring(0, 200) + '...')
     
-    // 匹配各種字數格式，支援更多分隔符號
+    // 匹配各種字數格式，正確處理全形波浪號 ～ 和其他分隔符號
     const patterns = [
-      /字數限制[：:]\s*(\d+)\s*[～~\-]\s*(\d+)\s*字/,     // 480～500 字、480~500 字、480-500 字
+      /字數限制[：:]\s*(\d+)\s*[～~\-]\s*(\d+)\s*字/,     // 字數限制：480～500 字
       /字數[：:]\s*(\d+)\s*[～~\-]\s*(\d+)\s*字/,         // 字數：480～500 字
       /(\d+)\s*[～~\-]\s*(\d+)\s*字/,                     // 480～500 字
       /字數限制[：:]\s*(\d+)\s*字/,                       // 字數限制：500 字
       /字數[：:]\s*(\d+)\s*字/,                           // 字數：500 字
       /(\d+)\s*字/,                                        // 500 字
-      /字數限制[：:]\s*(\d+)\s*[～~\-]\s*(\d+)/,          // 480～500 (沒有「字」)
+      /字數限制[：:]\s*(\d+)\s*[～~\-]\s*(\d+)/,          // 字數限制：480～500 (沒有「字」)
       /字數[：:]\s*(\d+)\s*[～~\-]\s*(\d+)/,              // 字數：480～500
       /(\d+)\s*[～~\-]\s*(\d+)/,                          // 480～500
       /字數限制[：:]\s*(\d+)/,                             // 字數限制：500
       /字數[：:]\s*(\d+)/,                                 // 字數：500
       /(\d+)/                                              // 500 (最後的備用方案)
     ]
+
+    // 測試你的實際格式
+    console.log('[GeminiService] 測試字數提取...')
+    const testPattern = /字數限制[：:]\s*(\d+)\s*[～~\-]\s*(\d+)\s*字/
+    const testMatch = prompt.match(testPattern)
+    console.log('[GeminiService] 測試匹配結果:', testMatch)
 
     for (let i = 0; i < patterns.length; i++) {
       const pattern = patterns[i]
