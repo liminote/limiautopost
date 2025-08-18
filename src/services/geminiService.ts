@@ -87,6 +87,158 @@ export class GeminiService {
   }
 
   /**
+   * 智能優化生成的內容
+   */
+  public async optimizeContent(
+    originalContent: string,
+    platform: string,
+    targetStyle: string = 'default'
+  ): Promise<GeminiGenerationResult> {
+    const optimizationPrompt = this.buildOptimizationPrompt(originalContent, platform, targetStyle)
+    
+    try {
+      console.log('[GeminiService] 開始內容優化...')
+      const result = await this.generateContent({
+        prompt: optimizationPrompt,
+        temperature: 0.8
+      })
+      
+      if (result.success && result.content) {
+        console.log('[GeminiService] 內容優化成功')
+        return result
+      } else {
+        console.warn('[GeminiService] 內容優化失敗，返回原始內容')
+        return { success: true, content: originalContent }
+      }
+    } catch (error) {
+      console.error('[GeminiService] 內容優化異常:', error)
+      return { success: true, content: originalContent }
+    }
+  }
+
+  /**
+   * 建立優化 prompt
+   */
+  private buildOptimizationPrompt(originalContent: string, platform: string, targetStyle: string): string {
+    const styleGuides = {
+      threads: {
+        default: '專業、有洞察力、引發思考',
+        casual: '親切、輕鬆、像朋友聊天',
+        professional: '權威、專業、有深度'
+      },
+      instagram: {
+        default: '溫暖、有感染力、視覺化描述',
+        lifestyle: '生活化、真實、有共鳴',
+        inspirational: '激勵、正面、有力量'
+      },
+      facebook: {
+        default: '詳細、有深度、適合討論',
+        community: '社群導向、互動性強',
+        informative: '資訊豐富、實用性強'
+      }
+    }
+
+    const platformStyles = styleGuides[platform as keyof typeof styleGuides]
+    const style = platformStyles?.[targetStyle as keyof typeof platformStyles] || platformStyles?.default || '專業、有洞察力'
+    
+    return `你是一位資深${platform}社群媒體專家。請優化以下內容，讓它更符合${platform}的風格要求。
+
+**目標風格：** ${style}
+
+**原始內容：**
+${originalContent}
+
+**優化要求：**
+1. 保持核心訊息不變
+2. 調整語氣和表達方式，符合${platform}用戶習慣
+3. 增加互動性和參與度
+4. 優化開頭和結尾，提高吸引力
+5. 確保內容自然流暢，符合社群媒體閱讀習慣
+
+請直接輸出優化後的內容，不需要額外說明。`
+  }
+
+  /**
+   * 根據模板和原文生成貼文（增強版）
+   */
+  public async generatePostFromTemplateEnhanced(
+    templatePrompt: string,
+    originalContent: string,
+    targetLength: number,
+    optimizationLevel: 'basic' | 'enhanced' | 'premium' = 'basic'
+  ): Promise<GeminiGenerationResult> {
+    console.log(`[GeminiService] 開始增強版貼文生成，優化等級: ${optimizationLevel}`)
+    
+    // 第一層：基本內容生成
+    const basicResult = await this.generatePostFromTemplate(templatePrompt, originalContent, targetLength)
+    
+    if (!basicResult.success || !basicResult.content) {
+      return basicResult
+    }
+
+    // 根據優化等級決定是否進行進一步優化
+    if (optimizationLevel === 'basic') {
+      return basicResult
+    }
+
+    // 第二層：內容優化
+    const platform = this.extractPlatformFromPrompt(templatePrompt)
+    const optimizedResult = await this.optimizeContent(basicResult.content, platform, 'default')
+    
+    if (optimizationLevel === 'enhanced') {
+      return optimizedResult
+    }
+
+    // 第三層：風格微調（premium 等級）
+    if (optimizationLevel === 'premium') {
+      const finalResult = await this.finalizeContent(optimizedResult.content || '', platform, targetLength)
+      return finalResult
+    }
+
+    return optimizedResult
+  }
+
+  /**
+   * 最終內容定稿
+   */
+  private async finalizeContent(content: string, platform: string, targetLength: number): Promise<GeminiGenerationResult> {
+    const finalizationPrompt = `請對以下${platform}貼文進行最終定稿：
+
+**內容：**
+${content}
+
+**要求：**
+1. 確保每個句子都有力量
+2. 優化詞彙選擇，使用更有感染力的表達
+3. 調整節奏，讓閱讀體驗更流暢
+4. 確保在${targetLength}字元內
+5. 保持內容的完整性和邏輯性
+
+請直接輸出最終版本，不需要額外說明。`
+
+    try {
+      const result = await this.generateContent({
+        prompt: finalizationPrompt,
+        temperature: 0.6
+      })
+      
+      if (result.success && result.content) {
+        // 確保字數符合要求
+        if (result.content.length > targetLength) {
+          const truncated = this.smartTruncate(result.content, targetLength)
+          return { success: true, content: truncated }
+        }
+        return result
+      }
+      
+      return { success: true, content: content }
+    } catch (error) {
+      console.error('[GeminiService] 最終定稿失敗:', error)
+      return { success: true, content: content }
+    }
+  }
+
+  /**
    * 根據模板和原文生成貼文
    */
   public async generatePostFromTemplate(
@@ -199,6 +351,16 @@ ${originalContent}
 
     console.warn('[GeminiService] 無法從 Prompt 中提取字數要求，使用預設值 300 字')
     return { min: 300, max: 300 }
+  }
+
+  /**
+   * 從 prompt 中提取平台資訊
+   */
+  private extractPlatformFromPrompt(prompt: string): string {
+    if (prompt.includes('Threads') || prompt.includes('threads')) return 'threads'
+    if (prompt.includes('Instagram') || prompt.includes('instagram')) return 'instagram'
+    if (prompt.includes('Facebook') || prompt.includes('facebook')) return 'facebook'
+    return 'general'
   }
 
   /**
