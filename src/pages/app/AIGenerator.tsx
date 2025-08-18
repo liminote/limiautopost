@@ -9,7 +9,6 @@ type TemplateEditData = {
   templateTitle: string
   templateFeatures: string
   prompt: string
-  isSystem: boolean
 }
 
 // 平台名稱映射
@@ -39,15 +38,19 @@ export default function AIGenerator() {
 
   // 載入系統預設模板
   useEffect(() => {
+    // 載入保存的系統模板修改
+    cardService.loadSavedSystemTemplates()
+    
+    // 將系統卡片轉換為編輯格式
     const systemCards = cardService.getSystemCards()
     const templateData: TemplateEditData[] = systemCards.map(card => ({
       id: card.id,
       platform: card.platform,
       templateTitle: card.templateTitle,
       templateFeatures: card.templateFeatures,
-      prompt: card.prompt,
-      isSystem: card.isSystem
+      prompt: card.prompt
     }))
+    
     setTemplates(templateData)
   }, [])
 
@@ -70,7 +73,7 @@ export default function AIGenerator() {
   }
 
   // 保存模板
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     const { template } = editState
     if (!template) return
 
@@ -80,8 +83,8 @@ export default function AIGenerator() {
         t.id === template.id ? template : t
       ))
       
-      // 更新 CardService 中的模板
-      cardService.updateSystemTemplate(
+      // 更新 CardService 中的模板（現在是 async）
+      const success = await cardService.updateSystemTemplate(
         template.id,
         template.platform,
         template.templateTitle,
@@ -89,15 +92,19 @@ export default function AIGenerator() {
         template.prompt
       )
       
-      setEditState(prev => ({
-        ...prev,
-        message: '模板保存成功！',
-        isOpen: false,
-        template: null
-      }))
-      
-      // 3秒後清除成功訊息
-      setTimeout(() => setEditState(prev => ({ ...prev, message: null })), 3000)
+      if (success) {
+        setEditState(prev => ({
+          ...prev,
+          message: '模板保存成功！',
+          isOpen: false,
+          template: null
+        }))
+        
+        // 3秒後清除成功訊息
+        setTimeout(() => setEditState(prev => ({ ...prev, message: null })), 3000)
+      } else {
+        setEditState(prev => ({ ...prev, message: '保存失敗' }))
+      }
     } catch (error) {
       setEditState(prev => ({ ...prev, message: '保存失敗：' + String(error) }))
     }

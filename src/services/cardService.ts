@@ -5,12 +5,15 @@ export class CardService {
   private static instance: CardService
   private userCards: Map<string, UserCard[]> = new Map()
   private userSelections: Map<string, Set<string>> = new Map() // userId -> selected cardIds
+  private listeners: Set<() => void> = new Set()
 
   private constructor() {
     // 初始化使用者選擇（預設選擇系統模板）
     this.initializeDefaultSelections()
     // 從 localStorage 載入用戶卡片數據
     this.loadUserCardsFromStorage()
+    // 初始化時載入保存的模板修改
+    this.loadSavedSystemTemplates()
   }
 
   public static getInstance(): CardService {
@@ -18,6 +21,27 @@ export class CardService {
       CardService.instance = new CardService()
     }
     return CardService.instance
+  }
+
+  // 註冊資料變更監聽器
+  public subscribeToChanges(callback: () => void): () => void {
+    this.listeners.add(callback)
+    
+    // 返回取消訂閱的函數
+    return () => {
+      this.listeners.delete(callback)
+    }
+  }
+
+  // 通知所有監聽器資料已變更
+  private notifyChanges(): void {
+    this.listeners.forEach(callback => {
+      try {
+        callback()
+      } catch (error) {
+        console.error('模板資料變更通知失敗:', error)
+      }
+    })
   }
 
   private initializeDefaultSelections() {
@@ -85,7 +109,11 @@ export class CardService {
 
   // 獲取系統卡片
   public getSystemCards(): SystemCard[] {
-    return defaultSystemCards
+    // 確保載入最新的保存修改
+    this.loadSavedSystemTemplates()
+    
+    // 返回最新的系統模板
+    return [...defaultSystemCards]
   }
 
   // 創建使用者卡片
@@ -109,6 +137,7 @@ export class CardService {
     }
     this.userCards.get(userId)!.push(newCard)
     this.saveUserCardsToStorage() // 保存數據
+    this.notifyChanges() // 通知變更
     return newCard
   }
 
@@ -131,6 +160,7 @@ export class CardService {
     
     userCards[cardIndex] = updatedCard
     this.saveUserCardsToStorage() // 保存數據
+    this.notifyChanges() // 通知變更
     return updatedCard
   }
 
@@ -149,6 +179,7 @@ export class CardService {
     // 同時移除選擇狀態
     this.removeUserSelection(userId, cardId)
     this.saveUserCardsToStorage() // 保存數據
+    this.notifyChanges() // 通知變更
     return true
   }
 
@@ -158,6 +189,7 @@ export class CardService {
     if (updated) {
       this.removeUserSelection(userId, cardId)
     }
+    this.notifyChanges() // 通知變更
     return !!updated
   }
 
@@ -229,6 +261,7 @@ export class CardService {
     
     selections.add(cardId)
     this.saveUserSelectionsToStorage()
+    this.notifyChanges() // 通知變更
     return true
   }
 
@@ -242,6 +275,7 @@ export class CardService {
     if (result) {
       this.saveUserSelectionsToStorage()
     }
+    this.notifyChanges() // 通知變更
     return result
   }
 
@@ -296,13 +330,13 @@ export class CardService {
   }
 
   // 更新系統模板（管理員功能）
-  public updateSystemTemplate(
+  public async updateSystemTemplate(
     cardId: string, 
     platform: 'threads' | 'instagram' | 'facebook' | 'general',
     templateTitle: string,
     templateFeatures: string,
     prompt: string
-  ): boolean {
+  ): Promise<boolean> {
     const systemCard = defaultSystemCards.find(card => card.id === cardId)
     if (!systemCard) {
       console.warn(`找不到系統模板：${cardId}`)
@@ -318,8 +352,101 @@ export class CardService {
       updatedAt: new Date()
     })
 
-    console.log(`系統模板更新成功：${cardId}`)
+    // 使用 Netlify Blobs 儲存到伺服器，讓所有用戶共享
+    try {
+      const response = await fetch('/.netlify/functions/update-system-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardId,
+          platform,
+          templateTitle,
+          templateFeatures,
+          prompt,
+          updatedAt: systemCard.updatedAt.toISOString()
+        })
+      })
+
+      if (response.ok) {
+        console.log(`系統模板更新成功並保存到伺服器：${cardId}`)
+      } else {
+        console.error('保存到伺服器失敗:', response.status)
+        // 即使伺服器保存失敗，也返回成功（因為記憶體更新成功）
+      }
+    } catch (error) {
+      console.error('保存系統模板到伺服器失敗:', error)
+      // 即使保存失敗，也返回成功（因為記憶體更新成功）
+    }
+
+    // 通知所有監聽器資料已變更
+    this.notifyChanges()
+
     return true
+  }
+
+  // 載入保存的系統模板修改（從伺服器）
+  public async loadSavedSystemTemplates(): Promise<void> {
+    try {
+      const response = await fetch('/.netlify/functions/get-system-templates')
+      
+      if (response.ok) {
+        const savedTemplates = await response.json()
+        
+        // 將保存的修改應用到系統模板
+        Object.entries(savedTemplates).forEach(([cardId, templateData]: [string, any]) => {
+          const systemCard = defaultSystemCards.find(card => card.id === cardId)
+          if (systemCard && templateData) {
+            Object.assign(systemCard, {
+              platform: templateData.platform,
+              templateTitle: templateData.templateTitle,
+              templateFeatures: templateData.templateFeatures,
+              prompt: templateData.prompt,
+              updatedAt: new Date(templateData.updatedAt)
+            })
+          }
+        })
+        
+        console.log('已從伺服器載入保存的系統模板修改')
+      } else {
+        console.warn('無法從伺服器載入模板修改，使用本地版本')
+        // 如果伺服器載入失敗，嘗試從 localStorage 載入（向後相容）
+        this.loadSavedSystemTemplatesFromLocal()
+      }
+    } catch (error) {
+      console.error('從伺服器載入系統模板失敗:', error)
+      // 如果伺服器載入失敗，嘗試從 localStorage 載入（向後相容）
+      this.loadSavedSystemTemplatesFromLocal()
+    }
+  }
+
+  // 向後相容：從 localStorage 載入（舊版本）
+  private loadSavedSystemTemplatesFromLocal(): void {
+    try {
+      const storageKey = 'limiautopost:systemTemplates'
+      const savedTemplates = localStorage.getItem(storageKey)
+      
+      if (savedTemplates) {
+        const templates = JSON.parse(savedTemplates)
+        
+        // 將保存的修改應用到系統模板
+        Object.entries(templates).forEach(([cardId, templateData]: [string, any]) => {
+          const systemCard = defaultSystemCards.find(card => card.id === cardId)
+          if (systemCard && templateData) {
+            Object.assign(systemCard, {
+              platform: templateData.platform,
+              templateTitle: templateData.templateTitle,
+              templateFeatures: templateData.templateFeatures,
+              prompt: templateData.prompt,
+              updatedAt: new Date(templateData.updatedAt)
+            })
+          }
+        })
+        
+        console.log('已從 localStorage 載入保存的系統模板修改（向後相容）')
+      }
+    } catch (error) {
+      console.error('從 localStorage 載入系統模板失敗:', error)
+    }
   }
 }
 

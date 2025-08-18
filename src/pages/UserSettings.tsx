@@ -151,19 +151,14 @@ export default function UserSettings(){
 
     loadTemplateManagement()
 
-    // 監聽卡片創建/更新/刪除事件
-    const handleUserCardChange = () => {
+    // 使用 CardService 的訂閱機制來監聽資料變更
+    const unsubscribe = cardService.subscribeToChanges(() => {
+      console.log('[UserSettings] 收到模板資料變更通知，重新載入...')
       loadTemplateManagement()
-    }
-
-    window.addEventListener('userCardCreated', handleUserCardChange)
-    window.addEventListener('userCardUpdated', handleUserCardChange)
-    window.addEventListener('userCardDeleted', handleUserCardChange)
+    })
 
     return () => {
-      window.removeEventListener('userCardCreated', handleUserCardChange)
-      window.removeEventListener('userCardUpdated', handleUserCardChange)
-      window.removeEventListener('userCardDeleted', handleUserCardChange)
+      unsubscribe()
     }
   }, [session?.email, cardService])
 

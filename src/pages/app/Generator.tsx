@@ -51,7 +51,17 @@ export default function Generator() {
     }
 
     loadSelectedTemplates()
-  }, [session?.email]) // 只依賴 session.email，避免無限迴圈
+
+    // 使用 CardService 的訂閱機制來監聽資料變更
+    const unsubscribe = cardService.subscribeToChanges(() => {
+      console.log('[Generator] 收到模板資料變更通知，重新載入...')
+      loadSelectedTemplates()
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [session?.email, cardService]) // 加入 cardService 依賴
 
   // 載入保存的內容（頁面載入時）
   useEffect(() => {
