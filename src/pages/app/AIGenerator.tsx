@@ -38,21 +38,25 @@ export default function AIGenerator() {
 
   // 載入系統預設模板
   useEffect(() => {
-    // 載入保存的系統模板修改
-    cardService.loadSavedSystemTemplates()
-    
-    // 將系統卡片轉換為編輯格式
-    const systemCards = cardService.getSystemCards()
-    const templateData: TemplateEditData[] = systemCards.map(card => ({
-      id: card.id,
-      platform: card.platform,
-      templateTitle: card.templateTitle,
-      templateFeatures: card.templateFeatures,
-      prompt: card.prompt
-    }))
-    
-    setTemplates(templateData)
-  }, [])
+    const loadTemplates = async () => {
+      // 載入保存的系統模板修改
+      await cardService.loadSavedSystemTemplates()
+      
+      // 將系統卡片轉換為編輯格式
+      const systemCards = cardService.getSystemCardsSync() // 使用同步版本
+      const templateData: TemplateEditData[] = systemCards.map(card => ({
+        id: card.id,
+        platform: card.platform,
+        templateTitle: card.templateTitle,
+        templateFeatures: card.templateFeatures,
+        prompt: card.prompt
+      }))
+      
+      setTemplates(templateData)
+    }
+
+    loadTemplates()
+  }, [cardService])
 
   // 開始編輯模板
   const startEdit = (template: TemplateEditData) => {

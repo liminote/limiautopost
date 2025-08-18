@@ -8,12 +8,9 @@ export class CardService {
   private listeners: Set<() => void> = new Set()
 
   private constructor() {
-    // 初始化使用者選擇（預設選擇系統模板）
-    this.initializeDefaultSelections()
     // 從 localStorage 載入用戶卡片數據
     this.loadUserCardsFromStorage()
-    // 初始化時載入保存的模板修改
-    this.loadSavedSystemTemplates()
+    // 注意：loadSavedSystemTemplates 是 async，在建構函數中不呼叫
   }
 
   public static getInstance(): CardService {
@@ -108,11 +105,17 @@ export class CardService {
   }
 
   // 獲取系統卡片
-  public getSystemCards(): SystemCard[] {
+  public async getSystemCards(): Promise<SystemCard[]> {
     // 確保載入最新的保存修改
-    this.loadSavedSystemTemplates()
+    await this.loadSavedSystemTemplates()
     
     // 返回最新的系統模板
+    return [...defaultSystemCards]
+  }
+
+  // 同步版本的 getSystemCards（向後相容）
+  public getSystemCardsSync(): SystemCard[] {
+    // 返回記憶體中的系統模板（可能不是最新的）
     return [...defaultSystemCards]
   }
 
@@ -304,7 +307,29 @@ export class CardService {
       }
     }
 
-    const availableTemplates = this.getAllCards(userId)
+    const availableTemplates = this.getAvailableCards(userId)
+    const selectedTemplates = this.getSelectedTemplates(userId)
+    
+    return {
+      availableTemplates,
+      selectedTemplates,
+      maxSelectedTemplates: 5,
+      currentSelectedCount: selectedTemplates.length
+    }
+  }
+
+  // 獲取模板管理資訊（包含最新的系統模板）
+  public async getTemplateManagementAsync(userId: string): Promise<TemplateManagement> {
+    if (!userId || userId === 'anonymous') {
+      return {
+        availableTemplates: [],
+        selectedTemplates: [],
+        maxSelectedTemplates: 5,
+        currentSelectedCount: 0
+      }
+    }
+
+    const availableTemplates = await this.getAvailableCardsAsync(userId)
     const selectedTemplates = this.getSelectedTemplates(userId)
     
     return {
@@ -447,6 +472,24 @@ export class CardService {
     } catch (error) {
       console.error('從 localStorage 載入系統模板失敗:', error)
     }
+  }
+
+  // 獲取用戶可用的模板（包含系統模板和用戶自訂模板）
+  public getAvailableCards(userId: string): BaseCard[] {
+    // 使用同步版本獲取系統模板（可能不是最新的）
+    const systemCards = this.getSystemCardsSync()
+    const userCards = this.getUserCards(userId)
+    
+    return [...systemCards, ...userCards]
+  }
+
+  // 獲取用戶可用的模板（包含最新的系統模板）
+  public async getAvailableCardsAsync(userId: string): Promise<BaseCard[]> {
+    // 確保載入最新的系統模板修改
+    const systemCards = await this.getSystemCards()
+    const userCards = this.getUserCards(userId)
+    
+    return [...systemCards, ...userCards]
   }
 }
 

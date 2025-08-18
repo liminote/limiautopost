@@ -142,8 +142,9 @@ export default function UserSettings(){
   useEffect(() => {
     if (!session) return // 未登入時不載入
     
-    const loadTemplateManagement = () => {
-      const management = cardService.getTemplateManagement(session.email)
+    const loadTemplateManagement = async () => {
+      // 使用 async 版本來獲取最新的模板資料
+      const management = await cardService.getTemplateManagementAsync(session.email)
       setAvailableTemplates(management.availableTemplates)
       setSelectedTemplates(management.selectedTemplates)
       setMaxSelections(management.maxSelectedTemplates)

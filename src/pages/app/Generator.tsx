@@ -45,7 +45,11 @@ export default function Generator() {
       return // 未登入時不載入
     }
     
-    const loadSelectedTemplates = () => {
+    const loadSelectedTemplates = async () => {
+      // 確保載入最新的系統模板修改
+      await cardService.loadSavedSystemTemplates()
+      
+      // 獲取用戶選擇的模板
       const templates = cardService.getSelectedTemplates(session.email)
       setSelectedTemplates(templates)
     }
