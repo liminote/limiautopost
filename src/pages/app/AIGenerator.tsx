@@ -122,7 +122,7 @@ export default function AIGenerator() {
     } : prev)
   }
 
-  const { template: editingTemplate, isOpen: isEditing, message: saveMessage } = editState
+  const { template: editingTemplate, isOpen, message: saveMessage } = editState
 
   return (
     <div className="space-y-6">
@@ -154,7 +154,7 @@ export default function AIGenerator() {
               <button
                 className="btn btn-primary"
                 onClick={() => startEdit(template)}
-                disabled={isEditing}
+                disabled={isOpen}
               >
                 編輯模板
               </button>
@@ -194,7 +194,7 @@ export default function AIGenerator() {
       </div>
 
       {/* 編輯對話框 */}
-      {isEditing && editingTemplate && (
+      {isOpen && editingTemplate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">編輯模板：{editingTemplate.templateTitle}</h3>
