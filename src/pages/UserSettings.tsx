@@ -4,28 +4,13 @@ import { CardService } from '../services/cardService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
 
-
-
 export default function UserSettings(){
   const session = useSession()
-  const [linked, setLinked] = useState(() => { 
-    if (!session) return false
-    try { 
-      return localStorage.getItem(`threads:${session.email}:linked`) === '1' 
-    } catch { 
-      return false 
-    } 
-  })
-  const [username, setUsername] = useState<string | null>(() => { 
-    if (!session) return null
-    try { 
-      return localStorage.getItem(`threads:${session.email}:username`) 
-    } catch { 
-      return null 
-    } 
-  })
+  const [linked, setLinked] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [lastChecked, setLastChecked] = useState<Date | null>(null)
 
   // 模板管理相關狀態
   const [availableTemplates, setAvailableTemplates] = useState<BaseCard[]>([])
@@ -34,76 +19,81 @@ export default function UserSettings(){
 
   const cardService = CardService.getInstance()
 
-  useEffect(() => {
-    if (!session) return // 未登入時不執行
+  // 統一的授權狀態檢查函數
+  const checkAuthStatus = async () => {
+    if (!session) return
     
-    const run = async () => {
-      try {
-        // 優先從本地快取讀取狀態
-        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
-        const localUsername = localStorage.getItem(`threads:${session.email}:username`)
+    try {
+      setBusy(true)
+      
+      const response = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`, { 
+        cache: 'no-store', 
+        headers: { 'Cache-Control': 'no-store' } 
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
         
-        // 立即設定本地狀態，確保 UI 響應
-        if (localLinked) {
-          setLinked(true)
-          if (localUsername) {
-            setUsername(localUsername)
-            setStatusMsg(`Threads 已連接（${localUsername}）`)
-          } else {
-            setStatusMsg('Threads 已連接，但缺少帳號資訊')
-          }
-        }
+        const isLinked = data.status === 'linked'
+        const hasUsername = !!data.username
         
-        // 從伺服器檢查狀態（非阻塞）
-        try {
-                            const j = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`, { 
-                    cache: 'no-store', 
-                    headers: { 'Cache-Control': 'no-store' } 
-                  }).then(r => r.ok ? r.json() : Promise.reject(new Error('status http')))
-          
-          const serverLinked = j.status === 'linked'
-          const serverUsername = j.username
-          
-          // 更新狀態
-          setLinked(serverLinked)
-          
-          if (serverLinked) {
-            if (serverUsername) {
-              setUsername(serverUsername)
-              setStatusMsg(`Threads 已連接（${serverUsername}）`)
-              // 同步到本地快取
-              try {
-                localStorage.setItem(`threads:${session.email}:linked`, '1')
-                localStorage.setItem(`threads:${session.email}:username`, serverUsername)
-              } catch {}
-            } else {
-              setUsername(null)
-              setStatusMsg('Threads 已連接，但無法取得帳號資訊')
-              // 同步到本地快取
-              try {
-                localStorage.setItem(`threads:${session.email}:linked`, '1')
-                localStorage.removeItem(`threads:${session.email}:username`)
-              } catch {}
-            }
-          } else {
-            setUsername(null)
-            setStatusMsg(null)
+        setLinked(isLinked)
+        setUsername(data.username || null)
+        setLastChecked(new Date())
+        
+        if (isLinked) {
+          if (hasUsername) {
+            setStatusMsg(`Threads 已連接（${data.username}）`)
             // 同步到本地快取
             try {
-              localStorage.setItem(`threads:${session.email}:linked`, '0')
+              localStorage.setItem(`threads:${session.email}:linked`, '1')
+              localStorage.setItem(`threads:${session.email}:username`, data.username)
+            } catch {}
+          } else {
+            setStatusMsg('Threads 已連接，但無法取得帳號資訊')
+            try {
+              localStorage.setItem(`threads:${session.email}:linked`, '1')
               localStorage.removeItem(`threads:${session.email}:username`)
             } catch {}
           }
-        } catch (error) {
-          console.warn('Threads 狀態檢查失敗:', error)
-          // 如果 API 失敗，保持本地狀態不變
+        } else {
+          setStatusMsg('Threads 未連接')
+          try {
+            localStorage.setItem(`threads:${session.email}:linked`, '0')
+            localStorage.removeItem(`threads:${session.email}:username`)
+          } catch {}
         }
-      } catch (error) {
-        console.error('Threads 狀態管理錯誤:', error)
+      } else {
+        throw new Error(`HTTP ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Threads 狀態檢查失敗:', error)
+      setStatusMsg('狀態檢查失敗，請重新整理頁面')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // 頁面載入時檢查授權狀態
+  useEffect(() => {
+    if (!session) return
+    
+    // 先從本地快取恢復狀態
+    const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
+    const localUsername = localStorage.getItem(`threads:${session.email}:username`)
+    
+    if (localLinked) {
+      setLinked(true)
+      if (localUsername) {
+        setUsername(localUsername)
+        setStatusMsg(`Threads 已連接（${localUsername}）`)
+      } else {
+        setStatusMsg('Threads 已連接，但缺少帳號資訊')
       }
     }
     
-    run()
+    // 從伺服器檢查最新狀態
+    checkAuthStatus()
   }, [session?.email])
 
   // 處理 OAuth 回調
@@ -129,32 +119,24 @@ export default function UserSettings(){
         
         // 延遲檢查狀態，確保 username 被設定
         setTimeout(async () => {
-          try {
-                                const response = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`, {
-                      cache: 'no-store',
-                      headers: { 'Cache-Control': 'no-store' }
-                    })
-            
-            if (response.ok) {
-              const data = await response.json()
-              if (data.username) {
-                setUsername(data.username)
-                localStorage.setItem(`threads:${session.email}:username`, data.username)
-                setStatusMsg(`Threads 連接成功！帳號：${data.username}`)
-              } else {
-                setStatusMsg('Threads 連接成功！但無法取得帳號資訊')
-              }
-            }
-          } catch (error) {
-            console.warn('無法取得 Threads 帳號資訊:', error)
-            setStatusMsg('Threads 連接成功！但無法取得帳號資訊')
-          }
+          await checkAuthStatus()
         }, 1000)
       }
     } catch (error) {
       console.warn('OAuth 回調處理失敗:', error)
     }
   }, [session?.email, location.search])
+
+  // 定期檢查授權狀態（每 30 分鐘）
+  useEffect(() => {
+    if (!session) return
+    
+    const interval = setInterval(() => {
+      checkAuthStatus()
+    }, 30 * 60 * 1000) // 30 分鐘
+    
+    return () => clearInterval(interval)
+  }, [session?.email])
 
   // 載入模板管理資訊
   useEffect(() => {
@@ -185,87 +167,6 @@ export default function UserSettings(){
     }
   }, [session?.email, cardService])
 
-  // 監聽頁面可見性變化，當頁面重新可見時恢復狀態
-  useEffect(() => {
-    if (!session) return
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // 頁面重新可見時，立即從本地快取恢復狀態
-        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
-        const localUsername = localStorage.getItem(`threads:${session.email}:username`)
-        
-        if (localLinked) {
-          setLinked(true)
-          if (localUsername) setUsername(localUsername)
-          setStatusMsg('Threads 已連接')
-        }
-      }
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [session?.email])
-
-  // 監聽 localStorage 變化，確保狀態同步
-  useEffect(() => {
-    if (!session) return
-    
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === `threads:${session.email}:linked` || e.key === `threads:${session.email}:username`) {
-        // localStorage 發生變化時，重新讀取狀態
-        const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
-        const localUsername = localStorage.getItem(`threads:${session.email}:username`)
-        
-        console.log('localStorage 變化，同步狀態:', { localLinked, localUsername })
-        
-        setLinked(localLinked)
-        if (localUsername) {
-          setUsername(localUsername)
-          setStatusMsg(`Threads 已連接（${localUsername}）`)
-        } else {
-          setUsername(null)
-          if (localLinked) {
-            setStatusMsg('Threads 已連接，但缺少帳號資訊')
-          } else {
-            setStatusMsg(null)
-          }
-        }
-      }
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [session?.email])
-
-  // 頁面載入和卸載時的狀態管理
-  useEffect(() => {
-    if (!session) return
-    
-    // 頁面載入時立即恢復狀態
-    const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
-    const localUsername = localStorage.getItem(`threads:${session.email}:username`)
-    
-    if (localLinked) {
-      setLinked(true)
-      if (localUsername) setUsername(localUsername)
-      setStatusMsg('Threads 已連接')
-    }
-    
-    // 頁面卸載前保存狀態
-    const handleBeforeUnload = () => {
-      if (linked) {
-        try {
-          localStorage.setItem(`threads:${session.email}:linked`, '1')
-          if (username) localStorage.setItem(`threads:${session.email}:username`, username)
-        } catch {}
-      }
-    }
-    
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [session?.email, linked, username])
-
   // 切換模板選擇
   const toggleTemplateSelection = (cardId: string) => {
     if (!session) return
@@ -291,141 +192,52 @@ export default function UserSettings(){
         {/* 允許管理者也能連結 Threads（單帳號同時具 admin/user 的情境） */}
         {true ? (
         <div className="flex gap-2">
-          <a className="btn btn-primary" href={`/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(session?.email || '')}`}>{linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}</a>
+          <a className="btn btn-primary" href={`/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(session?.email || '')}`}>
+            {linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}
+          </a>
           {linked && (
             <div>
               <button
                 className="btn btn-ghost"
                 disabled={busy}
-                onClick={async ()=>{
-                  try {
-                    setBusy(true)
-                    console.log('開始斷開 Threads 連結...')
-                    
-                    // 嘗試斷開連結
-                    const j = await (async () => {
-                      try { 
-                        console.log('嘗試 /.netlify/functions/threads-disconnect...')
-                        return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json() 
-                      } catch (error) {
-                        console.log('第一個 API 失敗，嘗試備用...', error)
-                        return await (await fetch('/.netlify/functions/threads-disconnect', { method: 'POST' })).json()
-                      }
-                    })()
-                    
-                    console.log('斷開連結回應:', j)
-                    
-                    if (j.ok) {
-                      // 更新組件狀態
-                      setLinked(false)
-                      setUsername(null)
-                      
-                      // 清除本地快取
-                      try {
-                        localStorage.removeItem(`threads:${session?.email}:linked`)
-                        localStorage.removeItem(`threads:${session?.email}:username`)
-                        console.log('已清除本地快取')
-                      } catch (error) {
-                        console.warn('清除本地快取失敗:', error)
-                      }
-                      
-                      console.log('Threads 斷開連結成功')
-                    } else { 
-                      console.error('斷開連結失敗:', j)
-                      alert(`斷開連結失敗: ${j.error || '未知錯誤'}`)
-                    }
-                  } catch (error) { 
-                    console.error('斷開連結異常:', error)
-                    alert('斷開連結失敗: 網路錯誤')
-                  }
-                  finally { 
-                    setBusy(false) 
-                  }
-                }}
-              >斷開連結</button>
-              {statusMsg && statusMsg.includes('失敗') && (
-                <div className="text-red-600 text-xs mt-1">{statusMsg}</div>
-              )}
+                onClick={checkAuthStatus}
+              >
+                重新檢查狀態
+              </button>
             </div>
           )}
         </div>
         ) : null}
-        {linked && <div className="text-gray-700 text-sm">
-          已成功連結 Threads 帳號
-          {username ? `（${username}）` : '（載入中...）'}
-          <button
-            onClick={() => {
-              const localLinked = localStorage.getItem(`threads:${session?.email}:linked`)
-              const localUsername = localStorage.getItem(`threads:${session?.email}:username`)
-              console.log('Threads 狀態診斷:', {
-                linked,
-                username,
-                localLinked,
-                localUsername,
-                sessionEmail: session?.email
-              })
-              alert(`狀態診斷:\n連接狀態: ${linked}\nUsername: ${username || '未取得'}\n本地快取連接: ${localLinked}\n本地快取Username: ${localUsername || '無'}`)
-            }}
-            className="ml-2 text-xs text-blue-600 underline hover:text-blue-800"
-          >
-            診斷狀態
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                console.log('強制同步 Threads 狀態...')
-                const response = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session?.email || '')}`, {
-                  cache: 'no-store',
-                  headers: { 'Cache-Control': 'no-store' }
-                })
-                
-                if (response.ok) {
-                  const data = await response.json()
-                  console.log('伺服器狀態:', data)
-                  
-                  const serverLinked = data.status === 'linked'
-                  const serverUsername = data.username
-                  
-                  // 強制同步狀態
-                  setLinked(serverLinked)
-                  setUsername(serverUsername)
-                  
-                  // 同步到 localStorage
-                  try {
-                    localStorage.setItem(`threads:${session?.email}:linked`, serverLinked ? '1' : '0')
-                    if (serverUsername) {
-                      localStorage.setItem(`threads:${session?.email}:username`, serverUsername)
-                    } else {
-                      localStorage.removeItem(`threads:${session?.email}:username`)
-                    }
-                  } catch (error) {
-                    console.warn('同步 localStorage 失敗:', error)
-                  }
-                  
-                  if (serverLinked) {
-                    if (serverUsername) {
-                      setStatusMsg(`Threads 已連接（${serverUsername}）`)
-                    } else {
-                      setStatusMsg('Threads 已連接，但缺少帳號資訊')
-                    }
-                  } else {
-                    setStatusMsg(null)
-                  }
-                  
-                  alert('狀態同步完成！')
-                } else {
-                  alert('狀態同步失敗：無法連接到伺服器')
-                }
-              } catch (error) {
-                console.error('強制同步失敗:', error)
-                alert('狀態同步失敗：網路錯誤')
-              }
-            }}
-            className="ml-2 text-xs text-gray-600 underline hover:text-gray-800"
-          >
-            強制同步
-          </button>
-        </div>}
+
+        {/* 狀態顯示 */}
+        {statusMsg && (
+          <div className="text-sm">
+            <span className="font-medium">狀態：</span>
+            <span className={linked ? 'text-green-600' : 'text-red-600'}>
+              {statusMsg}
+            </span>
+          </div>
+        )}
+        
+        {/* 最後檢查時間 */}
+        {lastChecked && (
+          <div className="text-xs text-gray-500">
+            最後檢查：{lastChecked.toLocaleString('zh-TW')}
+          </div>
+        )}
+
+        {/* 授權狀態說明 */}
+        {linked && (
+          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+            <p className="font-medium">授權狀態說明：</p>
+            <ul className="mt-1 space-y-1">
+              <li>• 系統會自動監控授權狀態</li>
+              <li>• 如果授權即將過期，會自動嘗試刷新</li>
+              <li>• 排程貼文會自動檢查授權狀態</li>
+              <li>• 授權失效時會通知您重新連結</li>
+            </ul>
+          </div>
+        )}
       </div>
 
 

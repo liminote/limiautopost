@@ -1,0 +1,61 @@
+name: Check Scheduled Posts
+
+on:
+  schedule:
+    # 每 5 分鐘執行一次
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # 手動觸發
+
+jobs:
+  check-scheduled-posts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Trigger Netlify Function
+        run: |
+          # 使用 GitHub Secrets 中的環境變數
+          SCHEDULER_SECRET="${{ secrets.SCHEDULER_SECRET }}"
+          NETLIFY_SITE_URL="${{ secrets.NETLIFY_SITE_URL }}"
+          
+          if [ -z "$SCHEDULER_SECRET" ]; then
+            echo "警告: SCHEDULER_SECRET 未設定，使用預設值"
+            SCHEDULER_SECRET="default-secret"
+          fi
+          
+          if [ -z "$NETLIFY_SITE_URL" ]; then
+            echo "錯誤: NETLIFY_SITE_URL 未設定"
+            exit 1
+          fi
+          
+          echo "觸發排程貼文檢查..."
+          echo "目標 URL: $NETLIFY_SITE_URL"
+          
+          # 觸發 Netlify Function
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST "$NETLIFY_SITE_URL/.netlify/functions/scheduled-posts-checker" \
+            -H "Authorization: Bearer $SCHEDULER_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          
+          # 分離回應內容和狀態碼
+          http_code=$(echo "$response" | tail -n1)
+          response_body=$(echo "$response" | head -n -1)
+          
+          echo "HTTP 狀態碼: $http_code"
+          echo "回應內容: $response_body"
+          
+          # 檢查是否成功
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ 排程檢查觸發成功"
+          else
+            echo "❌ 排程檢查觸發失敗"
+            exit 1
+          fi
+          
+      - name: Log completion
+        run: |
+          echo "排程貼文檢查工作流程完成"
+          echo "執行時間: $(date)"
+          echo "GitHub Actions 執行 ID: ${{ github.run_id }}"
