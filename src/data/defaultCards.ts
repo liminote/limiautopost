@@ -17,7 +17,7 @@ export const defaultSystemCards: SystemCard[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     platform: 'threads',
-    templateTitle: 'Threads 第一則貼文',
+    templateTitle: '第一則貼文',
     templateFeatures: '480-500字，完整觀點論述，獨立主題',
     isSelected: true
   },
@@ -37,7 +37,7 @@ export const defaultSystemCards: SystemCard[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     platform: 'threads',
-    templateTitle: 'Threads 第二則貼文',
+    templateTitle: '第二則貼文',
     templateFeatures: '330-350字，完整觀點論述，獨立主題',
     isSelected: true
   },
@@ -57,7 +57,7 @@ export const defaultSystemCards: SystemCard[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     platform: 'threads',
-    templateTitle: 'Threads 第三則貼文',
+    templateTitle: '第三則貼文',
     templateFeatures: '180-200字，完整觀點論述，獨立主題',
     isSelected: true
   },
@@ -76,7 +76,7 @@ export const defaultSystemCards: SystemCard[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     platform: 'instagram',
-    templateTitle: 'Instagram 貼文',
+    templateTitle: '貼文',
     templateFeatures: '溫暖語氣，開放式問題結尾，具洞察力',
     isSelected: true
   }
