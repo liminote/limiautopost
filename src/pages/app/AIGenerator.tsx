@@ -39,20 +39,63 @@ export default function AIGenerator() {
   // 載入系統預設模板
   useEffect(() => {
     const loadTemplates = async () => {
-      // 載入保存的系統模板修改
-      await cardService.loadSavedSystemTemplates()
+      console.log('🔄 開始載入模板...')
       
-      // 將系統卡片轉換為編輯格式
-      const systemCards = cardService.getSystemCardsSync() // 使用同步版本
-      const templateData: TemplateEditData[] = systemCards.map(card => ({
-        id: card.id,
-        platform: card.platform,
-        templateTitle: card.templateTitle,
-        templateFeatures: card.templateFeatures,
-        prompt: card.prompt
-      }))
-      
-      setTemplates(templateData)
+      try {
+        // 載入保存的系統模板修改
+        await cardService.loadSavedSystemTemplates()
+        console.log('✅ 載入保存的模板完成')
+        
+        // 將系統卡片轉換為編輯格式
+        const systemCards = cardService.getSystemCardsSync() // 使用同步版本
+        console.log('📋 系統卡片:', systemCards)
+        
+        const templateData: TemplateEditData[] = systemCards.map(card => ({
+          id: card.id,
+          platform: card.platform,
+          templateTitle: card.templateTitle,
+          templateFeatures: card.templateFeatures,
+          prompt: card.prompt
+        }))
+        
+        console.log('🔄 轉換後的模板資料:', templateData)
+        setTemplates(templateData)
+        
+        // 如果沒有載入到資料，使用預設資料
+        if (templateData.length === 0) {
+          console.log('⚠️ 沒有載入到模板資料，使用預設資料')
+          const defaultTemplates: TemplateEditData[] = [
+            {
+              id: 'system-threads-1',
+              platform: 'threads',
+              templateTitle: '第一則貼文',
+              templateFeatures: '480-500字，完整觀點論述，獨立主題',
+              prompt: '請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係'
+            },
+            {
+              id: 'system-threads-2',
+              platform: 'threads',
+              templateTitle: '第二則貼文',
+              templateFeatures: '330-350字，完整觀點論述，獨立主題',
+              prompt: '請嚴格遵守以下規則生成 Threads 第二則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：330～350 字\n- 不能與其他貼文有上下文延續關係'
+            }
+          ]
+          setTemplates(defaultTemplates)
+        }
+      } catch (error) {
+        console.error('❌ 載入模板失敗:', error)
+        // 使用預設資料作為備用
+        const fallbackTemplates: TemplateEditData[] = [
+          {
+            id: 'fallback-1',
+            platform: 'threads',
+            templateTitle: '備用模板 1',
+            templateFeatures: '備用模板內容',
+            prompt: '備用 prompt'
+          }
+        ]
+        setTemplates(fallbackTemplates)
+      }
     }
 
     loadTemplates()
@@ -203,6 +246,14 @@ export default function AIGenerator() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* 編輯對話框調試信息 */}
+      <div className="mb-4 p-3 bg-blue-100 text-blue-800 rounded text-sm">
+        <strong>編輯對話框狀態：</strong><br/>
+        isOpen: {String(isOpen)}<br/>
+        editingTemplate: {editingTemplate ? `存在 (${editingTemplate.templateTitle})` : '不存在'}<br/>
+        templates.length: {templates.length}
       </div>
 
       {/* 編輯對話框 */}
