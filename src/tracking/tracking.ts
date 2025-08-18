@@ -8,7 +8,7 @@ export type TrackedPost = {
   // 內容與來源
   articleTitle: string
   content: string
-  platform: 'Threads' | 'Instagram' | 'Facebook' | 'General'
+  platform: 'Threads' | 'Instagram' | 'Facebook'
 
   // 管理欄位
   threadsPostId?: string
@@ -127,15 +127,39 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       : undefined
     const resolvedArticleId = foundSameTitle ? foundSameTitle.articleId : it.articleId
 
-    // 依平台自動產生編碼：T1/T2/T3/T4...、G1/G2/G3...、I1/I2/I3...、F1/F2
+    // 檢查是否有完全相同的內容（相同 articleId + branchCode + content）
     let branchCode = it.branchCode
-    const keep = typeof branchCode === 'string' && /^[TGFI]\d+$/.test(branchCode)
-    if (!keep) {
+    let isContentModified = false
+    
+    if (branchCode && /^[TGFI]\d+$/.test(branchCode)) {
+      // 檢查是否存在完全相同的內容
+      const existingPost = list.find(x => 
+        x.articleId === resolvedArticleId && 
+        x.branchCode === branchCode &&
+        x.content === it.content
+      )
+      
+      if (existingPost) {
+        // 內容完全相同，保持原有 branchCode
+        console.log(`[內容相同] 保持原有 branchCode: ${branchCode}`)
+      } else {
+        // 內容有修改，生成新的 branchCode
+        isContentModified = true
+        const letter = normLetter(it.platform)
+        const key = `${resolvedArticleId}-${letter}`
+        const next = (counters.get(key) || 0) + 1
+        counters.set(key, next)
+        branchCode = `${letter}${next}`
+        console.log(`[內容修改] 生成新 branchCode: ${branchCode}`)
+      }
+    } else {
+      // 沒有指定 branchCode 或格式不正確，自動生成
       const letter = normLetter(it.platform)
       const key = `${resolvedArticleId}-${letter}`
       const next = (counters.get(key) || 0) + 1
       counters.set(key, next)
       branchCode = `${letter}${next}`
+      console.log(`[自動生成] 新 branchCode: ${branchCode}`)
     }
     
     // 特殊處理手動新增的卡片（MAN），確保不會被去重過濾
@@ -151,6 +175,7 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       
       console.log(`[MAN卡片] 生成 branchCode: ${branchCode}，counters[${key}]: ${next}`)
     }
+    
     const record: TrackedPost = {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
@@ -166,13 +191,14 @@ export function addTracked(items: Array<Omit<TrackedPost, 'id' | 'postId' | 'cre
       status: 'draft',
       permalinkSource: undefined,
     }
+    
     // 去重規則更新：以 postId（articleId-branchCode）為唯一鍵，允許同標題/內容的多變體（例如 T1/T2）
     if (list.some(x => x.postId === record.postId) || seenPostIds.has(record.postId)) {
       console.warn(`[去重過濾] 卡片被過濾：${record.postId}，原因：重複的 postId`)
       return null as unknown as TrackedPost
     }
     seenPostIds.add(record.postId)
-    console.log(`[新增卡片] 成功：${record.postId}，branchCode: ${record.branchCode}`)
+    console.log(`[新增卡片] 成功：${record.postId}，branchCode: ${record.branchCode}${isContentModified ? ' (內容已修改)' : ''}`)
     return record
   })
   const newList = [...created.filter(Boolean), ...list]
