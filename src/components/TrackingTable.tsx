@@ -329,10 +329,10 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
           <col className="w-8ch" /> {/* 1 原文編號 */}
           <col className="w-8ch" /> {/* 2 識別碼 */}
           <col className="w-9ch" /> {/* 3 平台 */}
-          <col className="w-11ch" /> {/* 4 狀態 - 減少 1ch */}
+          <col className="w-11ch" /> {/* 4 狀態 - 從 12ch 減少到 11ch */}
           <col className="w-12ch" /> {/* 5 原文標題 */}
-          <col className="w-17ch" /> {/* 6 內容 - 增加 2ch */}
-          <col className="w-8ch" /> {/* 7 標籤 - 再減少 2ch */}
+          <col className="w-17ch" /> {/* 6 內容 - 從 15ch 增加到 17ch */}
+          <col className="w-12ch" /> {/* 7 標籤 - 從 14ch 減少到 12ch */}
           <col style={{ width: '10ch' }} /> {/* 8 連結 */}
           <col className="w-12ch" /> {/* 9 發佈日期 */}
           <col style={{ width: '8ch' }} /> {/* 10 讚 */}
