@@ -324,23 +324,24 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
         </div>
       
 
-      <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>
+      <table className="table ui-compact" style={{ width: '100%' }}>
         <colgroup>
-          <col className="w-8ch" /> {/* 1 原文編號 */}
-          <col className="w-8ch" /> {/* 2 識別碼 */}
-          <col className="w-9ch" /> {/* 3 平台 */}
-          <col className="w-11ch" /> {/* 4 狀態 - 從 12ch 減少到 11ch */}
-          <col className="w-12ch" /> {/* 5 原文標題 */}
-          <col className="w-17ch" /> {/* 6 內容 - 從 15ch 增加到 17ch */}
-          <col className="w-12ch" /> {/* 7 標籤 - 從 14ch 減少到 12ch */}
-          <col style={{ width: '10ch' }} /> {/* 8 連結 */}
-          <col className="w-12ch" /> {/* 9 發佈日期 */}
-          <col style={{ width: '8ch' }} /> {/* 10 讚 */}
-          <col style={{ width: '8ch' }} /> {/* 11 留言 */}
-          <col style={{ width: '8ch' }} /> {/* 12 分享 */}
-          <col style={{ width: '8ch' }} /> {/* 13 備註 */}
-          <col className="w-8ch" /> {/* 14 建立時間 */}
-          <col style={{ width: '10ch' }} /> {/* 15 操作 */}
+          {/* 移除所有固定寬度，讓瀏覽器自動調整 */}
+          <col /> {/* 1 原文編號 */}
+          <col /> {/* 2 識別碼 */}
+          <col /> {/* 3 平台 */}
+          <col /> {/* 4 狀態 */}
+          <col /> {/* 5 原文標題 */}
+          <col /> {/* 6 內容 */}
+          <col /> {/* 7 標籤 */}
+          <col /> {/* 8 連結 */}
+          <col /> {/* 9 發佈日期 */}
+          <col /> {/* 10 讚 */}
+          <col /> {/* 11 留言 */}
+          <col /> {/* 12 分享 */}
+          <col /> {/* 13 備註 */}
+          <col /> {/* 14 建立時間 */}
+          <col /> {/* 15 操作 */}
         </colgroup>
         <thead style={{ fontSize: '14px', position: 'sticky', top: 0, background: 'var(--ui-bg)', zIndex: 5, boxShadow: '0 1px 0 var(--ui-border)' }}>
           <tr>
