@@ -351,7 +351,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
             Array.from({ length: 6 }).map((_, i) => (
               <tr key={`s-${i}`}>
                 {Array.from({ length: 15 }).map((__, j) => (
-                  <td key={j} className="px-3 py-2 border-t align-top">
+                  <td key={j} className="px-3 py-3 border-t align-top">
                     <div className="animate-pulse bg-gray-100 rounded" style={{ height: '14px', width: j % 3 === 0 ? '8ch' : j % 3 === 1 ? '16ch' : '10ch' }} />
                   </td>
                 ))}
@@ -377,7 +377,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                   )
                 })()}
               </td>
-              <td className="px-3 py-2 text-sm">
+              <td className="px-3 py-3 border-t align-top">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   r.status === 'published' ? 'bg-green-100 text-green-800' :
                   r.status === 'publishing' ? 'bg-blue-100 text-blue-800' :
@@ -395,7 +395,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
               <td className="px-3 py-3 border-t align-top" style={{ width: '12ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.articleTitle || '（無標題）'); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
                 <div style={{ width: '12ch', overflow: 'hidden', display: 'block', pointerEvents: 'none' }}>{r.articleTitle || '（無標題）'}</div>
               </td>
-              <td className="px-8 py-3 border-t text-gray-600 align-top" style={{ width: '15ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
+              <td className="px-3 py-3 border-t text-gray-600 align-top" style={{ width: '15ch' }} onMouseEnter={(e)=>{ clearHideTimer(); anchorRectRef.current = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect(); setHoverIsNotes(false); setHoverText(r.content || ''); setHoverId(r.id) }} onMouseLeave={hideTooltipLater}>
                 <div style={{ width: '13ch', overflow: 'hidden', display: 'block', pointerEvents: 'none', textAlign: 'left' }}>
                   {(r.content || '').slice(0, 30)}{(r.content || '').length > 30 ? '…' : ''}
                 </div>
