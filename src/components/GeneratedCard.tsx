@@ -51,7 +51,12 @@ export default function GeneratedCard({
   return (
     <div className="relative card" style={{ background: bgVar ? `var(${bgVar})` : fallbackBg(card.id) }}>
       <div className="card-header flex items-center justify-between">
-        <div className="heading-serif text-xs">{card.label} · {card.platform}</div>
+        <div className="flex items-center gap-2">
+          <span className="heading-serif text-sm">{card.label}</span>
+          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+            {card.platform}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <button className="btn btn-outline text-xs" onClick={()=> onCopy(card.content)}>複製</button>
           <label className="inline-flex items-center gap-2 text-xs text-muted">

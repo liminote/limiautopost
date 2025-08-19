@@ -191,7 +191,7 @@ export default function Generator() {
           const card: Card = {
             id: crypto.randomUUID(),
             platform: mapPlatform(platform),
-            label: `${getPlatformLabel(platform)} - ${articleId} - ${template.templateTitle}`,
+            label: `${articleId} | ${template.templateTitle}`,
             content: result.content,
             checked: false,
             code: code
@@ -206,7 +206,7 @@ export default function Generator() {
           const card: Card = {
             id: crypto.randomUUID(),
             platform: mapPlatform(platform),
-            label: `${getPlatformLabel(platform)} - ${articleId} - ${template.templateTitle} (備用)`,
+            label: `${articleId} | ${template.templateTitle} (備用)`,
             content: fallbackContent,
             checked: false,
             code: code
