@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import CardManager from '../components/CardManager'
 import { CardService } from '../services/cardService'
-import { TemplateService } from '../services/templateService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
 
@@ -19,30 +18,16 @@ export default function UserSettings(){
   const [maxSelections, setMaxSelections] = useState(5)
 
   const cardService = CardService.getInstance()
-  const templateService = TemplateService.getInstance()
 
   // 載入模板管理資訊
   const loadTemplateManagement = () => {
     if (!session) return
     
-    // 從 TemplateService 獲取最新的系統模板
-    const systemTemplates = templateService.getSystemTemplatesAsBaseCards()
+    // 使用 CardService 的統一方法獲取所有模板
+    const allTemplates = cardService.getAllCards(session.email)
+    const selectedTemplates = allTemplates.filter(template => template.isSelected)
     
-    // 獲取用戶自定義模板
-    const userTemplates = cardService.getUserCards(session.email)
-    
-    // 合併模板並標記選擇狀態
-    const allTemplates = [...systemTemplates, ...userTemplates]
-    const userSelections = cardService.getUserSelections(session.email)
-    
-    const availableTemplates = allTemplates.map(template => ({
-      ...template,
-      isSelected: userSelections.has(template.id)
-    }))
-    
-    const selectedTemplates = availableTemplates.filter(template => template.isSelected)
-    
-    setAvailableTemplates(availableTemplates)
+    setAvailableTemplates(allTemplates)
     setSelectedTemplates(selectedTemplates)
     setMaxSelections(5) // 固定最大選擇數量
   }

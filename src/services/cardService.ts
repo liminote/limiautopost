@@ -11,6 +11,17 @@ export class CardService {
     // 從 localStorage 載入用戶卡片數據
     this.loadUserCardsFromStorage()
     // 注意：loadSavedSystemTemplates 是 async，在建構函數中不呼叫
+    
+    // 監聽 AIGenerator 的模板更新事件
+    this.setupTemplateUpdateListener()
+  }
+
+  // 監聽 AIGenerator 的模板更新事件
+  private setupTemplateUpdateListener() {
+    window.addEventListener('templatesUpdated', () => {
+      console.log('[CardService] 收到模板更新事件，通知所有監聽器')
+      this.notifyChanges()
+    })
   }
 
   public static getInstance(): CardService {
@@ -82,7 +93,8 @@ export class CardService {
 
   // 獲取所有可用卡片（系統 + 使用者）
   public getAllCards(userId: string): BaseCard[] {
-    const systemCards = defaultSystemCards
+    // 優先從 AIGenerator 讀取最新的系統模板
+    const systemCards = this.getSystemTemplatesFromAIGenerator()
     const userCards = this.getUserCards(userId)
     
     // 合併並標記選擇狀態
@@ -93,6 +105,41 @@ export class CardService {
       ...card,
       isSelected: userSelections.has(card.id)
     }))
+  }
+
+  // 從 AIGenerator 的 localStorage 讀取最新的系統模板
+  private getSystemTemplatesFromAIGenerator(): BaseCard[] {
+    try {
+      const saved = localStorage.getItem('aigenerator_templates')
+      if (saved) {
+        const templates = JSON.parse(saved)
+        return templates.map((template: any) => ({
+          id: template.id,
+          name: template.title,
+          description: template.features,
+          category: template.platform.toLowerCase(),
+          prompt: template.prompt,
+          isActive: true,
+          isSystem: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          platform: template.platform.toLowerCase(),
+          templateTitle: template.title,
+          templateFeatures: template.features,
+          isSelected: false // 預設未選擇，由使用者決定
+        }))
+      }
+    } catch (error) {
+      console.warn('無法從 AIGenerator 讀取模板:', error)
+    }
+    
+    // 如果無法讀取，回退到預設模板
+    return defaultSystemCards
+  }
+
+  // 獲取系統模板（BaseCard 格式）
+  public getSystemTemplatesAsBaseCards(): BaseCard[] {
+    return this.getSystemTemplatesFromAIGenerator()
   }
 
   // 獲取使用者卡片

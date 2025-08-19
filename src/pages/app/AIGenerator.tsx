@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import AdminSubnav from '../../components/AdminSubnav'
-import { TemplateService } from '../../services/templateService'
 
 // 簡化的模板資料結構
 type Template = {
@@ -49,14 +48,13 @@ export default function AIGenerator() {
     return saved ? JSON.parse(saved) : TEMPLATES
   })
   const [editingId, setEditingId] = useState<string | null>(null)
-  const templateService = TemplateService.getInstance()
 
-  // 當模板變化時，保存到 localStorage 並通知其他組件
+  // 當模板變化時，保存到 localStorage 並觸發頁面重新載入
   useEffect(() => {
     localStorage.setItem('aigenerator_templates', JSON.stringify(templates))
-    // 通知其他組件模板已更新
-    templateService.notifyTemplatesUpdated()
-  }, [templates, templateService])
+    // 觸發頁面重新載入以同步其他組件
+    window.dispatchEvent(new CustomEvent('templatesUpdated'))
+  }, [templates])
 
   // 開始編輯
   const startEdit = (id: string) => setEditingId(id)
