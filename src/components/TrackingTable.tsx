@@ -378,7 +378,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 })()}
               </td>
               <td className="px-3 py-3 border-t align-top">
-                <span className={`px-2 py-1 rounded-full font-medium ${
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   r.status === 'published' ? 'bg-green-100 text-green-800' :
                   r.status === 'publishing' ? 'bg-blue-100 text-blue-800' :
                   r.status === 'failed' ? 'bg-red-100 text-red-800' :

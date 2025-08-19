@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import { PLATFORM_CONFIG } from '../config/platformConfig'
+
 type Platform = 'Threads' | 'Instagram' | 'Facebook'
 
 export type GeneratedCardData = {
@@ -48,12 +50,28 @@ export default function GeneratedCard({
     return `var(${varName})`
   }
 
+  // 獲取平台顏色
+  const getPlatformColor = (platform: Platform) => {
+    switch (platform) {
+      case 'Threads': return PLATFORM_CONFIG.threads.color
+      case 'Instagram': return PLATFORM_CONFIG.instagram.color
+      case 'Facebook': return PLATFORM_CONFIG.facebook.color
+      default: return PLATFORM_CONFIG.threads.color
+    }
+  }
+
   return (
     <div className="relative card" style={{ background: bgVar ? `var(${bgVar})` : fallbackBg(card.id) }}>
       <div className="card-header flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="heading-serif text-sm">{card.label}</span>
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+          <span 
+            className="px-1.5 py-0.5 text-xs font-medium rounded"
+            style={{ 
+              backgroundColor: getPlatformColor(card.platform) + '20',
+              color: getPlatformColor(card.platform)
+            }}
+          >
             {card.platform}
           </span>
         </div>
