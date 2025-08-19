@@ -76,7 +76,7 @@ export class ChatGPTService {
     const validMaxWords = maxWords > 0 ? maxWords : 500
     
     const prompt = `
-請根據以下模板和文章內容，生成一篇社群媒體貼文：
+請根據以下模板和文章內容，生成一篇完整的社群媒體貼文：
 
 模板要求：
 ${template}
@@ -84,17 +84,20 @@ ${template}
 文章內容：
 ${articleContent}
 
-要求：
+嚴格要求：
 1. 嚴格遵守模板中的所有規則和要求
-2. 字數限制：${validMaxWords} 字以內
-3. 內容要自然流暢，符合社群媒體的閱讀習慣
-4. 如果模板要求加入 hashtag，請確保只加入一個相關的 hashtag
+2. 字數限制：必須在 ${validMaxWords} 字以內，不能超過
+3. 內容必須完整，有開頭、中間、結尾，不能沒頭沒尾
+4. 內容要自然流暢，符合社群媒體的閱讀習慣
+5. 如果模板要求加入 hashtag，請確保只加入一個相關的 hashtag
+6. 生成內容必須是完整的句子和段落
+7. 不要包含任何說明文字、標題或額外格式
 
-請直接輸出貼文內容，不要包含任何說明文字。
+請直接輸出貼文內容。
 `
 
     // 計算 max_tokens，確保至少為 1
-    const maxTokens = Math.max(1, validMaxWords * 2) // 預留一些 token 給 prompt
+    const maxTokens = Math.max(1, validMaxWords * 3) // 增加 token 預留，確保內容完整
     return await this.generateContent(prompt, maxTokens)
   }
 

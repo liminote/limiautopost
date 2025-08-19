@@ -359,6 +359,36 @@ export default function Generator() {
                 </div>
               ))}
             </div>
+            
+            {/* 卡片統計信息 */}
+            {cards.length > 0 && (
+              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <span>總共 {cards.length} 張卡片</span>
+                  {(() => {
+                    const stats = cards.reduce((acc, card) => {
+                      acc[card.aiModel] = (acc[card.aiModel] || 0) + 1
+                      return acc
+                    }, {} as Record<string, number>)
+                    
+                    return Object.entries(stats).map(([model, count]) => (
+                      <span key={model} className="flex items-center gap-1">
+                        <span className={`w-2 h-2 rounded-full ${
+                          model === 'gemini' ? 'var(--yinmn-blue)' : 
+                          model === 'chatgpt' ? 'bg-green-500' : 
+                          'bg-gray-400'
+                        }`} style={{
+                          backgroundColor: model === 'gemini' ? 'var(--yinmn-blue)' : undefined
+                        }}></span>
+                        {model === 'gemini' ? 'Gemini' : 
+                         model === 'chatgpt' ? 'ChatGPT' : 
+                         model === 'fallback' ? '備用' : model}: {count}
+                      </span>
+                    ))
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
           
           <div>
@@ -413,30 +443,12 @@ export default function Generator() {
         ) : (
            <div className="grid grid-cols-1 gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  className="text-xs text-gray-600 hover:text-gray-900"
-                  onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: true })))}
-                >全選</button>
-                <button
-                  className="text-xs text-gray-600 hover:text-gray-900"
-                  onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: false })))}
-                >全不選</button>
-              </div>
-              
               {/* 卡片管理功能 */}
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
-                  onClick={() => setCards(prev => prev.sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime()))}
-                  title="按生成時間排序（最新的在前）"
-                >
-                  🕒 時間排序
-                </button>
+              <div className="flex items-center gap-2">
                 <button
                   className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
                   onClick={() => setCards(prev => prev.filter(card => !card.label.includes('(備用)')))}
-                  title="移除所有備用內容卡片"
+                  title="移除所有備用內容卡片（當 AI 生成失敗時產生的內容）"
                 >
                   🗑️ 清除備用
                 </button>
@@ -452,35 +464,19 @@ export default function Generator() {
                   🗑️ 清除全部
                 </button>
               </div>
-            </div>
-            
-            {/* 卡片統計信息 */}
-            {cards.length > 0 && (
-              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
-                <div className="flex items-center gap-4">
-                  <span>總共 {cards.length} 張卡片</span>
-                  {(() => {
-                    const stats = cards.reduce((acc, card) => {
-                      acc[card.aiModel] = (acc[card.aiModel] || 0) + 1
-                      return acc
-                    }, {} as Record<string, number>)
-                    
-                    return Object.entries(stats).map(([model, count]) => (
-                      <span key={model} className="flex items-center gap-1">
-                        <span className={`w-2 h-2 rounded-full ${
-                          model === 'gemini' ? 'bg-blue-500' : 
-                          model === 'chatgpt' ? 'bg-green-500' : 
-                          'bg-gray-400'
-                        }`}></span>
-                        {model === 'gemini' ? 'Gemini' : 
-                         model === 'chatgpt' ? 'ChatGPT' : 
-                         model === 'fallback' ? '備用' : model}: {count}
-                      </span>
-                    ))
-                  })()}
-                </div>
+              
+              {/* 全選/全不選按鈕置右 */}
+              <div className="ml-auto flex items-center gap-3">
+                <button
+                  className="text-xs text-gray-600 hover:text-gray-900"
+                  onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: true })))}
+                >全選</button>
+                <button
+                  className="text-xs text-gray-600 hover:text-gray-900"
+                  onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: false })))}
+                >全不選</button>
               </div>
-            )}
+            </div>
             
             {cards.map((c, idx) => (
               <GeneratedCard
