@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import AdminSubnav from '../../components/AdminSubnav'
 
-// 簡單的模板資料結構
+// 簡化的模板資料結構
 type Template = {
   id: string
   title: string
@@ -42,39 +42,78 @@ const TEMPLATES: Template[] = [
   }
 ]
 
-export default function AIGeneratorSimple() {
-  const [templates, setTemplates] = useState<Template[]>(TEMPLATES)
-  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+export default function AIGenerator() {
+  const [templates, setTemplates] = useState(TEMPLATES)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   // 開始編輯
-  const startEdit = (index: number) => {
-    setEditingIndex(index)
-  }
+  const startEdit = (id: string) => setEditingId(id)
 
   // 取消編輯
   const cancelEdit = () => {
-    setEditingIndex(null)
-    // 重新載入原始資料
-    setTemplates(TEMPLATES)
+    setEditingId(null)
+    setTemplates(TEMPLATES) // 恢復原始資料
   }
 
   // 保存編輯
   const saveEdit = () => {
-    // 這裡可以添加保存到後端的邏輯
-    console.log('保存模板:', templates[editingIndex!])
-    setEditingIndex(null)
+    console.log('保存模板:', templates.find(t => t.id === editingId))
+    setEditingId(null)
   }
 
-  // 更新模板
-  const updateTemplate = (field: keyof Template, value: string) => {
-    if (editingIndex === null) return
-    
-    const newTemplates = [...templates]
-    newTemplates[editingIndex] = {
-      ...newTemplates[editingIndex],
-      [field]: value
+  // 更新模板欄位
+  const updateField = (id: string, field: keyof Template, value: string) => {
+    setTemplates(prev => prev.map(t => 
+      t.id === id ? { ...t, [field]: value } : t
+    ))
+  }
+
+  // 渲染編輯或顯示模式
+  const renderField = (template: Template, field: keyof Template, label: string, type: 'text' | 'textarea' | 'select', options?: string[]) => {
+    const isEditing = editingId === template.id
+    const value = template[field] as string
+
+    if (!isEditing) {
+      return (
+        <div className="p-2 bg-gray-50 border rounded">
+          {field === 'prompt' ? <span className="whitespace-pre-wrap">{value}</span> : value}
+        </div>
+      )
     }
-    setTemplates(newTemplates)
+
+    if (type === 'select' && options) {
+      return (
+        <select
+          value={value}
+          onChange={(e) => updateField(template.id, field, e.target.value)}
+          className="w-full p-2 border rounded"
+        >
+          {options.map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      )
+    }
+
+    if (type === 'textarea') {
+      return (
+        <textarea
+          value={value}
+          onChange={(e) => updateField(template.id, field, e.target.value)}
+          rows={field === 'prompt' ? 5 : 2}
+          className="w-full p-2 border rounded"
+        />
+      )
+    }
+
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => updateField(template.id, field, e.target.value)}
+        className="w-full p-2 border rounded"
+      />
+    )
   }
 
   return (
@@ -87,7 +126,7 @@ export default function AIGeneratorSimple() {
       </div>
 
       <div className="space-y-4">
-        {templates.map((template, index) => (
+        {templates.map((template) => (
           <div key={template.id} className="border rounded-lg p-4 bg-white">
             {/* 標題行 */}
             <div className="flex justify-between items-center mb-4">
@@ -96,26 +135,17 @@ export default function AIGeneratorSimple() {
                 <p className="text-sm text-gray-500">{template.platform}</p>
               </div>
               
-              {editingIndex === index ? (
+              {editingId === template.id ? (
                 <div className="space-x-2">
-                  <button
-                    onClick={saveEdit}
-                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                  >
+                  <button onClick={saveEdit} className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
                     保存
                   </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
-                  >
+                  <button onClick={cancelEdit} className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
                     取消
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => startEdit(index)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
+                <button onClick={() => startEdit(template.id)} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                   編輯
                 </button>
               )}
@@ -123,68 +153,24 @@ export default function AIGeneratorSimple() {
 
             {/* 內容區域 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 平台 */}
               <div>
                 <label className="block text-sm font-medium mb-1">平台</label>
-                {editingIndex === index ? (
-                  <select
-                    value={template.platform}
-                    onChange={(e) => updateTemplate('platform', e.target.value)}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="Threads">Threads</option>
-                    <option value="Instagram">Instagram</option>
-                    <option value="Facebook">Facebook</option>
-                    <option value="General">通用</option>
-                  </select>
-                ) : (
-                  <div className="p-2 bg-gray-50 border rounded">{template.platform}</div>
-                )}
+                {renderField(template, 'platform', '平台', 'select', ['Threads', 'Instagram', 'Facebook', '通用'])}
               </div>
 
-              {/* 標題 */}
               <div>
                 <label className="block text-sm font-medium mb-1">模板名稱</label>
-                {editingIndex === index ? (
-                  <input
-                    type="text"
-                    value={template.title}
-                    onChange={(e) => updateTemplate('title', e.target.value)}
-                    className="w-full p-2 border rounded"
-                  />
-                ) : (
-                  <div className="p-2 bg-gray-50 border rounded">{template.title}</div>
-                )}
+                {renderField(template, 'title', '模板名稱', 'text')}
               </div>
 
-              {/* 特徵 */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">模板內容</label>
-                {editingIndex === index ? (
-                  <textarea
-                    value={template.features}
-                    onChange={(e) => updateTemplate('features', e.target.value)}
-                    rows={2}
-                    className="w-full p-2 border rounded"
-                  />
-                ) : (
-                  <div className="p-2 bg-gray-50 border rounded">{template.features}</div>
-                )}
+                {renderField(template, 'features', '模板內容', 'textarea')}
               </div>
 
-              {/* Prompt */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">模板 Prompt</label>
-                {editingIndex === index ? (
-                  <textarea
-                    value={template.prompt}
-                    onChange={(e) => updateTemplate('prompt', e.target.value)}
-                    rows={5}
-                    className="w-full p-2 border rounded"
-                  />
-                ) : (
-                  <div className="p-2 bg-gray-50 border rounded whitespace-pre-wrap">{template.prompt}</div>
-                )}
+                {renderField(template, 'prompt', '模板 Prompt', 'textarea')}
               </div>
             </div>
           </div>
