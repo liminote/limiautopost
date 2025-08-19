@@ -17,38 +17,6 @@ export default function TrackingPage() {
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
-  const seedExamples = () => {
-    addTracked([
-      {
-        articleId: 'A001',
-        articleTitle: '如何把長文轉為 Threads/IG 貼文',
-        content: '把長文切段，精煉重點，加入表情與標籤。',
-        platform: 'Threads',
-        permalink: '',
-        publishDate: '',
-        notes: '示例資料'
-      },
-      {
-        articleId: 'A002',
-        articleTitle: '本週社群重點',
-        content: '本週精選 3 篇內容與成效摘要。',
-        platform: 'Instagram',
-        permalink: '',
-        publishDate: '',
-        notes: '示例資料'
-      },
-      {
-        articleId: 'A003',
-        articleTitle: '產品更新公告',
-        content: '新增健康檢查與開發進度面板，優化載入體驗。',
-        platform: 'Facebook',
-        permalink: '',
-        publishDate: '',
-        notes: '示例資料'
-      }
-    ])
-    refresh()
-  }
 
   // 排序與分頁
   const [sortKey, setSortKey] = useState<'createdAt'|'likes'|'comments'|'shares'|'saves'>('createdAt')
@@ -168,7 +136,6 @@ export default function TrackingPage() {
           <div className="mt-4 flex justify-center gap-2">
             <Link to="/app" className="btn btn-primary">前往生成器</Link>
             <button className="btn btn-ghost" onClick={refresh}>重新整理</button>
-            <button className="btn" onClick={seedExamples}>建立示例資料</button>
           </div>
         </div>
       ) : (
@@ -386,4 +353,3 @@ function TagAutocompleteInput({ suggestions, onPick, placeholder }: { suggestion
     </div>
   )
 }
-
