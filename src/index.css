@@ -46,6 +46,10 @@ body{ min-height:100%; scrollbar-gutter: stable; background:var(--surface); colo
 .table.ui-compact tbody td:nth-child(4) span {
   font-size: 12px !important;
   line-height: 16px !important;
+  text-align: left !important;
+  display: inline-block !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
 }
 
 .ui-input-sm,.ui-select-sm{height:28px;padding:3px 8px;font-size:12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-bg);}
