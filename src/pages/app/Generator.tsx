@@ -3,8 +3,9 @@ import { addTracked, getTracked, nextArticleId } from '../../tracking/tracking'
 import type { TrackedPost } from '../../tracking/tracking'
 import GeneratedCard, { type GeneratedCardData } from '../../components/GeneratedCard'
 import { CardService } from '../../services/cardService'
-import { GeminiService } from '../../services/geminiService'
+import { TemplateService } from '../../services/templateService'
 import type { BaseCard } from '../../types/cards'
+import { GeminiService } from '../../services/geminiService'
 import { useSession } from '../../auth/auth'
 
 type PlatformType = 'threads' | 'instagram' | 'facebook' | 'general'
@@ -31,6 +32,7 @@ export default function Generator() {
   
   const cardService = CardService.getInstance()
   const geminiService = GeminiService.getInstance()
+  const templateService = TemplateService.getInstance()
 
   // 使用 useCallback 來避免無限循環
   const refreshTracked = useCallback(() => {
@@ -46,18 +48,29 @@ export default function Generator() {
     }
     
     const loadSelectedTemplates = async () => {
-      // 確保載入最新的系統模板修改
-      await cardService.loadSavedSystemTemplates()
+      // 從 TemplateService 獲取最新的系統模板
+      const systemTemplates = templateService.getSystemTemplatesAsBaseCards()
       
-      // 獲取用戶選擇的模板
-      const templates = cardService.getSelectedTemplates(session.email)
-      setSelectedTemplates(templates)
+      // 獲取用戶自定義模板
+      const userTemplates = cardService.getUserCards(session.email)
+      
+      // 合併模板並標記選擇狀態
+      const allTemplates = [...systemTemplates, ...userTemplates]
+      const userSelections = cardService.getUserSelections(session.email)
+      
+      const availableTemplates = allTemplates.map(template => ({
+        ...template,
+        isSelected: userSelections.has(template.id)
+      }))
+      
+      const selectedTemplates = availableTemplates.filter(template => template.isSelected)
+      setSelectedTemplates(selectedTemplates)
     }
 
     loadSelectedTemplates()
 
-    // 使用 CardService 的訂閱機制來監聽資料變更
-    const unsubscribe = cardService.subscribeToChanges(() => {
+    // 使用 TemplateService 的訂閱機制來監聽資料變更
+    const unsubscribe = templateService.subscribeToChanges(() => {
       console.log('[Generator] 收到模板資料變更通知，重新載入...')
       loadSelectedTemplates()
     })
@@ -65,7 +78,7 @@ export default function Generator() {
     return () => {
       unsubscribe()
     }
-  }, [session?.email, cardService]) // 加入 cardService 依賴
+  }, [session?.email, cardService, templateService])
 
   // 載入保存的內容（頁面載入時）
   useEffect(() => {

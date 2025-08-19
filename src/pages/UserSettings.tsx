@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import CardManager from '../components/CardManager'
 import { CardService } from '../services/cardService'
+import { TemplateService } from '../services/templateService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
 
@@ -18,35 +19,32 @@ export default function UserSettings(){
   const [maxSelections, setMaxSelections] = useState(5)
 
   const cardService = CardService.getInstance()
+  const templateService = TemplateService.getInstance()
 
-  // 從 AIGenerator 的 localStorage 讀取最新的系統模板
-  const getSystemTemplatesFromAIGenerator = (): BaseCard[] => {
-    try {
-      const saved = localStorage.getItem('aigenerator_templates')
-      if (saved) {
-        const templates = JSON.parse(saved)
-        return templates.map((template: any) => ({
-          id: template.id,
-          name: template.title, // 使用 AIGenerator 中的 title
-          description: template.features, // 使用 AIGenerator 中的 features
-          category: template.platform.toLowerCase(),
-          prompt: template.prompt,
-          isActive: true,
-          isSystem: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          platform: template.platform.toLowerCase(),
-          templateTitle: template.title,
-          templateFeatures: template.features,
-          isSelected: true
-        }))
-      }
-    } catch (error) {
-      console.warn('無法從 AIGenerator 讀取模板:', error)
-    }
+  // 載入模板管理資訊
+  const loadTemplateManagement = () => {
+    if (!session) return
     
-    // 如果無法讀取，回退到預設模板
-    return cardService.getAllCards(session?.email || 'default').filter(card => card.isSystem)
+    // 從 TemplateService 獲取最新的系統模板
+    const systemTemplates = templateService.getSystemTemplatesAsBaseCards()
+    
+    // 獲取用戶自定義模板
+    const userTemplates = cardService.getUserCards(session.email)
+    
+    // 合併模板並標記選擇狀態
+    const allTemplates = [...systemTemplates, ...userTemplates]
+    const userSelections = cardService.getUserSelections(session.email)
+    
+    const availableTemplates = allTemplates.map(template => ({
+      ...template,
+      isSelected: userSelections.has(template.id)
+    }))
+    
+    const selectedTemplates = availableTemplates.filter(template => template.isSelected)
+    
+    setAvailableTemplates(availableTemplates)
+    setSelectedTemplates(selectedTemplates)
+    setMaxSelections(5) // 固定最大選擇數量
   }
 
   // 統一的授權狀態檢查函數
@@ -172,29 +170,6 @@ export default function UserSettings(){
   useEffect(() => {
     if (!session) return // 未登入時不載入
     
-    const loadTemplateManagement = async () => {
-      // 優先使用 AIGenerator 的模板資料
-      const systemTemplates = getSystemTemplatesFromAIGenerator()
-      
-      // 獲取用戶自定義模板
-      const userTemplates = cardService.getUserCards(session.email)
-      
-      // 合併模板並標記選擇狀態
-      const allTemplates = [...systemTemplates, ...userTemplates]
-      const userSelections = cardService.getUserSelections(session.email)
-      
-      const availableTemplates = allTemplates.map(template => ({
-        ...template,
-        isSelected: userSelections.has(template.id)
-      }))
-      
-      const selectedTemplates = availableTemplates.filter(template => template.isSelected)
-      
-      setAvailableTemplates(availableTemplates)
-      setSelectedTemplates(selectedTemplates)
-      setMaxSelections(5) // 固定最大選擇數量
-    }
-
     loadTemplateManagement()
 
     // 使用 CardService 的訂閱機制來監聽資料變更
@@ -216,20 +191,7 @@ export default function UserSettings(){
     
     if (success) {
       // 重新載入模板管理資訊
-      const systemTemplates = getSystemTemplatesFromAIGenerator()
-      const userTemplates = cardService.getUserCards(session.email)
-      const allTemplates = [...systemTemplates, ...userTemplates]
-      const userSelections = cardService.getUserSelections(session.email)
-      
-      const availableTemplates = allTemplates.map(template => ({
-        ...template,
-        isSelected: userSelections.has(template.id)
-      }))
-      
-      const selectedTemplates = availableTemplates.filter(template => template.isSelected)
-      
-      setAvailableTemplates(availableTemplates)
-      setSelectedTemplates(selectedTemplates)
+      loadTemplateManagement()
     }
   }
 
