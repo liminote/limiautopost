@@ -400,16 +400,47 @@ ${originalContent}
   }
 
   /**
+   * 檢查 API Key 是否可用
+   */
+  public isAvailable(): boolean {
+    return !!this.apiKey && this.apiKey !== 'undefined' && this.apiKey !== 'null'
+  }
+
+  /**
+   * 獲取服務名稱
+   */
+  public getServiceName(): string {
+    return 'Gemini'
+  }
+
+  /**
+   * 獲取模型名稱
+   */
+  public getModelName(): string {
+    return 'gemini-1.5-flash'
+  }
+
+  /**
    * 測試 API 連線
    */
-  public async testConnection(): Promise<boolean> {
+  public async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
       const result = await this.generateContent({
         prompt: '請回覆「測試成功」這四個字'
       })
-      return result.success && result.content === '測試成功'
-    } catch {
-      return false
+      if (result.success && result.content === '測試成功') {
+        return { success: true, message: 'Gemini 連接成功' }
+      } else {
+        return { success: false, message: 'Gemini 回應格式異常' }
+      }
+    } catch (error: any) {
+      return { 
+        success: false, 
+        message: `Gemini 連接失敗: ${error.message || '未知錯誤'}` 
+      }
     }
   }
 }
+
+// 創建單例實例
+export const geminiService = GeminiService.getInstance()
