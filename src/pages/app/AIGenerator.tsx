@@ -42,7 +42,7 @@ const TEMPLATES: Template[] = [
   }
 ]
 
-export default function AIGenerator() {
+export default function AIGeneratorSimple() {
   const [templates, setTemplates] = useState<Template[]>(TEMPLATES)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
 
