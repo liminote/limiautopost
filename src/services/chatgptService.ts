@@ -22,7 +22,7 @@ export class ChatGPTService {
 
     try {
       const response = await this.client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4-turbo',
         messages: [{ role: 'user', content: 'Hello' }],
         max_tokens: 10
       })
@@ -49,7 +49,7 @@ export class ChatGPTService {
 
     try {
       const response = await this.client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4-turbo',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: maxTokens,
         temperature: 0.3,
@@ -161,7 +161,7 @@ ${articleContent}
 
   // 獲取模型名稱
   getModelName(): string {
-    return 'gpt-3.5-turbo'
+    return 'gpt-4-turbo'
   }
 }
 
