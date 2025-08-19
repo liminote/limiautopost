@@ -119,7 +119,11 @@ ${articleContent}
 
   // 檢查 API Key 是否可用
   isAvailable(): boolean {
-    return !!this.apiKey && !!this.client
+    return !!this.apiKey && 
+           this.apiKey !== 'undefined' && 
+           this.apiKey !== 'null' && 
+           this.apiKey !== 'your_openai_api_key_here' &&
+           !!this.client
   }
 
   // 獲取服務名稱

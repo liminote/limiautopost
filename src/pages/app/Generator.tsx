@@ -227,12 +227,15 @@ export default function Generator() {
           const card: Card = {
             id: crypto.randomUUID(),
             platform: mapPlatform(platform),
-            label: `${articleId} | ${template.templateTitle} (備用)`,
+            label: `${articleId} | ${template.templateTitle} (備用 - ${result.error})`,
             content: fallbackContent,
             checked: false,
             code: code
           }
           newCards.push(card)
+          
+          // 顯示錯誤提示
+          console.warn(`[Generator] 模板 ${i + 1} 使用備用內容，原因: ${result.error}`)
         }
       }
       
@@ -317,7 +320,7 @@ export default function Generator() {
                       ? 'bg-yinmn-blue-300 text-yinmn-blue border-2 border-yinmn-blue'
                       : status.success
                       ? 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
-                      : 'bg-red-100 text-red-700 border-2 border-red-200 cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-500 border-2 border-gray-300 cursor-not-allowed'
                   }`}
                   onClick={() => status.success && setSelectedAIModel(status.model)}
                   disabled={!status.success}
@@ -333,6 +336,23 @@ export default function Generator() {
                 選擇使用 {selectedAIModel === 'gemini' ? 'Google Gemini' : 'OpenAI ChatGPT'} 來生成內容
               </div>
             )}
+            
+            {/* 調試信息 */}
+            <div className="mt-2 p-2 bg-gray-50 rounded-lg text-xs text-gray-600">
+              <div className="font-medium mb-1">服務狀態：</div>
+              {aiServicesStatus.map((status) => (
+                <div key={status.model} className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${status.success ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                  <span className="capitalize">{status.model}:</span>
+                  <span className={status.success ? 'text-green-600' : 'text-gray-500'}>
+                    {status.success ? '可用' : '不可用'}
+                  </span>
+                  {!status.success && (
+                    <span className="text-red-500 text-xs">({status.message})</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
           
           <div>
@@ -360,6 +380,16 @@ export default function Generator() {
             <button className="btn btn-primary disabled:opacity-50" disabled={!article || generating || selectedTemplates.length === 0} onClick={onGenerate}>
               {generating ? 'AI 生成中…' : '開始 AI 生成貼文'}
             </button>
+            {cards.some(c => c.label.includes('(備用')) && (
+              <button 
+                className="btn btn-outline" 
+                onClick={onGenerate}
+                disabled={generating || !article || selectedTemplates.length === 0}
+                title="重新嘗試 AI 生成，解決備用內容問題"
+              >
+                重新生成
+              </button>
+            )}
           </div>
         </div>
       </div>
