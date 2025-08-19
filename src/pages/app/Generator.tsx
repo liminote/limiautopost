@@ -18,6 +18,8 @@ type Card = {
   content: string
   checked: boolean
   code: string // T1/T2/T3/IG/MAN
+  aiModel: string // 新增：記錄 AI 模型
+  generatedAt: string // 新增：記錄生成時間
 }
 
 export default function Generator() {
@@ -156,13 +158,13 @@ export default function Generator() {
   const onClear = () => {
     setTitle('')
     setArticle('')
-    setCards([])
+    // 不清空卡片，讓用戶可以保留生成結果
     
     if (session) {
       try {
         localStorage.removeItem(`generator:${session.email}:title`)
         localStorage.removeItem(`generator:${session.email}:article`)
-        localStorage.removeItem(`generator:${session.email}:cards`)
+        // 不清空卡片的 localStorage
       } catch (e) {
         console.warn('清除保存的內容失敗:', e)
       }
@@ -215,7 +217,9 @@ export default function Generator() {
             label: `${articleId} | ${template.templateTitle} (${result.model.toUpperCase()})`,
             content: result.content,
             checked: false,
-            code: code
+            code: code,
+            aiModel: result.model,
+            generatedAt: new Date().toISOString()
           }
           newCards.push(card)
           console.log(`[Generator] 模板 ${i + 1} 生成成功，使用 ${result.model}，字數:`, result.content.length)
@@ -230,7 +234,9 @@ export default function Generator() {
             label: `${articleId} | ${template.templateTitle} (備用 - ${result.error})`,
             content: fallbackContent,
             checked: false,
-            code: code
+            code: code,
+            aiModel: 'fallback',
+            generatedAt: new Date().toISOString()
           }
           newCards.push(card)
           
@@ -239,7 +245,7 @@ export default function Generator() {
         }
       }
       
-      setCards(newCards)
+      setCards(prev => [...prev, ...newCards])
       console.log('[Generator] AI 生成完成，總共生成卡片:', newCards.length)
       
     } catch (error) {
@@ -407,7 +413,7 @@ export default function Generator() {
         ) : (
            <div className="grid grid-cols-1 gap-4">
             <div className="flex items-center gap-3">
-              <div className="ml-auto flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   className="text-xs text-gray-600 hover:text-gray-900"
                   onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: true })))}
@@ -417,7 +423,65 @@ export default function Generator() {
                   onClick={()=> setCards(prev => prev.map(x => ({ ...x, checked: false })))}
                 >全不選</button>
               </div>
+              
+              {/* 卡片管理功能 */}
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                  onClick={() => setCards(prev => prev.sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime()))}
+                  title="按生成時間排序（最新的在前）"
+                >
+                  🕒 時間排序
+                </button>
+                <button
+                  className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                  onClick={() => setCards(prev => prev.filter(card => !card.label.includes('(備用)')))}
+                  title="移除所有備用內容卡片"
+                >
+                  🗑️ 清除備用
+                </button>
+                <button
+                  className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                  onClick={() => {
+                    if (confirm('確定要清除所有卡片嗎？')) {
+                      setCards([])
+                    }
+                  }}
+                  title="清除所有卡片"
+                >
+                  🗑️ 清除全部
+                </button>
+              </div>
             </div>
+            
+            {/* 卡片統計信息 */}
+            {cards.length > 0 && (
+              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <span>總共 {cards.length} 張卡片</span>
+                  {(() => {
+                    const stats = cards.reduce((acc, card) => {
+                      acc[card.aiModel] = (acc[card.aiModel] || 0) + 1
+                      return acc
+                    }, {} as Record<string, number>)
+                    
+                    return Object.entries(stats).map(([model, count]) => (
+                      <span key={model} className="flex items-center gap-1">
+                        <span className={`w-2 h-2 rounded-full ${
+                          model === 'gemini' ? 'bg-blue-500' : 
+                          model === 'chatgpt' ? 'bg-green-500' : 
+                          'bg-gray-400'
+                        }`}></span>
+                        {model === 'gemini' ? 'Gemini' : 
+                         model === 'chatgpt' ? 'ChatGPT' : 
+                         model === 'fallback' ? '備用' : model}: {count}
+                      </span>
+                    ))
+                  })()}
+                </div>
+              </div>
+            )}
+            
             {cards.map((c, idx) => (
               <GeneratedCard
                 key={c.id}
