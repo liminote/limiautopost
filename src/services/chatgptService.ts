@@ -48,15 +48,26 @@ export class ChatGPTService {
     }
 
     try {
+      console.log('[ChatGPT] 開始生成，max_tokens:', maxTokens)
+      
       const response = await this.client.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: maxTokens,
-        temperature: 0.7
+        temperature: 0.3, // 降低溫度，讓生成更穩定
+        presence_penalty: 0.1, // 輕微懲罰重複內容
+        frequency_penalty: 0.1 // 輕微懲罰頻繁出現的詞彙
       })
 
       const content = response.choices[0]?.message?.content
       if (content) {
+        // 檢查是否被截斷
+        const isTruncated = response.choices[0]?.finish_reason === 'length'
+        if (isTruncated) {
+          console.warn('[ChatGPT] 內容被截斷，finish_reason:', response.choices[0]?.finish_reason)
+        }
+        
+        console.log('[ChatGPT] 生成完成，字數:', content.length, '是否截斷:', isTruncated)
         return { success: true, content: content.trim() }
       } else {
         return { success: false, error: 'ChatGPT 未生成內容' }
@@ -68,6 +79,32 @@ export class ChatGPTService {
         error: `ChatGPT 生成失敗: ${error.message || '未知錯誤'}` 
       }
     }
+  }
+
+  /**
+   * 檢查內容完整性
+   */
+  private checkContentCompleteness(content: string): boolean {
+    if (!content || content.length < 50) return false
+    
+    // 檢查是否以完整句子結尾
+    const lastChar = content.trim().slice(-1)
+    const sentenceEndings = ['。', '！', '？', '!', '?', '.', '\n']
+    
+    if (sentenceEndings.includes(lastChar)) {
+      return true
+    }
+    
+    // 檢查是否被截斷（最後一個詞是否完整）
+    const words = content.trim().split(/\s+/)
+    const lastWord = words[words.length - 1]
+    
+    // 如果最後一個詞太短，可能是被截斷
+    if (lastWord.length < 3) {
+      return false
+    }
+    
+    return true
   }
 
   // 根據模板生成貼文
@@ -93,9 +130,35 @@ ${articleContent}
       promptPreview: prompt.substring(0, 300) + '...'
     })
 
-    // 計算 max_tokens，確保至少為 1
-    const maxTokens = Math.max(1, maxWords * 2) // 恢復到合理的 token 預留
-    return await this.generateContent(prompt, maxTokens)
+    // 計算 max_tokens，為中文內容提供足夠空間
+    // 中文一個字約 2-3 tokens，加上 prompt 的 token，需要更多空間
+    const estimatedTokens = Math.max(1000, maxWords * 4) // 中文需要更多 token
+    const maxTokens = Math.max(1, estimatedTokens)
+    
+    console.log('[ChatGPT] Token 計算:', {
+      maxWords,
+      estimatedTokens,
+      finalMaxTokens: maxTokens
+    })
+    
+    const result = await this.generateContent(prompt, maxTokens)
+    
+    // 檢查生成內容的完整性
+    if (result.success && result.content) {
+      const content = result.content
+      const isComplete = this.checkContentCompleteness(content)
+      
+      if (!isComplete) {
+        console.warn('[ChatGPT] 生成內容可能不完整，嘗試重新生成')
+        // 如果內容不完整，嘗試用更多 token 重新生成
+        const retryResult = await this.generateContent(prompt, maxTokens * 1.5)
+        if (retryResult.success && retryResult.content) {
+          return retryResult
+        }
+      }
+    }
+    
+    return result
   }
 
   // 智能截斷內容
