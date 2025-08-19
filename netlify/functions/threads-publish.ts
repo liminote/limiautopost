@@ -1,21 +1,29 @@
 import type { Handler } from '@netlify/functions'
-import { getLatestToken } from './_tokenStore'
+import { getTokenForUser } from './_tokenStore'
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' }
   }
+  
   try {
     const body = (() => {
-      try { return JSON.parse(event.body || '{}') as { text?: string } } catch { return {} }
+      try { return JSON.parse(event.body || '{}') as { text?: string; userEmail?: string } } catch { return {} }
     })()
     const text = (body.text || '').trim()
+    const userEmail = body.userEmail || ''
+    
     if (!text) return { statusCode: 400, body: 'Missing text' }
+    if (!userEmail) return { statusCode: 400, body: 'Missing userEmail' }
 
-    const latest = await getLatestToken()
-    if (!latest) return { statusCode: 401, body: 'Not linked' }
-    const data = latest.data as { access_token?: string; user_id?: string }
+    // 使用用戶隔離的 token 獲取方式
+    const latest = await getTokenForUser(userEmail)
+    if (!latest) return { statusCode: 401, body: 'User not linked to Threads' }
+    
+    const data = latest.data as { access_token?: string; user_id?: string; username?: string }
     if (!data?.access_token) return { statusCode: 401, body: 'Missing access token' }
+
+    console.log(`發佈貼文到用戶 ${userEmail} 的 Threads 帳號: ${data.username || data.user_id}`)
 
     // Minimal publish call. Threads Graph API expects x-www-form-urlencoded
     // 加入 UA 與超時，避免偶發連線掛起

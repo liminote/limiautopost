@@ -4,7 +4,7 @@ import { getTracked, removeTracked, updateTracked, type TrackedPost } from '../t
 import { PLATFORM_DISPLAY_MAP, PLATFORM_CONFIG } from '../config/platformConfig'
 // import removed: mock metrics no longer used
 
-export default function TrackingTable({ rows, setRows, loading }: { rows: TrackedPost[]; setRows: (r: TrackedPost[]) => void; loading?: boolean }){
+export default function TrackingTable({ rows, setRows, loading, userEmail }: { rows: TrackedPost[]; setRows: (r: TrackedPost[]) => void; loading?: boolean; userEmail?: string }){
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [hoverPos, setHoverPos] = useState<{ left: number; top: number } | null>(null)
   const [hoverText, setHoverText] = useState<string>('')
@@ -59,9 +59,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     const text = (r.content || '').trim()
     if (!text) { alert('內容為空，無法發佈'); return }
     
+    // 檢查用戶是否已登入
+    if (!userEmail) {
+      alert('請先登入後再發佈貼文')
+      return
+    }
+    
     // 發佈前預檢查 token 狀態
     try {
-      const statusCheck = await fetch('/.netlify/functions/threads-status')
+      const statusCheck = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(userEmail)}`)
       if (statusCheck.ok) {
         const statusData = await statusCheck.json()
         if (statusData.status !== 'linked') {
@@ -256,6 +262,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
   async function publishWithRetry(text: string): Promise<{ ok: boolean; id?: string; permalink?: string; errorText?: string }>{
+    // 檢查用戶是否已登入
+    if (!userEmail) {
+      return { ok: false, errorText: 'User not logged in' }
+    }
+    
     // 先打 Functions 直連，較少遇到部署切換時的 404/HTML 回應
     const ts = Date.now()
     const endpoints = [
@@ -266,7 +277,11 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     for (let i = 0; i < delays.length; i++) {
       for (const url of endpoints) {
         try {
-          const resp = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) })
+          const resp = await fetch(url, { 
+            method: 'POST', 
+            headers: { 'content-type': 'application/json' }, 
+            body: JSON.stringify({ text, userEmail }) 
+          })
           const ct = resp.headers.get('content-type') || ''
           const isJson = ct.includes('application/json')
           if (resp.ok && isJson) {
@@ -289,7 +304,7 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
     }
     // 最後嘗試：狀態檢查
     try {
-      const st = await fetch('/.netlify/functions/threads-status').then(r=> r.ok ? r.json() : null).catch(()=>null) as any
+      const st = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(userEmail)}`).then(r=> r.ok ? r.json() : null).catch(()=>null) as any
       if (st && st.status !== 'linked') {
         const reason = st.reasonCode ? ` (${st.reasonCode})` : ''
         return { ok: false, errorText: `Threads 未連結${reason}` }
@@ -378,13 +393,15 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
                 })()}
               </td>
               <td className="px-3 py-3 border-t align-top">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  r.status === 'published' ? 'bg-green-100 text-green-800' :
-                  r.status === 'publishing' ? 'bg-blue-100 text-blue-800' :
-                  r.status === 'failed' ? 'bg-red-100 text-red-800' :
-                  r.status === 'draft' ? 'bg-gray-100 text-gray-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span 
+                  className={`px-2 py-1 rounded-full font-medium ${
+                    r.status === 'published' ? 'bg-green-100 text-green-800' :
+                    r.status === 'publishing' ? 'bg-blue-100 text-blue-800' :
+                    r.status === 'failed' ? 'bg-red-100 text-red-800' :
+                    r.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}
+                >
                   {r.status === 'published' ? '已發佈' :
                    r.status === 'publishing' ? '發佈中' :
                    r.status === 'failed' ? '失敗' :

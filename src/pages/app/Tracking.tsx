@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { getTracked, clearTracked, addTracked, type TrackedPost } from '../../tracking/tracking'
+import { useSession } from '../../auth/auth'
 import TrackingTable from '../../components/TrackingTable'
 
 export default function TrackingPage() {
+  const session = useSession()
+  const userEmail = session?.email
   const [rows, setRows] = useState<TrackedPost[]>([])
   const [allRows, setAllRows] = useState<TrackedPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -196,7 +199,7 @@ export default function TrackingPage() {
               </div>
             </div>
           </div>
-          <TrackingTable rows={displayed.list} setRows={setRows} loading={loading} />
+          <TrackingTable rows={displayed.list} setRows={setRows} loading={loading} userEmail={userEmail} />
         </>
       )}
     </div>
