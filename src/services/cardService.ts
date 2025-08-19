@@ -303,10 +303,17 @@ export class CardService {
     }
 
     const selections = this.getUserSelections(userId)
-    const maxSelections = 5
+    const maxSelections = 5 // 最大選擇數量
     
-    if (selections.size >= maxSelections && !selections.has(cardId)) {
-      return false // 已達最大選擇數量
+    // 如果已經選擇了這個模板，允許移除
+    if (selections.has(cardId)) {
+      return true
+    }
+    
+    // 檢查是否已達最大選擇數量
+    if (selections.size >= maxSelections) {
+      console.warn(`[CardService] 已達最大選擇數量 ${maxSelections}`)
+      return false
     }
     
     selections.add(cardId)

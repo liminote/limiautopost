@@ -25,7 +25,15 @@ export default function UserSettings(){
     
     // 使用 CardService 的統一方法獲取所有模板
     const allTemplates = cardService.getAllCards(session.email)
+    
+    // 正確過濾已選擇的模板
     const selectedTemplates = allTemplates.filter(template => template.isSelected)
+    
+    console.log('[UserSettings] 載入模板:', {
+      total: allTemplates.length,
+      selected: selectedTemplates.length,
+      maxSelections
+    })
     
     setAvailableTemplates(allTemplates)
     setSelectedTemplates(selectedTemplates)
@@ -172,11 +180,21 @@ export default function UserSettings(){
   const toggleTemplateSelection = (cardId: string) => {
     if (!session) return
     
+    console.log('[UserSettings] 切換模板選擇:', {
+      cardId,
+      currentSelected: selectedTemplates.length,
+      maxSelections
+    })
+    
     const success = cardService.toggleUserSelection(session.email, cardId)
     
     if (success) {
+      console.log('[UserSettings] 模板選擇切換成功')
       // 重新載入模板管理資訊
       loadTemplateManagement()
+    } else {
+      console.warn('[UserSettings] 模板選擇切換失敗，可能已達最大選擇數量')
+      alert('無法選擇更多模板，已達最大選擇數量（5個）')
     }
   }
 
