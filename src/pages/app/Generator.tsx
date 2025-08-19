@@ -195,38 +195,20 @@ export default function Generator() {
         const template = selectedTemplates[i]
         const platform = template.platform as PlatformType
         
-        // 詳細的模板信息調試
-        console.log(`[Generator] ===== 模板 ${i + 1}/${selectedTemplates.length} =====`)
-        console.log(`[Generator] 模板 ID:`, template.id)
-        console.log(`[Generator] 模板標題:`, template.templateTitle)
-        console.log(`[Generator] 模板平台:`, template.platform)
-        console.log(`[Generator] 模板 Prompt 長度:`, template.prompt.length)
-        console.log(`[Generator] 模板 Prompt 完整內容:`, template.prompt)
-        console.log(`[Generator] ================================`)
-        
+        // 簡化的調試信息
         console.log(`[Generator] 生成模板 ${i + 1}/${selectedTemplates.length}:`, {
-          platform: template.platform,
           title: template.templateTitle,
-          prompt: template.prompt.substring(0, 100) + '...'
+          platform: template.platform,
+          promptLength: template.prompt.length
         })
         
-        // 調用選定的 AI 服務生成內容，字數完全由 Prompt 決定
+        // 調用選定的 AI 服務生成內容
         const result = await aiServiceManager.generatePostWithModel(
           selectedAIModel,
           template.prompt,
           article,
-          500 // 傳入預設字數限制，讓 AI 服務處理字數控制
+          500
         )
-        
-        // 添加詳細的調試信息
-        console.log(`[Generator] 模板 ${i + 1} 詳細信息:`, {
-          templateId: template.id,
-          templateTitle: template.templateTitle,
-          promptLength: template.prompt.length,
-          promptPreview: template.prompt.substring(0, 200) + '...',
-          aiModel: selectedAIModel,
-          result: result
-        })
         
         if (result.success && result.content) {
           const code = generateCode(platform, i)
@@ -241,10 +223,10 @@ export default function Generator() {
             generatedAt: new Date().toISOString()
           }
           newCards.push(card)
-          console.log(`[Generator] 模板 ${i + 1} 生成成功，使用 ${result.model}，字數:`, result.content.length)
+          console.log(`[Generator] 模板 ${i + 1} 生成成功，字數:`, result.content.length)
         } else {
           console.error(`[Generator] 模板 ${i + 1} 生成失敗:`, result.error)
-          // 生成失敗時，使用備用的簡單截取（預設 300 字）
+          // 生成失敗時，使用備用的簡單截取
           const fallbackContent = generateFallbackContent(article, 300, i)
           const code = generateCode(platform, i)
           const card: Card = {
@@ -258,9 +240,6 @@ export default function Generator() {
             generatedAt: new Date().toISOString()
           }
           newCards.push(card)
-          
-          // 顯示錯誤提示
-          console.warn(`[Generator] 模板 ${i + 1} 使用備用內容，原因: ${result.error}`)
         }
       }
       
