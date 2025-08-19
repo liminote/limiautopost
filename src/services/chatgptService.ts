@@ -72,6 +72,9 @@ export class ChatGPTService {
 
   // 根據模板生成貼文
   async generatePostFromTemplate(template: string, articleContent: string, maxWords: number = 500): Promise<{ success: boolean; content?: string; error?: string }> {
+    // 確保 maxWords 有效，如果為 0 或無效值，使用預設值
+    const validMaxWords = maxWords > 0 ? maxWords : 500
+    
     const prompt = `
 請根據以下模板和文章內容，生成一篇社群媒體貼文：
 
@@ -83,14 +86,16 @@ ${articleContent}
 
 要求：
 1. 嚴格遵守模板中的所有規則和要求
-2. 字數限制：${maxWords} 字以內
+2. 字數限制：${validMaxWords} 字以內
 3. 內容要自然流暢，符合社群媒體的閱讀習慣
 4. 如果模板要求加入 hashtag，請確保只加入一個相關的 hashtag
 
 請直接輸出貼文內容，不要包含任何說明文字。
 `
 
-    return await this.generateContent(prompt, maxWords * 2) // 預留一些 token 給 prompt
+    // 計算 max_tokens，確保至少為 1
+    const maxTokens = Math.max(1, validMaxWords * 2) // 預留一些 token 給 prompt
+    return await this.generateContent(prompt, maxTokens)
   }
 
   // 智能截斷內容

@@ -429,16 +429,34 @@ ${originalContent}
    * 測試 API 連線
    */
   public async testConnection(): Promise<{ success: boolean; message: string }> {
+    if (!this.isInitialized || !this.model) {
+      return { 
+        success: false, 
+        message: 'Gemini 服務未初始化，請檢查 API Key 設定' 
+      }
+    }
+
     try {
       const result = await this.generateContent({
         prompt: '請回覆「測試成功」這四個字'
       })
-      if (result.success && result.content === '測試成功') {
-        return { success: true, message: 'Gemini 連接成功' }
+      
+      if (result.success && result.content) {
+        // 更寬鬆的檢查，只要內容包含「測試成功」即可
+        if (result.content.includes('測試成功')) {
+          return { success: true, message: 'Gemini 連接成功' }
+        } else {
+          console.warn('[GeminiService] 測試回應內容:', result.content)
+          return { success: false, message: 'Gemini 回應內容不符合預期' }
+        }
       } else {
-        return { success: false, message: 'Gemini 回應格式異常' }
+        return { 
+          success: false, 
+          message: `Gemini 生成失敗: ${result.error || '未知錯誤'}` 
+        }
       }
     } catch (error: any) {
+      console.error('[GeminiService] 連接測試異常:', error)
       return { 
         success: false, 
         message: `Gemini 連接失敗: ${error.message || '未知錯誤'}` 

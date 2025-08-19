@@ -204,7 +204,7 @@ export default function Generator() {
           selectedAIModel,
           template.prompt,
           article,
-          0 // 傳入 0 表示字數由 Prompt 決定
+          500 // 傳入預設字數限制，讓 AI 服務處理字數控制
         )
         
         if (result.success && result.content) {
