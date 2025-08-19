@@ -46,7 +46,7 @@ body{ min-height:100%; scrollbar-gutter: stable; background:var(--surface); colo
 .table.ui-compact tbody td:nth-child(4) span {
   font-size: 12px !important;
   line-height: 16px !important;
-  text-align: left !important;
+  text-align: center !important;
   display: inline-block !important;
   padding-left: 0 !important;
   margin-left: 0 !important;
