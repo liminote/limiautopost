@@ -40,6 +40,24 @@ export default function UserSettings(){
     setMaxSelections(5) // 固定最大選擇數量
   }
 
+  // 強制重新載入模板（清除快取）
+  const forceReloadTemplates = () => {
+    if (!session) return
+    
+    console.log('[UserSettings] 強制重新載入模板')
+    
+    // 清除可能的快取
+    try {
+      localStorage.removeItem('limiautopost:userSelections')
+      console.log('[UserSettings] 已清除用戶選擇快取')
+    } catch (error) {
+      console.warn('[UserSettings] 清除快取失敗:', error)
+    }
+    
+    // 重新載入
+    loadTemplateManagement()
+  }
+
   // 統一的授權狀態檢查函數
   const checkAuthStatus = async () => {
     if (!session) return
@@ -265,8 +283,17 @@ export default function UserSettings(){
       <div className="card card-body text-sm text-gray-600 space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">模板選擇管理</h2>
-          <div className="text-sm text-gray-500">
-            已選擇 {selectedTemplates.length} / {maxSelections} 個模板
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-500">
+              已選擇 {selectedTemplates.length} / {maxSelections} 個模板
+            </div>
+            <button
+              onClick={forceReloadTemplates}
+              className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+              title="強制重新載入模板，清除快取"
+            >
+              重新載入
+            </button>
           </div>
         </div>
         <p className="text-gray-500">選擇要在「貼文生成器」中顯示的模板（最多可選擇 {maxSelections} 個）</p>
