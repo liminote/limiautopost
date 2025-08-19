@@ -229,7 +229,7 @@ export default function UserSettings(){
             <ul className="mt-1 space-y-1">
               <li>• 系統會自動監控授權狀態</li>
               <li>• 如果授權即將過期，會自動嘗試刷新</li>
-              <li>• 排程貼文會自動檢查授權狀態</li>
+              <li>• 貼文會自動檢查授權狀態</li>
               <li>• 授權失效時會通知您重新連結</li>
             </ul>
           </div>
