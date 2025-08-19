@@ -14,9 +14,10 @@ export interface GeminiGenerationResult {
 
 export class GeminiService {
   private static instance: GeminiService
-  private genAI: GoogleGenerativeAI
-  private model: any
-  private apiKey: string
+  private genAI: GoogleGenerativeAI | null = null
+  private model: any = null
+  private apiKey: string | null = null
+  private isInitialized: boolean = false
 
   private constructor() {
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY
@@ -28,23 +29,20 @@ export class GeminiService {
     console.log('- 環境變數長度:', this.apiKey ? this.apiKey.length : 'N/A')
     console.log('- 所有環境變數:', import.meta.env)
     
-    if (!this.apiKey) {
-      console.error('❌ GEMINI_API_KEY 環境變數未設定')
-      throw new Error('GEMINI_API_KEY 環境變數未設定，請檢查 Netlify 環境變數設定')
-    }
-    
-    if (this.apiKey === 'undefined' || this.apiKey === 'null') {
-      console.error('❌ GEMINI_API_KEY 環境變數值無效:', this.apiKey)
-      throw new Error('GEMINI_API_KEY 環境變數值無效')
+    if (!this.apiKey || this.apiKey === 'undefined' || this.apiKey === 'null') {
+      console.warn('⚠️ GEMINI_API_KEY 環境變數未設定或無效，服務將標記為不可用')
+      this.isInitialized = false
+      return
     }
     
     try {
       this.genAI = new GoogleGenerativeAI(this.apiKey)
       this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+      this.isInitialized = true
       console.log('✅ GeminiService 初始化成功')
     } catch (error) {
       console.error('❌ GeminiService 初始化失敗:', error)
-      throw new Error('GeminiService 初始化失敗')
+      this.isInitialized = false
     }
   }
 
@@ -64,6 +62,13 @@ export class GeminiService {
    * 生成內容
    */
   public async generateContent(request: GeminiGenerationRequest): Promise<GeminiGenerationResult> {
+    if (!this.isInitialized || !this.model) {
+      return {
+        success: false,
+        error: 'Gemini 服務未初始化，請檢查 API Key 設定'
+      }
+    }
+
     try {
       console.log('[GeminiService] 開始生成內容:', { prompt: request.prompt.substring(0, 100) + '...' })
       
@@ -403,7 +408,7 @@ ${originalContent}
    * 檢查 API Key 是否可用
    */
   public isAvailable(): boolean {
-    return !!this.apiKey && this.apiKey !== 'undefined' && this.apiKey !== 'null'
+    return this.isInitialized
   }
 
   /**

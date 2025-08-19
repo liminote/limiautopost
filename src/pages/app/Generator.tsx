@@ -305,12 +305,7 @@ export default function Generator() {
       {/* 左：輸入與設定 */}
       <div className="space-y-4">
         <div className="card card-body space-y-3">
-          <div>
-            <label className="block text-sm text-gray-600">標題</label>
-            <input className="mt-1 input w-full text-base" value={title} onChange={e=>setTitle(e.target.value)} placeholder="輸入原文標題" />
-          </div>
-          
-          {/* AI 模型選擇 */}
+          {/* AI 模型選擇 - 移到最上面 */}
           <div>
             <label className="block text-sm text-gray-600">AI 模型</label>
             <div className="mt-1 flex gap-2">
@@ -319,7 +314,7 @@ export default function Generator() {
                   key={status.model}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     selectedAIModel === status.model
-                      ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
+                      ? 'bg-yinmn-blue-300 text-yinmn-blue border-2 border-yinmn-blue'
                       : status.success
                       ? 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
                       : 'bg-red-100 text-red-700 border-2 border-red-200 cursor-not-allowed'
@@ -338,6 +333,11 @@ export default function Generator() {
                 選擇使用 {selectedAIModel === 'gemini' ? 'Google Gemini' : 'OpenAI ChatGPT'} 來生成內容
               </div>
             )}
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-600">標題</label>
+            <input className="mt-1 input w-full text-base" value={title} onChange={e=>setTitle(e.target.value)} placeholder="輸入原文標題" />
           </div>
           
           <div>
