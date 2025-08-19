@@ -19,7 +19,7 @@ export const defaultSystemCards: SystemCard[] = [
     platform: 'threads',
     templateTitle: '第一則貼文',
     templateFeatures: '480-500字，完整觀點論述，獨立主題',
-    isSelected: true
+    isSelected: false
   },
   {
     id: 'system-threads-2',
@@ -39,7 +39,7 @@ export const defaultSystemCards: SystemCard[] = [
     platform: 'threads',
     templateTitle: '第二則貼文',
     templateFeatures: '330-350字，完整觀點論述，獨立主題',
-    isSelected: true
+    isSelected: false
   },
   {
     id: 'system-threads-3',
@@ -59,7 +59,7 @@ export const defaultSystemCards: SystemCard[] = [
     platform: 'threads',
     templateTitle: '第三則貼文',
     templateFeatures: '180-200字，完整觀點論述，獨立主題',
-    isSelected: true
+    isSelected: false
   },
   {
     id: 'system-instagram',
@@ -78,6 +78,6 @@ export const defaultSystemCards: SystemCard[] = [
     platform: 'instagram',
     templateTitle: '貼文',
     templateFeatures: '溫暖語氣，開放式問題結尾，具洞察力',
-    isSelected: true
+    isSelected: false
   }
 ]

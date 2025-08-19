@@ -254,11 +254,10 @@ export class CardService {
       // 從 localStorage 載入用戶選擇
       this.loadUserSelectionsFromStorage()
       
-      // 如果還是沒有，為新用戶設置預設選擇
+      // 如果還是沒有，為新用戶設置空的選擇集合（不自動選擇預設模板）
       if (!this.userSelections.has(userId)) {
-        // 為新用戶自動選擇預設的系統模板
-        const defaultSelections = new Set(defaultSystemCards.filter(card => card.isSelected).map(card => card.id))
-        this.userSelections.set(userId, defaultSelections)
+        console.log('[CardService] 為新用戶創建空的選擇集合')
+        this.userSelections.set(userId, new Set())
         this.saveUserSelectionsToStorage()
       }
     }
