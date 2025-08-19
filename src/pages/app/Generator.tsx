@@ -209,6 +209,16 @@ export default function Generator() {
           500 // 傳入預設字數限制，讓 AI 服務處理字數控制
         )
         
+        // 添加詳細的調試信息
+        console.log(`[Generator] 模板 ${i + 1} 詳細信息:`, {
+          templateId: template.id,
+          templateTitle: template.templateTitle,
+          promptLength: template.prompt.length,
+          promptPreview: template.prompt.substring(0, 200) + '...',
+          aiModel: selectedAIModel,
+          result: result
+        })
+        
         if (result.success && result.content) {
           const code = generateCode(platform, i)
           const card: Card = {

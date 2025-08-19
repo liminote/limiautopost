@@ -72,6 +72,14 @@ export class ChatGPTService {
 
   // 根據模板生成貼文
   async generatePostFromTemplate(template: string, articleContent: string, maxWords: number = 500): Promise<{ success: boolean; content?: string; error?: string }> {
+    // 添加詳細的調試信息
+    console.log('[ChatGPT] 接收到的模板:', {
+      templateLength: template.length,
+      templatePreview: template.substring(0, 200) + '...',
+      articleLength: articleContent.length,
+      maxWords: maxWords
+    })
+    
     // 直接使用模板中的 prompt，添加文章內容作為上下文
     const prompt = `${template}
 
@@ -79,6 +87,11 @@ export class ChatGPTService {
 ${articleContent}
 
 請根據上述模板要求生成貼文內容。`
+
+    console.log('[ChatGPT] 構建的最終 prompt:', {
+      promptLength: prompt.length,
+      promptPreview: prompt.substring(0, 300) + '...'
+    })
 
     // 計算 max_tokens，確保至少為 1
     const maxTokens = Math.max(1, maxWords * 2) // 恢復到合理的 token 預留
