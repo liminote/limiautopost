@@ -195,6 +195,15 @@ export default function Generator() {
         const template = selectedTemplates[i]
         const platform = template.platform as PlatformType
         
+        // 詳細的模板信息調試
+        console.log(`[Generator] ===== 模板 ${i + 1}/${selectedTemplates.length} =====`)
+        console.log(`[Generator] 模板 ID:`, template.id)
+        console.log(`[Generator] 模板標題:`, template.templateTitle)
+        console.log(`[Generator] 模板平台:`, template.platform)
+        console.log(`[Generator] 模板 Prompt 長度:`, template.prompt.length)
+        console.log(`[Generator] 模板 Prompt 完整內容:`, template.prompt)
+        console.log(`[Generator] ================================`)
+        
         console.log(`[Generator] 生成模板 ${i + 1}/${selectedTemplates.length}:`, {
           platform: template.platform,
           title: template.templateTitle,
