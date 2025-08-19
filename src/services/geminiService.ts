@@ -251,52 +251,18 @@ ${content}
     originalContent: string,
     targetLength: number
   ): Promise<GeminiGenerationResult> {
-    // 如果 targetLength 為 0，自動解析 Prompt 中的字數要求
-    if (targetLength === 0) {
-      const extractedLength = this.extractLengthFromPrompt(templatePrompt)
-      if (extractedLength) {
-        console.log(`[GeminiService] 從 Prompt 中提取到字數要求: ${extractedLength.min}-${extractedLength.max} 字`)
-        targetLength = extractedLength.max // 使用最大值作為限制
-      }
-    }
-
-    // 如果指定了字數，則進行字數控制
+    // 直接使用模板中的 prompt，添加文章內容作為上下文
     const fullPrompt = `${templatePrompt}
 
 原文內容：
 ${originalContent}
 
-請根據上述模板要求，生成一篇符合字數限制（嚴格控制在 ${targetLength} 字元以內）的貼文。請確保：
-1. 嚴格遵守模板的格式和風格要求
-2. 字數必須控制在 ${targetLength} 字元以內，絕對不能超過
-3. 內容要自然流暢，符合社群媒體的表達方式
-4. 如果原文是中文，請用繁體中文回應
-5. 生成完成後，請再次確認字數不超過 ${targetLength} 字元
-
-請直接輸出貼文內容，不需要額外的說明或標記。`
+請根據上述模板要求生成貼文內容。`
 
     const result = await this.generateContent({
       prompt: fullPrompt,
       temperature: 0.7
     })
-
-    // 檢查字數並自動截取
-    if (result.success && result.content) {
-      const actualLength = result.content.length
-      console.log(`[GeminiService] 生成內容字數: ${actualLength}, 目標字數: ${targetLength}`)
-      
-      if (actualLength > targetLength) {
-        console.warn(`[GeminiService] 內容超出字數限制，自動截取`)
-        
-        // 智能截取：盡量在句子結尾處切斷
-        const truncated = this.smartTruncate(result.content, targetLength)
-        
-        return {
-          success: true,
-          content: truncated
-        }
-      }
-    }
 
     return result
   }
