@@ -14,113 +14,18 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const [publishingId, setPublishingId] = useState<string | null>(null)
 
-  const [isCheckingSchedule, setIsCheckingSchedule] = useState(false)
   const [scheduleDialog, setScheduleDialog] = useState<{ show: boolean; row: TrackedPost | null; input: string }>({ show: false, row: null, input: '' })
   const [publishDateDialog, setPublishDateDialog] = useState<{ show: boolean; row: TrackedPost | null; input: string }>({ show: false, row: null, input: '' })
 
-  // 簡化的排程檢查：移除複雜的重試機制
-  const checkScheduledPosts = useCallback(async () => {
-    if (isCheckingSchedule) {
-      console.log('[排程檢查] 已在執行中，跳過重複檢查')
-      return
-    }
-
-    const now = new Date()
-    const scheduledPosts = rows.filter(r => 
-      r.platform === 'Threads' && 
-      r.status === 'scheduled' && 
-      r.scheduledAt && 
-      new Date(r.scheduledAt) <= now &&
-      // 防重複發佈：確保沒有 threadsPostId
-      !r.threadsPostId
-    )
-
-    if (scheduledPosts.length === 0) {
-      console.log('[排程檢查] 沒有到期的排程貼文')
-      return
-    }
-
-    console.log(`[排程檢查] 找到 ${scheduledPosts.length} 篇到期排程貼文`)
-    setIsCheckingSchedule(true)
-
-    try {
-      for (const post of scheduledPosts) {
-        try {
-          // 再次檢查狀態，避免重複發佈
-          const currentPost = rows.find(x => x.id === post.id)
-          if (!currentPost || 
-              currentPost.status !== 'scheduled' || 
-              currentPost.threadsPostId) {
-            console.log(`[排程發文] 跳過已處理的貼文：${post.id}`)
-            continue
-          }
-
-          console.log(`[排程發文] 開始執行：${post.id}`)
-          
-          // 立即更新狀態為發佈中，防止重複執行
-          updateTracked(post.id, { status: 'publishing' })
-          setRows(rows.map(x => x.id === post.id ? { ...x, status: 'publishing' }: x))
-          
-          // 簡化發佈：直接發佈，不重試
-          const result = await publishWithRetry(post.content)
-          
-          if (result.ok) {
-            // 發佈成功
-            const publishedAt = nowYMDHM()
-            const updateData = {
-              status: 'published' as const,
-              threadsPostId: result.id,
-              permalink: result.permalink,
-              permalinkSource: result.permalink ? 'auto' as const : undefined,
-              publishDate: publishedAt,
-              scheduledAt: undefined // 清除排程時間
-            }
-            
-            updateTracked(post.id, updateData)
-            setRows(rows.map(x => x.id === post.id ? { ...x, ...updateData }: x))
-            console.log(`[排程發文] 成功：${post.id}`)
-          } else {
-            // 發佈失敗
-            const errorMessage = result.errorText || '發佈失敗'
-            console.error(`[排程發文] 失敗：${post.id}，錯誤：${errorMessage}`)
-            
-            const updateData = {
-              status: 'failed' as const,
-              publishError: `排程發文失敗：${errorMessage}`
-            }
-            
-            updateTracked(post.id, updateData)
-            setRows(rows.map(x => x.id === post.id ? { ...x, ...updateData }: x))
-          }
-        } catch (error) {
-          console.error(`[排程發文] 異常：${post.id}`, error)
-          
-          const updateData = {
-            status: 'failed' as const,
-            publishError: `排程發文系統錯誤：${String(error)}`
-          }
-          
-          updateTracked(post.id, updateData)
-          setRows(rows.map(x => x.id === post.id ? { ...x, ...updateData }: x))
-        }
-      }
-    } finally {
-      setIsCheckingSchedule(false)
-    }
-  }, [rows, setRows, isCheckingSchedule])
-
-  // 簡化的排程檢查：只在頁面載入和定時檢查時執行
+  // 移除排程檢查功能
   useEffect(() => {
-    // 頁面載入時檢查一次
-    checkScheduledPosts()
-    
-    // 每 5 分鐘檢查一次（簡化邏輯）
-    const interval = setInterval(() => {
-      checkScheduledPosts()
-    }, 5 * 60 * 1000)
-    
-    return () => clearInterval(interval)
-  }, [checkScheduledPosts]) // 加入 checkScheduledPosts 依賴
+    // 移除排程檢查邏輯
+  }, [])
+
+  // 移除排程檢查邏輯
+  useEffect(() => {
+    // 移除排程檢查邏輯
+  }, [])
 
   // 檢查卡住的「發佈中」狀態，防止狀態卡住
   useEffect(() => {
@@ -379,19 +284,10 @@ export default function TrackingTable({ rows, setRows, loading }: { rows: Tracke
   return (
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
-      {/* 手動檢查排程按鈕 */}
-      <div className="flex justify-between items-center mb-4 p-4 border-b">
-        <div className="text-sm text-gray-600">
-          排程檢查：每 5 分鐘自動檢查，或手動觸發
+        {/* 移除手動檢查排程按鈕 */}
+        <div className="flex items-center gap-2">
+          {/* 移除排程檢查功能 */}
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={checkScheduledPosts}
-          disabled={isCheckingSchedule}
-        >
-          {isCheckingSchedule ? '檢查中...' : '手動檢查排程'}
-        </button>
-      </div>
       
 
       <table className="table ui-compact" style={{ tableLayout: 'fixed', width: '100%' }}>

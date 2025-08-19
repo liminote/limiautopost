@@ -1,52 +1,127 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import AdminSubnav from '../../components/AdminSubnav'
 
+// 簡化的模板資料結構
+type Template = {
+  id: string
+  title: string
+  platform: string
+  features: string
+  prompt: string
+}
+
+// 固定的四個模板
+const TEMPLATES: Template[] = [
+  {
+    id: 'threads-1',
+    title: '第一則貼文',
+    platform: 'Threads',
+    features: '480-500字，完整觀點論述，獨立主題',
+    prompt: '請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係'
+  },
+  {
+    id: 'threads-2',
+    title: '第二則貼文',
+    platform: 'Threads',
+    features: '330-350字，完整觀點論述，獨立主題',
+    prompt: '請嚴格遵守以下規則生成 Threads 第二則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：330～350 字\n- 不能與其他貼文有上下文延續關係'
+  },
+  {
+    id: 'threads-3',
+    title: '第三則貼文',
+    platform: 'Threads',
+    features: '180-200字，完整觀點論述，獨立主題',
+    prompt: '請嚴格遵守以下規則生成 Threads 第三則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：180～200 字\n- 不能與其他貼文有上下文延續關係'
+  },
+  {
+    id: 'instagram',
+    title: 'Instagram 貼文',
+    platform: 'Instagram',
+    features: '溫暖語氣，開放式問題結尾，具洞察力',
+    prompt: '請生成 Instagram 貼文：\n- 語氣溫暖但具洞察力\n- 可結尾搭配開放式問題（例如「你也有這樣的經驗嗎？」）\n- 長度可以略長於 Threads\n- 保持與主題相關的連貫性'
+  }
+]
+
 export default function AIGenerator() {
-  // 從 localStorage 讀取初始值，避免組件重新掛載時重置
-  const [isEditing, setIsEditing] = useState(false)
-  const [testValue, setTestValue] = useState(() => {
-    const saved = localStorage.getItem('aigenerator_test_value')
-    return saved || '測試值'
+  const [templates, setTemplates] = useState(() => {
+    const saved = localStorage.getItem('aigenerator_templates')
+    return saved ? JSON.parse(saved) : TEMPLATES
   })
-  
-  const inputRef = useRef<HTMLInputElement>(null)
-  const renderCount = useRef(0)
-  
-  // 追蹤渲染次數
-  renderCount.current += 1
+  const [editingId, setEditingId] = useState<string | null>(null)
 
-  // 當進入編輯模式時，聚焦到輸入框
+  // 當模板變化時，保存到 localStorage
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus()
+    localStorage.setItem('aigenerator_templates', JSON.stringify(templates))
+  }, [templates])
+
+  // 開始編輯
+  const startEdit = (id: string) => setEditingId(id)
+
+  // 取消編輯
+  const cancelEdit = () => {
+    setEditingId(null)
+    setTemplates(TEMPLATES) // 恢復原始資料
+  }
+
+  // 保存編輯
+  const saveEdit = () => {
+    console.log('保存模板:', templates.find(t => t.id === editingId))
+    setEditingId(null)
+  }
+
+  // 更新模板欄位
+  const updateField = (id: string, field: keyof Template, value: string) => {
+    setTemplates(prev => prev.map(t => 
+      t.id === id ? { ...t, [field]: value } : t
+    ))
+  }
+
+  // 渲染編輯或顯示模式
+  const renderField = (template: Template, field: keyof Template, label: string, type: 'text' | 'textarea' | 'select', options?: string[]) => {
+    const isEditing = editingId === template.id
+    const value = template[field] as string
+
+    if (!isEditing) {
+      return (
+        <div className="p-2 bg-gray-50 border rounded">
+          {field === 'prompt' ? <span className="whitespace-pre-wrap">{value}</span> : value}
+        </div>
+      )
     }
-  }, [isEditing])
 
-  // 當 testValue 變化時，保存到 localStorage
-  useEffect(() => {
-    localStorage.setItem('aigenerator_test_value', testValue)
-  }, [testValue])
+    if (type === 'select' && options) {
+      return (
+        <select
+          value={value}
+          onChange={(e) => updateField(template.id, field, e.target.value)}
+          className="w-full p-2 border rounded"
+        >
+          {options.map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      )
+    }
 
-  // 處理保存
-  const handleSave = () => {
-    console.log('保存前值:', testValue)
-    setIsEditing(false)
-    console.log('保存後值:', testValue)
-  }
+    if (type === 'textarea') {
+      return (
+        <textarea
+          value={value}
+          onChange={(e) => updateField(template.id, field, e.target.value)}
+          rows={field === 'prompt' ? 5 : 2}
+          className="w-full p-2 border rounded"
+        />
+      )
+    }
 
-  // 處理取消
-  const handleCancel = () => {
-    console.log('取消前值:', testValue)
-    setTestValue('測試值')
-    setIsEditing(false)
-    console.log('取消後值:', testValue)
-  }
-
-  // 處理輸入變化
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value
-    console.log('輸入變化:', newValue)
-    setTestValue(newValue)
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => updateField(template.id, field, e.target.value)}
+        className="w-full p-2 border rounded"
+      />
+    )
   }
 
   return (
@@ -58,134 +133,56 @@ export default function AIGenerator() {
         <p className="text-gray-600">管理四個預設模板的設定</p>
       </div>
 
-      {/* 調試信息 */}
-      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
-        <h3 className="font-semibold text-yellow-800 mb-2">調試信息</h3>
-        <p className="text-sm text-yellow-700">渲染次數: {renderCount.current}</p>
-        <p className="text-sm text-yellow-700">當前狀態: {isEditing ? '編輯模式' : '顯示模式'}</p>
-        <p className="text-sm text-yellow-700">測試值: "{testValue}"</p>
-        <p className="text-sm text-yellow-700">測試值長度: {testValue.length}</p>
-        <p className="text-sm text-yellow-700">localStorage 值: "{localStorage.getItem('aigenerator_test_value')}"</p>
-      </div>
-
-      {/* 測試編輯功能 */}
-      <div className="border rounded-lg p-4 bg-white">
-        <h3 className="text-lg font-semibold mb-4">編輯測試</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">測試欄位</label>
-            {isEditing ? (
-              <input
-                ref={inputRef}
-                type="text"
-                value={testValue}
-                onChange={handleInputChange}
-                className="w-full p-2 border rounded"
-                placeholder="輸入測試內容"
-              />
-            ) : (
-              <div className="p-2 bg-gray-50 border rounded">
-                <span className="font-mono">"{testValue}"</span>
+      <div className="space-y-4">
+        {templates.map((template) => (
+          <div key={template.id} className="border rounded-lg p-4 bg-white">
+            {/* 標題行 */}
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">{template.title}</h3>
+                <p className="text-sm text-gray-500">{template.platform}</p>
               </div>
-            )}
-          </div>
-
-          <div className="flex space-x-2">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSave}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  保存
+              
+              {editingId === template.id ? (
+                <div className="space-x-2">
+                  <button onClick={saveEdit} className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                    保存
+                  </button>
+                  <button onClick={cancelEdit} className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => startEdit(template.id)} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                  編輯
                 </button>
-                <button
-                  onClick={handleCancel}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-                >
-                  取消
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                編輯
-              </button>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
 
-        {/* 操作按鈕 */}
-        <div className="mt-4 pt-4 border-t">
-          <h4 className="font-medium mb-2">額外操作</h4>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setTestValue('手動設置值')}
-              className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
-            >
-              設置為「手動設置值」
-            </button>
-            <button
-              onClick={() => setTestValue('')}
-              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-            >
-              清空值
-            </button>
-            <button
-              onClick={() => console.log('當前狀態:', { isEditing, testValue, localStorage: localStorage.getItem('aigenerator_test_value') })}
-              className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-            >
-              輸出到 Console
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem('aigenerator_test_value')
-                setTestValue('測試值')
-              }}
-              className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700"
-            >
-              重置 localStorage
-            </button>
-          </div>
-        </div>
-      </div>
+            {/* 內容區域 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">平台</label>
+                {renderField(template, 'platform', '平台', 'select', ['Threads', 'Instagram', 'Facebook', '通用'])}
+              </div>
 
-      {/* 原始模板顯示（只讀） */}
-      <div className="border rounded-lg p-4 bg-white">
-        <h3 className="text-lg font-semibold mb-4">預設模板（只讀）</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">第一則貼文</label>
-            <div className="p-2 bg-gray-50 border rounded">
-              480-500字，完整觀點論述，獨立主題
+              <div>
+                <label className="block text-sm font-medium mb-1">模板名稱</label>
+                {renderField(template, 'title', '模板名稱', 'text')}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">模板內容</label>
+                {renderField(template, 'features', '模板內容', 'textarea')}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">模板 Prompt</label>
+                {renderField(template, 'prompt', '模板 Prompt', 'textarea')}
+              </div>
             </div>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">第二則貼文</label>
-            <div className="p-2 bg-gray-50 border rounded">
-              330-350字，完整觀點論述，獨立主題
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">第三則貼文</label>
-            <div className="p-2 bg-gray-50 border rounded">
-              180-200字，完整觀點論述，獨立主題
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Instagram 貼文</label>
-            <div className="p-2 bg-gray-50 border rounded">
-              溫暖語氣，開放式問題結尾，具洞察力
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )
