@@ -5,6 +5,7 @@ import GeneratedCard, { type GeneratedCardData } from '../../components/Generate
 import { CardService } from '../../services/cardService'
 import type { BaseCard } from '../../types/cards'
 import { GeminiService } from '../../services/geminiService'
+import { aiServiceManager, type AIModel } from '../../services/aiServiceManager'
 import { useSession } from '../../auth/auth'
 
 type PlatformType = 'threads' | 'instagram' | 'facebook' | 'general'
@@ -26,6 +27,8 @@ export default function Generator() {
   const [generating, setGenerating] = useState(false)
   const [cards, setCards] = useState<Card[]>([])
   const [selectedTemplates, setSelectedTemplates] = useState<BaseCard[]>([])
+  const [selectedAIModel, setSelectedAIModel] = useState<AIModel>('gemini')
+  const [aiServicesStatus, setAiServicesStatus] = useState<Array<{ model: AIModel; success: boolean; message: string }>>([])
   // 追蹤列表刷新（暫存於本地，供加入追蹤後同步 UI 用）
   const [, setTracked] = useState<TrackedPost[]>([])
   
@@ -77,6 +80,23 @@ export default function Generator() {
       unsubscribe()
     }
   }, [session?.email, cardService])
+
+  // 檢查 AI 服務狀態
+  useEffect(() => {
+    const checkAIServices = async () => {
+      const status = await aiServiceManager.testAllServices()
+      setAiServicesStatus(status)
+      
+      // 自動選擇可用的服務
+      const availableServices = status.filter(s => s.success)
+      if (availableServices.length > 0) {
+        const firstAvailable = availableServices[0]
+        setSelectedAIModel(firstAvailable.model)
+      }
+    }
+    
+    checkAIServices()
+  }, [])
 
   // 載入保存的內容（頁面載入時）
   useEffect(() => {
@@ -179,8 +199,9 @@ export default function Generator() {
           prompt: template.prompt.substring(0, 100) + '...'
         })
         
-        // 調用 Gemini AI 生成內容，字數完全由 Prompt 決定
-        const result = await geminiService.generatePostFromTemplate(
+        // 調用選定的 AI 服務生成內容，字數完全由 Prompt 決定
+        const result = await aiServiceManager.generatePostWithModel(
+          selectedAIModel,
           template.prompt,
           article,
           0 // 傳入 0 表示字數由 Prompt 決定
@@ -191,13 +212,13 @@ export default function Generator() {
           const card: Card = {
             id: crypto.randomUUID(),
             platform: mapPlatform(platform),
-            label: `${articleId} | ${template.templateTitle}`,
+            label: `${articleId} | ${template.templateTitle} (${result.model.toUpperCase()})`,
             content: result.content,
             checked: false,
             code: code
           }
           newCards.push(card)
-          console.log(`[Generator] 模板 ${i + 1} 生成成功，字數:`, result.content.length)
+          console.log(`[Generator] 模板 ${i + 1} 生成成功，使用 ${result.model}，字數:`, result.content.length)
         } else {
           console.error(`[Generator] 模板 ${i + 1} 生成失敗:`, result.error)
           // 生成失敗時，使用備用的簡單截取（預設 300 字）
@@ -288,6 +309,37 @@ export default function Generator() {
             <label className="block text-sm text-gray-600">標題</label>
             <input className="mt-1 input w-full text-base" value={title} onChange={e=>setTitle(e.target.value)} placeholder="輸入原文標題" />
           </div>
+          
+          {/* AI 模型選擇 */}
+          <div>
+            <label className="block text-sm text-gray-600">AI 模型</label>
+            <div className="mt-1 flex gap-2">
+              {aiServicesStatus.map((status) => (
+                <button
+                  key={status.model}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedAIModel === status.model
+                      ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
+                      : status.success
+                      ? 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
+                      : 'bg-red-100 text-red-700 border-2 border-red-200 cursor-not-allowed'
+                  }`}
+                  onClick={() => status.success && setSelectedAIModel(status.model)}
+                  disabled={!status.success}
+                  title={status.message}
+                >
+                  {status.model === 'gemini' ? 'Gemini' : 'ChatGPT'}
+                  {!status.success && ' (不可用)'}
+                </button>
+              ))}
+            </div>
+            {aiServicesStatus.length > 0 && (
+              <div className="mt-1 text-xs text-gray-500">
+                選擇使用 {selectedAIModel === 'gemini' ? 'Google Gemini' : 'OpenAI ChatGPT'} 來生成內容
+              </div>
+            )}
+          </div>
+          
           <div>
             <label className="block text-sm text-gray-600">文章</label>
             <textarea className="mt-1 textarea w-full text-sm" style={{ height: '20rem' }} value={article} onChange={e=>setArticle(e.target.value)} placeholder="貼上完整長文…" />
