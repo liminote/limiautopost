@@ -19,6 +19,36 @@ export default function UserSettings(){
 
   const cardService = CardService.getInstance()
 
+  // 從 AIGenerator 的 localStorage 讀取最新的系統模板
+  const getSystemTemplatesFromAIGenerator = (): BaseCard[] => {
+    try {
+      const saved = localStorage.getItem('aigenerator_templates')
+      if (saved) {
+        const templates = JSON.parse(saved)
+        return templates.map((template: any) => ({
+          id: template.id,
+          name: template.title, // 使用 AIGenerator 中的 title
+          description: template.features, // 使用 AIGenerator 中的 features
+          category: template.platform.toLowerCase(),
+          prompt: template.prompt,
+          isActive: true,
+          isSystem: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          platform: template.platform.toLowerCase(),
+          templateTitle: template.title,
+          templateFeatures: template.features,
+          isSelected: true
+        }))
+      }
+    } catch (error) {
+      console.warn('無法從 AIGenerator 讀取模板:', error)
+    }
+    
+    // 如果無法讀取，回退到預設模板
+    return cardService.getAllCards(session?.email || 'default').filter(card => card.isSystem)
+  }
+
   // 統一的授權狀態檢查函數
   const checkAuthStatus = async () => {
     if (!session) return
@@ -143,11 +173,26 @@ export default function UserSettings(){
     if (!session) return // 未登入時不載入
     
     const loadTemplateManagement = async () => {
-      // 使用 async 版本來獲取最新的模板資料
-      const management = await cardService.getTemplateManagementAsync(session.email)
-      setAvailableTemplates(management.availableTemplates)
-      setSelectedTemplates(management.selectedTemplates)
-      setMaxSelections(management.maxSelectedTemplates)
+      // 優先使用 AIGenerator 的模板資料
+      const systemTemplates = getSystemTemplatesFromAIGenerator()
+      
+      // 獲取用戶自定義模板
+      const userTemplates = cardService.getUserCards(session.email)
+      
+      // 合併模板並標記選擇狀態
+      const allTemplates = [...systemTemplates, ...userTemplates]
+      const userSelections = cardService.getUserSelections(session.email)
+      
+      const availableTemplates = allTemplates.map(template => ({
+        ...template,
+        isSelected: userSelections.has(template.id)
+      }))
+      
+      const selectedTemplates = availableTemplates.filter(template => template.isSelected)
+      
+      setAvailableTemplates(availableTemplates)
+      setSelectedTemplates(selectedTemplates)
+      setMaxSelections(5) // 固定最大選擇數量
     }
 
     loadTemplateManagement()
@@ -171,9 +216,20 @@ export default function UserSettings(){
     
     if (success) {
       // 重新載入模板管理資訊
-      const management = cardService.getTemplateManagement(session.email)
-      setAvailableTemplates(management.availableTemplates)
-      setSelectedTemplates(management.selectedTemplates)
+      const systemTemplates = getSystemTemplatesFromAIGenerator()
+      const userTemplates = cardService.getUserCards(session.email)
+      const allTemplates = [...systemTemplates, ...userTemplates]
+      const userSelections = cardService.getUserSelections(session.email)
+      
+      const availableTemplates = allTemplates.map(template => ({
+        ...template,
+        isSelected: userSelections.has(template.id)
+      }))
+      
+      const selectedTemplates = availableTemplates.filter(template => template.isSelected)
+      
+      setAvailableTemplates(availableTemplates)
+      setSelectedTemplates(selectedTemplates)
     }
   }
 
