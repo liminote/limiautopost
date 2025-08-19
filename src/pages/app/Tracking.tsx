@@ -7,6 +7,7 @@ export default function TrackingPage() {
   const [rows, setRows] = useState<TrackedPost[]>([])
   const [allRows, setAllRows] = useState<TrackedPost[]>([])
   const [loading, setLoading] = useState(true)
+  
   const refresh = () => { const data = getTracked(); setRows(data); setAllRows(data); setLoading(false) }
   useEffect(() => { const id = setTimeout(refresh, 300); return () => clearTimeout(id) }, [])
   useEffect(() => {
@@ -14,6 +15,7 @@ export default function TrackingPage() {
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
+
   const seedExamples = () => {
     addTracked([
       {
@@ -48,7 +50,7 @@ export default function TrackingPage() {
   }
 
   // 排序與分頁
-  const [sortKey, setSortKey] = useState<'createdAt'|'likes'|'comments'|'shares'|'saves'>('createdAt')
+  const [sortKey, setSortKey] = useState<'createdAt'|'likes'|'comments'|'shares'>('createdAt')
   const [sortDir, setSortDir] = useState<'desc'|'asc'>('desc')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -68,7 +70,7 @@ export default function TrackingPage() {
 
   const exportCSV = () => {
     if (!rows.length) return
-    const header = ['postId','articleId','articleTitle','platform','content','permalink','publishDate','likes','comments','shares','saves','notes','createdAt']
+    const header = ['postId','articleId','articleTitle','platform','content','permalink','publishDate','likes','comments','shares','notes','createdAt']
     const data = rows.map(r => [
       r.postId,
       r.articleId,
@@ -80,7 +82,6 @@ export default function TrackingPage() {
       r.likes ?? 0,
       r.comments ?? 0,
       r.shares ?? 0,
-      r.saves ?? 0,
       r.notes ?? '',
       r.createdAt ?? '',
     ])
@@ -98,108 +99,39 @@ export default function TrackingPage() {
   }
 
   return (
-    <div className="space-y-4 ui-12">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-base font-bold" style={{ fontFamily: 'Noto Serif TC, serif', color: 'var(--yinmn-blue)' }}>追蹤列表</h1>
-        <div className="flex items-center gap-2">
-          <button className="btn btn-outline text-xs" onClick={exportCSV}>匯出 CSV</button>
-          {import.meta.env.DEV && (
-            <>
-              <button className="btn btn-ghost text-xs" onClick={refresh}>重新整理</button>
-              <button className="btn btn-ghost text-xs" onClick={() => { if (confirm('【高風險操作】清空目前帳號的所有追蹤資料？此動作無法復原。\n請再次確認：確定清空？')) { clearTracked(); refresh() } }}>清空我的資料</button>
-            </>
-          )}
+        <div>
+          <h1 className="text-2xl font-bold">追蹤列表</h1>
+          <p className="text-gray-600">管理已發佈的貼文與追蹤成效</p>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={seedExamples}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            載入示例
+          </button>
+          <button
+            onClick={exportCSV}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            匯出 CSV
+          </button>
+          <button
+            onClick={clearTracked}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            清空列表
+          </button>
         </div>
       </div>
 
-      <SearchBar
-        availableTags={useMemo(()=>{
-          const set = new Set<string>()
-          for (const r of allRows) for (const t of (r.tags || [])) set.add(t)
-          return Array.from(set).sort((a,b)=> a.localeCompare(b))
-        }, [allRows])}
-        onFilter={(f) => {
-        const all = allRows
-        const kw = (f.keyword || '').trim()
-        const platforms = new Set(f.platforms && f.platforms.length ? f.platforms : ['Threads','Instagram','Facebook'])
-        const minLikes = Number.isFinite(Number(f.minLikes)) ? Number(f.minLikes) : undefined
-        const maxLikes = Number.isFinite(Number(f.maxLikes)) ? Number(f.maxLikes) : undefined
-
-        const filtered = all.filter(r => {
-          // 關鍵字
-          const inKw = kw ? (
-            r.postId.includes(kw) || r.articleId.includes(kw) ||
-            (r.articleTitle||'').includes(kw) || (r.content||'').includes(kw) ||
-            (r.tags||[]).some(t => t.includes(kw))
-          ) : true
-          // 建立日期
-          const ct = r.createdAt ? new Date(r.createdAt).getTime() : 0
-          const inStart = f.start ? ct >= new Date(f.start).getTime() : true
-          const inEnd = f.end ? ct <= new Date(f.end).getTime() + 24*60*60*1000 - 1 : true
-          // 平台
-          const inPlatform = platforms.has(r.platform)
-          // 連結/備註存在與否
-          const inPermalink = f.permalink === 'any' || f.permalink === undefined
-            ? true
-            : (f.permalink === 'yes' ? !!r.permalink?.trim() : !r.permalink?.trim())
-          const inNotes = f.notes === 'any' || f.notes === undefined
-            ? true
-            : (f.notes === 'yes' ? !!r.notes?.trim() : !r.notes?.trim())
-          // 喜歡數區間
-          const lk = r.likes ?? 0
-          const inLikesMin = minLikes === undefined ? true : lk >= minLikes
-          const inLikesMax = maxLikes === undefined ? true : lk <= maxLikes
-          // 標籤（多選，符合任一即可）
-          const selectedTags = new Set(f.tags || [])
-          const rowTags = new Set(r.tags || [])
-          const inTags = selectedTags.size === 0 ? true : Array.from(selectedTags).some(t => rowTags.has(t))
-
-          return inKw && inStart && inEnd && inPlatform && inPermalink && inNotes && inLikesMin && inLikesMax && inTags
-        })
-        setRows(filtered)
-      }} />
-
-      {(!loading && rows.length === 0) ? (
-        <div className="card card-body text-center py-12">
-          <div className="text-base font-medium">目前沒有追蹤資料</div>
-          <div className="text-muted ui-12 mt-1">從生成器建立貼文後即可在此追蹤。</div>
-          <div className="mt-4 flex justify-center gap-2">
-            <Link to="/app" className="btn btn-primary">前往生成器</Link>
-            <button className="btn btn-ghost" onClick={refresh}>重新整理</button>
-            <button className="btn" onClick={seedExamples}>建立示例資料</button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-between mb-2">
-            <div className="ui-12 text-muted">共 {displayed.total} 筆</div>
-            <div className="flex items-center gap-2">
-              <select className="ui-select-sm" value={sortKey} onChange={e=> setSortKey(e.target.value as any)}>
-                <option value="createdAt">建立時間</option>
-                <option value="likes">讚數</option>
-                <option value="comments">留言</option>
-                <option value="shares">分享</option>
-                <option value="saves">儲存</option>
-              </select>
-              <select className="ui-select-sm" value={sortDir} onChange={e=> setSortDir(e.target.value as any)}>
-                <option value="desc">由新到舊 / 由高到低</option>
-                <option value="asc">由舊到新 / 由低到高</option>
-              </select>
-              <select className="ui-select-sm" value={pageSize} onChange={e=> setPageSize(Number(e.target.value))}>
-                <option value={10}>每頁 10</option>
-                <option value={20}>每頁 20</option>
-                <option value={50}>每頁 50</option>
-              </select>
-              <div className="flex items-center gap-1">
-                <button className="btn btn-ghost ui-12" onClick={()=> setPage(p=> Math.max(1, p-1))} disabled={displayed.start <= 1}>上一頁</button>
-                <span className="ui-12 text-muted">{displayed.start}-{displayed.end} / {displayed.total}</span>
-                <button className="btn btn-ghost ui-12" onClick={()=> setPage(p=> (displayed.end >= displayed.total ? p : p+1))} disabled={displayed.end >= displayed.total}>下一頁</button>
-              </div>
-            </div>
-          </div>
-          <TrackingTable rows={displayed.list} setRows={setRows} loading={loading} />
-        </>
-      )}
+      <TrackingTable
+        rows={displayed.list}
+        setRows={setRows}
+        loading={loading}
+      />
     </div>
   )
 }
