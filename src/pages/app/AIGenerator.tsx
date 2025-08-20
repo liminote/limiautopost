@@ -10,6 +10,14 @@ type Template = {
   prompt: string
 }
 
+// 平台選項
+const PLATFORM_OPTIONS = [
+  { value: 'threads', label: 'Threads' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'general', label: '通用' }
+]
+
 // 固定的四個模板
 const TEMPLATES: Template[] = [
   {
@@ -49,9 +57,8 @@ export default function AIGenerator() {
 
   // 載入已保存的模板
   useEffect(() => {
-    const loadSavedTemplates = async () => {
+    const loadSavedTemplates = () => {
       try {
-        // 優先從 localStorage 讀取（因為這是即時編輯的資料）
         const localSaved = localStorage.getItem('aigenerator_templates')
         if (localSaved) {
           const localTemplates = JSON.parse(localSaved)
@@ -63,43 +70,16 @@ export default function AIGenerator() {
             if (localTemplate) {
               return {
                 ...template,
-                platform: localTemplate.platform,
-                title: localTemplate.title,
-                features: localTemplate.features,
-                prompt: localTemplate.prompt
+                platform: localTemplate.platform || template.platform,
+                title: localTemplate.title || template.title,
+                features: localTemplate.features || template.features,
+                prompt: localTemplate.prompt || template.prompt
               }
             }
             return template
           })
           
           setTemplates(updatedTemplates)
-          return
-        }
-        
-        // 如果 localStorage 沒有資料，嘗試從 GitHub 讀取
-        console.log('localStorage 沒有資料，嘗試從 GitHub 讀取')
-        const response = await fetch('/.netlify/functions/get-system-templates')
-        if (response.ok) {
-          const savedTemplates = await response.json()
-          
-          if (Object.keys(savedTemplates).length > 0) {
-            // 將保存的修改應用到模板
-            const updatedTemplates = TEMPLATES.map(template => {
-              const savedTemplate = savedTemplates[template.id]
-              if (savedTemplate) {
-                return {
-                  ...template,
-                  platform: savedTemplate.platform,
-                  title: savedTemplate.templateTitle || savedTemplate.title,
-                  features: savedTemplate.templateFeatures || savedTemplate.features,
-                  prompt: savedTemplate.prompt
-                }
-              }
-              return template
-            })
-            
-            setTemplates(updatedTemplates)
-          }
         }
       } catch (error) {
         console.error('載入模板失敗:', error)
@@ -110,13 +90,17 @@ export default function AIGenerator() {
   }, [])
 
   // 開始編輯
-  const startEdit = (id: string) => setEditingId(id)
+  const startEdit = (id: string) => {
+    console.log('開始編輯模板:', id)
+    setEditingId(id)
+  }
 
   // 取消編輯
   const cancelEdit = () => {
+    console.log('取消編輯')
     setEditingId(null)
     // 重新載入已保存的模板
-    const loadSavedTemplates = async () => {
+    const loadSavedTemplates = () => {
       try {
         const localSaved = localStorage.getItem('aigenerator_templates')
         if (localSaved) {
@@ -127,10 +111,10 @@ export default function AIGenerator() {
             if (localTemplate) {
               return {
                 ...template,
-                platform: localTemplate.platform,
-                title: localTemplate.title,
-                features: localTemplate.features,
-                prompt: localTemplate.prompt
+                platform: localTemplate.platform || template.platform,
+                title: localTemplate.title || template.title,
+                features: localTemplate.features || template.features,
+                prompt: localTemplate.prompt || template.prompt
               }
             }
             return template
@@ -153,12 +137,18 @@ export default function AIGenerator() {
   const saveEdit = async () => {
     if (!editingId) return
     
+    console.log('開始保存模板:', editingId)
     setIsSaving(true)
     
     try {
       // 找到正在編輯的模板
       const editingTemplate = templates.find((t: Template) => t.id === editingId)
-      if (!editingTemplate) return
+      if (!editingTemplate) {
+        console.error('找不到正在編輯的模板')
+        return
+      }
+
+      console.log('保存的模板資料:', editingTemplate)
 
       // 更新模板資料
       const updatedTemplates = templates.map(template =>
@@ -177,9 +167,11 @@ export default function AIGenerator() {
         updatedAt: new Date().toISOString()
       }
       localStorage.setItem('aigenerator_templates', JSON.stringify(currentSaved))
+      console.log('已保存到 localStorage:', currentSaved)
 
       // 觸發同步事件
       window.dispatchEvent(new CustomEvent('templatesUpdated'))
+      console.log('已觸發同步事件')
 
       setEditingId(null)
       console.log('模板保存成功:', editingTemplate.id)
@@ -192,6 +184,7 @@ export default function AIGenerator() {
 
   // 更新模板欄位
   const updateTemplateField = (id: string, field: keyof Template, value: string) => {
+    console.log(`更新模板 ${id} 的 ${field} 欄位為:`, value)
     setTemplates(prev => prev.map(template =>
       template.id === id ? { ...template, [field]: value } : template
     ))
@@ -215,9 +208,26 @@ export default function AIGenerator() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-3">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded">
-                          {template.platform}
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <label className="text-sm font-medium text-gray-700">平台:</label>
+                          {editingId === template.id ? (
+                            <select
+                              value={template.platform}
+                              onChange={(e) => updateTemplateField(template.id, 'platform', e.target.value)}
+                              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            >
+                              {PLATFORM_OPTIONS.map(option => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded">
+                              {PLATFORM_OPTIONS.find(p => p.value === template.platform)?.label || template.platform}
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-lg font-medium text-gray-900">
                           {editingId === template.id ? (
                             <input
