@@ -43,37 +43,43 @@ const TEMPLATES: Template[] = [
 ]
 
 export default function AIGenerator() {
-  const [templates, setTemplates] = useState(() => {
-    const saved = localStorage.getItem('aigenerator_templates')
-    return saved ? JSON.parse(saved) : TEMPLATES
-  })
+  const [templates, setTemplates] = useState<Template[]>(TEMPLATES)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
-  // 當模板變化時，保存到伺服器並觸發頁面重新載入
+  // 載入已保存的模板
   useEffect(() => {
-    // 保存到伺服器
-    templates.forEach(async (template: Template) => {
+    const loadSavedTemplates = async () => {
       try {
-        await fetch('/.netlify/functions/update-system-template', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cardId: template.id,
-            platform: template.platform,
-            templateTitle: template.title,
-            templateFeatures: template.features,
-            prompt: template.prompt,
-            updatedAt: new Date().toISOString()
+        const response = await fetch('/.netlify/functions/get-system-templates')
+        if (response.ok) {
+          const savedTemplates = await response.json()
+          
+          // 將保存的修改應用到模板
+          const updatedTemplates = TEMPLATES.map(template => {
+            const savedTemplate = savedTemplates[template.id]
+            if (savedTemplate) {
+              return {
+                ...template,
+                platform: savedTemplate.platform,
+                title: savedTemplate.templateTitle,
+                features: savedTemplate.templateFeatures,
+                prompt: savedTemplate.prompt
+              }
+            }
+            return template
           })
-        })
+          
+          setTemplates(updatedTemplates)
+        }
       } catch (error) {
-        console.error('保存模板到伺服器失敗:', error)
+        console.warn('無法從伺服器載入模板，使用預設模板:', error)
+        setTemplates(TEMPLATES)
       }
-    })
+    }
     
-    // 觸發頁面重新載入以同步其他組件
-    window.dispatchEvent(new CustomEvent('templatesUpdated'))
-  }, [templates])
+    loadSavedTemplates()
+  }, [])
 
   // 開始編輯
   const startEdit = (id: string) => setEditingId(id)
@@ -81,13 +87,79 @@ export default function AIGenerator() {
   // 取消編輯
   const cancelEdit = () => {
     setEditingId(null)
-    setTemplates(TEMPLATES) // 恢復原始資料
+    // 重新載入已保存的模板，而不是重置為原始資料
+    const loadSavedTemplates = async () => {
+      try {
+        const response = await fetch('/.netlify/functions/get-system-templates')
+        if (response.ok) {
+          const savedTemplates = await response.json()
+          
+          const updatedTemplates = TEMPLATES.map(template => {
+            const savedTemplate = savedTemplates[template.id]
+            if (savedTemplate) {
+              return {
+                ...template,
+                platform: savedTemplate.platform,
+                title: savedTemplate.templateTitle,
+                features: savedTemplate.templateFeatures,
+                prompt: savedTemplate.prompt
+              }
+            }
+            return template
+          })
+          
+          setTemplates(updatedTemplates)
+        }
+      } catch (error) {
+        console.warn('無法從伺服器載入模板，使用預設模板:', error)
+        setTemplates(TEMPLATES)
+      }
+    }
+    
+    loadSavedTemplates()
   }
 
   // 保存編輯
-  const saveEdit = () => {
-    console.log('保存模板:', templates.find((t: Template) => t.id === editingId))
-    setEditingId(null)
+  const saveEdit = async () => {
+    if (!editingId) return
+    
+    setIsSaving(true)
+    
+    try {
+      // 找到正在編輯的模板
+      const editingTemplate = templates.find((t: Template) => t.id === editingId)
+      if (!editingTemplate) return
+      
+      // 保存到伺服器
+      const response = await fetch('/.netlify/functions/update-system-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardId: editingTemplate.id,
+          platform: editingTemplate.platform,
+          templateTitle: editingTemplate.title,
+          templateFeatures: editingTemplate.features,
+          prompt: editingTemplate.prompt,
+          updatedAt: new Date().toISOString()
+        })
+      })
+      
+      if (response.ok) {
+        console.log('模板保存成功:', editingTemplate)
+        setEditingId(null)
+        
+        // 觸發頁面重新載入以同步其他組件
+        window.dispatchEvent(new CustomEvent('templatesUpdated'))
+      } else {
+        console.error('保存模板失敗:', response.status)
+        alert('保存失敗，請重試')
+      }
+    } catch (error) {
+      console.error('保存模板時發生錯誤:', error)
+      alert('保存失敗，請重試')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // 更新模板欄位
@@ -166,10 +238,26 @@ export default function AIGenerator() {
               
               {editingId === template.id ? (
                 <div className="space-x-2">
-                  <button onClick={saveEdit} className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
-                    保存
+                  <button 
+                    onClick={saveEdit} 
+                    disabled={isSaving}
+                    className={`px-3 py-1 rounded text-white ${
+                      isSaving 
+                        ? 'bg-gray-400 cursor-not-allowed' 
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {isSaving ? '保存中...' : '保存'}
                   </button>
-                  <button onClick={cancelEdit} className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
+                  <button 
+                    onClick={cancelEdit} 
+                    disabled={isSaving}
+                    className={`px-3 py-1 rounded text-white ${
+                      isSaving 
+                        ? 'bg-gray-400 cursor-not-allowed' 
+                        : 'bg-gray-600 hover:bg-gray-700'
+                    }`}
+                  >
                     取消
                   </button>
                 </div>
