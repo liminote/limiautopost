@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import AdminSubnav from '../../components/AdminSubnav'
 
 // 簡化的模板資料結構
@@ -50,67 +50,47 @@ const TEMPLATES: Template[] = [
   }
 ]
 
-// 模板狀態管理
-type TemplateAction = 
-  | { type: 'LOAD_TEMPLATES'; payload: Template[] }
-  | { type: 'UPDATE_TEMPLATE'; payload: { id: string; field: keyof Template; value: string } }
-  | { type: 'RESET_TEMPLATES' }
-
-function templateReducer(state: Template[], action: TemplateAction): Template[] {
-  switch (action.type) {
-    case 'LOAD_TEMPLATES':
-      return action.payload
-    case 'UPDATE_TEMPLATE':
-      return state.map(template =>
-        template.id === action.payload.id
-          ? { ...template, [action.payload.field]: action.payload.value }
-          : template
-      )
-    case 'RESET_TEMPLATES':
-      return TEMPLATES
-    default:
-      return state
-  }
-}
-
 export default function AIGenerator() {
-  // 使用 useReducer 管理模板狀態
-  const [templates, dispatch] = useReducer(templateReducer, TEMPLATES)
+  // 直接使用 useState，簡化邏輯
+  const [templates, setTemplates] = useState<Template[]>(TEMPLATES)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  // 載入保存的模板
+  // 全新的載入邏輯：直接覆蓋預設模板
   const loadSavedTemplates = useCallback(() => {
     try {
       const localSaved = localStorage.getItem('aigenerator_templates')
       if (localSaved) {
         const localTemplates = JSON.parse(localSaved)
-        console.log('初始化時從 localStorage 讀取到模板:', localTemplates)
+        console.log('🔍 從 localStorage 讀取到模板:', localTemplates)
         
-        // 將 localStorage 的資料應用到模板
+        // 直接創建新的模板陣列，優先使用保存的數據
         const updatedTemplates = TEMPLATES.map(template => {
-          const localTemplate = localTemplates[template.id]
-          if (localTemplate) {
+          const savedTemplate = localTemplates[template.id]
+          if (savedTemplate) {
+            // 如果有保存的數據，完全使用保存的數據
             return {
-              ...template,
-              platform: localTemplate.platform !== undefined ? localTemplate.platform : template.platform,
-              title: localTemplate.title !== undefined ? localTemplate.title : template.title,
-              features: localTemplate.features !== undefined ? localTemplate.features : template.features,
-              prompt: localTemplate.prompt !== undefined ? localTemplate.prompt : template.prompt
+              id: template.id,
+              platform: savedTemplate.platform || template.platform,
+              title: savedTemplate.title || template.title,
+              features: savedTemplate.features || template.features,
+              prompt: savedTemplate.prompt || template.prompt
             }
           }
+          // 如果沒有保存的數據，使用預設值
           return template
         })
         
-        dispatch({ type: 'LOAD_TEMPLATES', payload: updatedTemplates })
-        console.log('初始化模板載入完成，數量:', updatedTemplates.length)
+        setTemplates(updatedTemplates)
+        console.log('✅ 模板載入完成，數量:', updatedTemplates.length)
+        console.log('📋 載入的模板:', updatedTemplates)
       } else {
-        console.log('初始化時 localStorage 中沒有保存的模板，使用預設模板')
-        dispatch({ type: 'LOAD_TEMPLATES', payload: TEMPLATES })
+        console.log('ℹ️ localStorage 中沒有保存的模板，使用預設模板')
+        setTemplates(TEMPLATES)
       }
     } catch (error) {
-      console.error('初始化載入模板失敗:', error)
-      dispatch({ type: 'LOAD_TEMPLATES', payload: TEMPLATES })
+      console.error('❌ 載入模板失敗:', error)
+      setTemplates(TEMPLATES)
     }
   }, [])
 
@@ -121,37 +101,37 @@ export default function AIGenerator() {
 
   // 開始編輯
   const startEdit = (id: string) => {
-    console.log('開始編輯模板:', id)
+    console.log('✏️ 開始編輯模板:', id)
     setEditingId(id)
   }
 
   // 取消編輯
   const cancelEdit = () => {
-    console.log('取消編輯')
+    console.log('❌ 取消編輯')
     setEditingId(null)
-    // 重新載入保存的模板，放棄未保存的修改
+    // 重新載入保存的模板
     loadSavedTemplates()
-    console.log('取消編輯完成，重新載入保存的模板')
+    console.log('🔄 已重新載入保存的模板')
   }
 
-  // 保存編輯
+  // 保存編輯 - 簡化邏輯
   const saveEdit = async () => {
     if (!editingId) return
     
-    console.log('開始保存模板:', editingId)
+    console.log('💾 開始保存模板:', editingId)
     setIsSaving(true)
     
     try {
       // 找到正在編輯的模板
       const editingTemplate = templates.find((t: Template) => t.id === editingId)
       if (!editingTemplate) {
-        console.error('找不到正在編輯的模板')
+        console.error('❌ 找不到正在編輯的模板')
         return
       }
 
-      console.log('保存的模板資料:', editingTemplate)
+      console.log('📝 保存的模板資料:', editingTemplate)
 
-      // 保存到 localStorage
+      // 保存到 localStorage - 使用更簡單的結構
       const currentSaved = JSON.parse(localStorage.getItem('aigenerator_templates') || '{}')
       currentSaved[editingTemplate.id] = {
         id: editingTemplate.id,
@@ -161,28 +141,39 @@ export default function AIGenerator() {
         prompt: editingTemplate.prompt,
         updatedAt: new Date().toISOString()
       }
+      
       localStorage.setItem('aigenerator_templates', JSON.stringify(currentSaved))
-      console.log('已保存到 localStorage:', currentSaved)
+      console.log('💾 已保存到 localStorage:', currentSaved)
 
       // 觸發同步事件
       window.dispatchEvent(new CustomEvent('templatesUpdated'))
-      console.log('已觸發同步事件')
+      console.log('📡 已觸發同步事件')
 
       // 關閉編輯模式
       setEditingId(null)
-      console.log('模板保存成功:', editingTemplate.id)
+      console.log('✅ 模板保存成功:', editingTemplate.id)
+      
+      // 重要：保存後立即重新載入，確保狀態一致
+      setTimeout(() => {
+        loadSavedTemplates()
+      }, 100)
+      
     } catch (error) {
-      console.error('保存失敗:', error)
+      console.error('❌ 保存失敗:', error)
     } finally {
       setIsSaving(false)
     }
   }
 
-  // 更新模板欄位
+  // 更新模板欄位 - 直接更新狀態
   const updateTemplateField = (id: string, field: keyof Template, value: string) => {
-    console.log(`更新模板 ${id} 的 ${field} 欄位為:`, value)
+    console.log(`🔄 更新模板 ${id} 的 ${field} 欄位為:`, value)
     
-    dispatch({ type: 'UPDATE_TEMPLATE', payload: { id, field, value } })
+    setTemplates(prev => 
+      prev.map(template =>
+        template.id === id ? { ...template, [field]: value } : template
+      )
+    )
   }
 
   return (
