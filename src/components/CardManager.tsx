@@ -30,12 +30,20 @@ export default function CardManager() {
   const handleCreateCard = (cardData: Omit<UserCard, 'id' | 'isSystem' | 'userId' | 'createdAt' | 'updatedAt'>) => {
     if (!session) return
     
-    const newCard = cardService.createUserCard(currentUserId, cardData)
-    setUserCards(prev => [...prev, newCard])
-    setShowCreateForm(false)
-    
-    // 觸發事件通知其他組件
-    window.dispatchEvent(new CustomEvent('userCardCreated'))
+    try {
+      const newCard = cardService.createUserCard(currentUserId, cardData)
+      setUserCards(prev => [...prev, newCard])
+      setShowCreateForm(false)
+      
+      // 觸發事件通知其他組件
+      window.dispatchEvent(new CustomEvent('userCardCreated'))
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message)
+      } else {
+        alert('創建卡片失敗')
+      }
+    }
   }
 
   // 更新卡片
@@ -73,13 +81,23 @@ export default function CardManager() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">我的卡片</h2>
-          <p className="text-gray-500 text-sm mt-1">管理你的自定義 AI 生成卡片，創建專屬的內容生成模板</p>
+          <p className="text-gray-500 text-sm mt-1">
+            管理你的自定義 AI 生成卡片，創建專屬的內容生成模板
+            <span className="ml-2 text-gray-400">
+              ({userCards.length}/{cardService.getUserCardLimit()} 個)
+            </span>
+          </p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-[color:var(--yinmn-blue)] text-white rounded-md hover:bg-[color:var(--yinmn-blue-600)]"
+          disabled={!cardService.canCreateMoreUserCards(currentUserId)}
+          className={`px-4 py-2 rounded-md ${
+            cardService.canCreateMoreUserCards(currentUserId)
+              ? 'bg-[color:var(--yinmn-blue)] text-white hover:bg-[color:var(--yinmn-blue-600)]'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
         >
-          新增卡片
+          {cardService.canCreateMoreUserCards(currentUserId) ? '新增卡片' : '已達上限'}
         </button>
       </div>
 
@@ -88,6 +106,9 @@ export default function CardManager() {
         <CreateCardForm
           onSubmit={handleCreateCard}
           onCancel={() => setShowCreateForm(false)}
+          canCreate={cardService.canCreateMoreUserCards(currentUserId)}
+          currentCount={userCards.length}
+          limit={cardService.getUserCardLimit()}
         />
       )}
 
@@ -153,9 +174,12 @@ export default function CardManager() {
 interface CreateCardFormProps {
   onSubmit: (cardData: Omit<UserCard, 'id' | 'isSystem' | 'userId' | 'createdAt' | 'updatedAt'>) => void
   onCancel: () => void
+  canCreate: boolean
+  currentCount: number
+  limit: number
 }
 
-function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
+function CreateCardForm({ onSubmit, onCancel, canCreate, currentCount, limit }: CreateCardFormProps) {
   const [formData, setFormData] = useState({
     platform: 'general' as const,
     templateTitle: '',
@@ -184,7 +208,19 @@ function CreateCardForm({ onSubmit, onCancel }: CreateCardFormProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-medium mb-4">創建新卡片</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium">創建新卡片</h3>
+        <span className="text-sm text-gray-500">
+          {currentCount}/{limit} 個
+        </span>
+      </div>
+      {!canCreate && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-yellow-800 text-sm">
+            已達到個人模板數量上限（{limit}個），無法創建更多模板
+          </p>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* 平台選擇 */}
         <div>

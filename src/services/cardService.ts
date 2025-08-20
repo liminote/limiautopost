@@ -229,6 +229,20 @@ export class CardService {
     return this.userCards.get(userId) || []
   }
 
+  // 檢查使用者是否可以創建更多個人模板
+  public canCreateMoreUserCards(userId: string): boolean {
+    if (!userId || userId === 'anonymous') {
+      return false
+    }
+    const currentUserCards = this.userCards.get(userId) || []
+    return currentUserCards.length < 6
+  }
+
+  // 獲取使用者個人模板數量限制
+  public getUserCardLimit(): number {
+    return 6
+  }
+
   // 獲取系統卡片
   public async getSystemCards(): Promise<SystemCard[]> {
     // 確保載入最新的保存修改
@@ -248,6 +262,12 @@ export class CardService {
   public createUserCard(userId: string, cardData: Omit<UserCard, 'id' | 'isSystem' | 'userId' | 'createdAt' | 'updatedAt' | 'isSelected'>): UserCard {
     if (!userId || userId === 'anonymous') {
       throw new Error('無效的用戶 ID')
+    }
+
+    // 檢查個人模板數量限制（最多6個）
+    const currentUserCards = this.userCards.get(userId) || []
+    if (currentUserCards.length >= 6) {
+      throw new Error('已達到個人模板數量上限（最多6個）')
     }
 
     const newCard: UserCard = {
