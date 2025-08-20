@@ -217,21 +217,44 @@ export class CardService {
       const saved = localStorage.getItem('aigenerator_templates')
       if (saved) {
         const templates = JSON.parse(saved)
-        return templates.map((template: any) => ({
-          id: template.id,
-          name: template.title,
-          description: template.features,
-          category: template.platform.toLowerCase(),
-          prompt: template.prompt,
-          isActive: true,
-          isSystem: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          platform: template.platform.toLowerCase(),
-          templateTitle: template.title,
-          templateFeatures: template.features,
-          isSelected: false
-        }))
+        
+        // 檢查數據格式：可能是數組或對象
+        if (Array.isArray(templates)) {
+          // 數組格式（舊版本）
+          return templates.map((template: any) => ({
+            id: template.id,
+            name: template.title,
+            description: template.features,
+            category: template.platform.toLowerCase(),
+            prompt: template.prompt,
+            isActive: true,
+            isSystem: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            platform: template.platform.toLowerCase(),
+            templateTitle: template.title,
+            templateFeatures: template.features,
+            isSelected: false
+          }))
+        } else if (typeof templates === 'object' && templates !== null) {
+          // 對象格式（新版本，從後端 API 獲取）
+          const templateArray = Object.values(templates).map((template: any) => ({
+            id: template.id || 'unknown',
+            name: template.templateTitle || '',
+            description: template.templateFeatures || '',
+            category: template.platform?.toLowerCase() || 'threads',
+            prompt: template.prompt || '',
+            isActive: true,
+            isSystem: true,
+            createdAt: new Date(),
+            updatedAt: new Date(template.updatedAt) || new Date(),
+            platform: template.platform?.toLowerCase() || 'threads',
+            templateTitle: template.templateTitle || '',
+            templateFeatures: template.templateFeatures || '',
+            isSelected: false
+          }))
+          return templateArray
+        }
       }
     } catch (error) {
       console.warn('無法從 localStorage 讀取模板:', error)
