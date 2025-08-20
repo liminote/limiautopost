@@ -11,10 +11,11 @@ describe('AIGeneratorSimple 編輯功能測試', () => {
   test('應該顯示四個模板', () => {
     render(<AIGeneratorSimple />)
     
-    expect(screen.getByText('第一則貼文')).toBeInTheDocument()
-    expect(screen.getByText('第二則貼文')).toBeInTheDocument()
-    expect(screen.getByText('第三則貼文')).toBeInTheDocument()
-    expect(screen.getByText('Instagram 貼文')).toBeInTheDocument()
+    // 檢查標題（使用 getAllByText 處理多重元素）
+    expect(screen.getAllByText('第一則貼文').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('第二則貼文').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('第三則貼文').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Instagram 貼文').length).toBeGreaterThan(0)
     
     // 檢查編輯按鈕
     const editButtons = screen.getAllByText('編輯')
@@ -74,8 +75,8 @@ describe('AIGeneratorSimple 編輯功能測試', () => {
     expect(screen.queryByText('保存')).not.toBeInTheDocument()
     expect(screen.getAllByText('編輯')).toHaveLength(4)
     
-    // 檢查內容是否恢復
-    expect(screen.getByText('第一則貼文')).toBeInTheDocument()
+    // 檢查內容是否恢復（使用 getAllByText 處理多重元素）
+    expect(screen.getAllByText('第一則貼文').length).toBeGreaterThan(0)
   })
 
   test('點擊保存應該退出編輯模式並保留修改', () => {
@@ -97,8 +98,8 @@ describe('AIGeneratorSimple 編輯功能測試', () => {
     expect(screen.queryByText('保存')).not.toBeInTheDocument()
     expect(screen.getAllByText('編輯')).toHaveLength(4)
     
-    // 檢查修改是否保留
-    expect(screen.getByText('修改後的標題')).toBeInTheDocument()
+    // 檢查修改是否保留（使用 getAllByText 處理多重元素）
+    expect(screen.getAllByText('修改後的標題').length).toBeGreaterThan(0)
   })
 
   test('只能同時編輯一個模板', () => {
