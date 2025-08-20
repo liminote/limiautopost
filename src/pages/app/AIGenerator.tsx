@@ -61,10 +61,6 @@ export default function AIGenerator() {
     try {
       console.log('🔍 開始載入模板數據...')
       
-      // 🔥 強制清空舊的 localStorage 數據，確保使用新的空白模板
-      console.log('🧹 強制清空舊的 localStorage 數據')
-      localStorage.removeItem('aigenerator_templates')
-      
       // 1. 優先從後端 API 載入最新數據
       try {
         const response = await fetch('/.netlify/functions/update-system-template', {
@@ -231,11 +227,8 @@ export default function AIGenerator() {
       setEditingId(null)
       console.log('✅ 模板保存成功:', editingTemplate.id)
       
-      // 重要：保存後立即重新載入，確保狀態一致
-      setTimeout(() => {
-        console.log('🔄 保存後重新載入模板...')
-        loadSavedTemplates()
-      }, 100)
+      // 不要立即重新載入，讓用戶看到保存成功的狀態
+      // 如果需要重新載入，可以在頁面刷新時進行
       
     } catch (error) {
       console.error('❌ 保存失敗:', error)
