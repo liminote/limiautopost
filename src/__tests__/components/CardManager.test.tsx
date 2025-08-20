@@ -42,7 +42,7 @@ describe('CardManager', () => {
       expect(screen.getByText('創建新卡片')).toBeInTheDocument()
       expect(screen.getByText('創建新卡片')).toBeInTheDocument()
       expect(screen.getByPlaceholderText('例如：職場心得模板')).toBeInTheDocument()
-      expect(screen.getByPlaceholderText('簡短描述這個卡片的用途')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('簡短描述這個模板的用途和特色')).toBeInTheDocument()
       expect(screen.getByPlaceholderText('輸入 AI 生成內容的指令和規則...')).toBeInTheDocument()
     })
 
@@ -76,7 +76,7 @@ describe('CardManager', () => {
       fireEvent.change(screen.getByPlaceholderText('例如：職場心得模板'), {
         target: { value: '測試卡片' }
       })
-      fireEvent.change(screen.getByPlaceholderText('簡短描述這個卡片的用途'), {
+      fireEvent.change(screen.getByPlaceholderText('簡短描述這個模板的用途和特色'), {
         target: { value: '測試描述' }
       })
       fireEvent.change(screen.getByPlaceholderText('輸入 AI 生成內容的指令和規則...'), {

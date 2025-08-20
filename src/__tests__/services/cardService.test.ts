@@ -41,7 +41,7 @@ describe('CardService', () => {
     it('應該正確標記選擇狀態', () => {
       const cards = cardService.getAllCards(testUserId)
       const selectedCards = cards.filter(card => card.isSelected)
-      expect(selectedCards).toHaveLength(4) // 系統預設都選中
+      expect(selectedCards).toHaveLength(0) // 系統預設都不選中
     })
   })
 
@@ -162,7 +162,7 @@ describe('CardService', () => {
   describe('模板選擇功能', () => {
     it('應該正確管理使用者選擇', () => {
       const selections = cardService.getUserSelections(testUserId)
-      expect(selections.size).toBe(4) // 系統預設選中
+      expect(selections.size).toBe(0) // 系統預設不選中
     })
 
     it('應該允許添加選擇', () => {
@@ -196,16 +196,16 @@ describe('CardService', () => {
       const management = cardService.getTemplateManagement(testUserId)
       
       expect(management.maxSelectedTemplates).toBe(5)
-      expect(management.currentSelectedCount).toBe(3) // 系統預設（實際只有3個被選中）
+      expect(management.currentSelectedCount).toBe(0) // 系統預設都不選中
       expect(management.availableTemplates).toHaveLength(4) // 總共有4個系統模板
-      expect(management.selectedTemplates).toHaveLength(3) // 但只有3個被選中
+      expect(management.selectedTemplates).toHaveLength(0) // 系統預設都不選中
     })
   })
 
   describe('getSelectedTemplates', () => {
     it('應該返回使用者選中的模板', () => {
       const selectedTemplates = cardService.getSelectedTemplates(testUserId)
-      expect(selectedTemplates).toHaveLength(3) // 實際只有3個被選中
+      expect(selectedTemplates).toHaveLength(0) // 系統預設都不選中
       expect(selectedTemplates.every(template => template.isSelected)).toBe(true)
     })
   })
