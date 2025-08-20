@@ -1,7 +1,7 @@
-import { Handler } from '@netlify/functions'
-import { list, get } from '@netlify/blobs'
+const { Handler } = require('@netlify/functions')
+const { list, get } = require('@netlify/blobs')
 
-export const handler: Handler = async (event) => {
+exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
