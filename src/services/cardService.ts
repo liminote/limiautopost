@@ -1,5 +1,6 @@
 import type { BaseCard, SystemCard, UserCard, CardGenerationRequest, CardGenerationResult, TemplateManagement } from '../types/cards'
 import { defaultSystemCards } from '../data/defaultCards'
+import { githubSyncService, type GitHubTemplate } from './githubSyncService'
 
 export class CardService {
   private static instance: CardService
@@ -133,15 +134,14 @@ export class CardService {
     }))
   }
 
-  // 從伺服器讀取最新的系統模板，如果失敗則回退到預設模板
+  // 從 GitHub 讀取最新的系統模板，如果失敗則回退到預設模板
   private async getSystemTemplatesFromServer(): Promise<BaseCard[]> {
     try {
-      console.log('[CardService] 正在從伺服器讀取系統模板...')
-      const response = await fetch('/.netlify/functions/get-system-templates')
+      console.log('[CardService] 正在從 GitHub 讀取系統模板...')
+      const savedTemplates = await githubSyncService.getSystemTemplatesFromGitHub()
       
-      if (response.ok) {
-        const savedTemplates = await response.json()
-        console.log('[CardService] 從伺服器讀取到模板:', savedTemplates)
+      if (Object.keys(savedTemplates).length > 0) {
+        console.log('[CardService] 從 GitHub 讀取到模板:', savedTemplates)
         
         // 將保存的修改應用到系統模板
         const updatedSystemCards = defaultSystemCards.map(card => {
@@ -150,8 +150,8 @@ export class CardService {
             return {
               ...card,
               platform: savedTemplate.platform,
-              templateTitle: savedTemplate.templateTitle,
-              templateFeatures: savedTemplate.templateFeatures,
+              templateTitle: savedTemplate.title,
+              templateFeatures: savedTemplate.features,
               prompt: savedTemplate.prompt,
               updatedAt: new Date(savedTemplate.updatedAt)
             }
@@ -162,10 +162,10 @@ export class CardService {
         console.log('[CardService] 更新後的系統模板:', updatedSystemCards)
         return updatedSystemCards
       } else {
-        console.warn('[CardService] 伺服器回應錯誤:', response.status, response.statusText)
+        console.warn('[CardService] GitHub 上沒有找到模板資料')
       }
     } catch (error) {
-      console.warn('[CardService] 無法從伺服器讀取系統模板:', error)
+      console.warn('[CardService] 無法從 GitHub 讀取系統模板:', error)
     }
     
     // 如果無法讀取，回退到預設模板
@@ -495,30 +495,21 @@ export class CardService {
       updatedAt: new Date()
     })
 
-    // 使用 Netlify Blobs 儲存到伺服器，讓所有用戶共享
+    // 保存到 localStorage 作為備用
     try {
-      const response = await fetch('/.netlify/functions/update-system-template', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cardId,
-          platform,
-          templateTitle,
-          templateFeatures,
-          prompt,
-          updatedAt: systemCard.updatedAt.toISOString()
-        })
-      })
-
-      if (response.ok) {
-        console.log(`系統模板更新成功並保存到伺服器：${cardId}`)
-      } else {
-        console.error('保存到伺服器失敗:', response.status)
-        // 即使伺服器保存失敗，也返回成功（因為記憶體更新成功）
+      const currentSaved = JSON.parse(localStorage.getItem('aigenerator_templates') || '{}')
+      currentSaved[cardId] = {
+        id: cardId,
+        platform,
+        title: templateTitle,
+        features: templateFeatures,
+        prompt,
+        updatedAt: systemCard.updatedAt.toISOString()
       }
+      localStorage.setItem('aigenerator_templates', JSON.stringify(currentSaved))
+      console.log(`系統模板更新成功並保存到 localStorage：${cardId}`)
     } catch (error) {
-      console.error('保存系統模板到伺服器失敗:', error)
-      // 即使保存失敗，也返回成功（因為記憶體更新成功）
+      console.error('保存到 localStorage 失敗:', error)
     }
 
     // 通知所有監聽器資料已變更
@@ -527,37 +518,35 @@ export class CardService {
     return true
   }
 
-  // 載入保存的系統模板修改（從伺服器）
+  // 載入保存的系統模板修改（從 GitHub）
   public async loadSavedSystemTemplates(): Promise<void> {
     try {
-      const response = await fetch('/.netlify/functions/get-system-templates')
+      const savedTemplates = await githubSyncService.getSystemTemplatesFromGitHub()
       
-      if (response.ok) {
-        const savedTemplates = await response.json()
-        
+      if (Object.keys(savedTemplates).length > 0) {
         // 將保存的修改應用到系統模板
-        Object.entries(savedTemplates).forEach(([cardId, templateData]: [string, any]) => {
+        Object.entries(savedTemplates).forEach(([cardId, templateData]: [string, GitHubTemplate]) => {
           const systemCard = defaultSystemCards.find(card => card.id === cardId)
           if (systemCard && templateData) {
             Object.assign(systemCard, {
               platform: templateData.platform,
-              templateTitle: templateData.templateTitle,
-              templateFeatures: templateData.templateFeatures,
+              templateTitle: templateData.title,
+              templateFeatures: templateData.features,
               prompt: templateData.prompt,
               updatedAt: new Date(templateData.updatedAt)
             })
           }
         })
         
-        console.log('已從伺服器載入保存的系統模板修改')
+        console.log('已從 GitHub 載入保存的系統模板修改')
       } else {
-        console.warn('無法從伺服器載入模板修改，使用本地版本')
-        // 如果伺服器載入失敗，嘗試從 localStorage 載入（向後相容）
+        console.warn('無法從 GitHub 載入模板修改，使用本地版本')
+        // 如果 GitHub 載入失敗，嘗試從 localStorage 載入（向後相容）
         this.loadSavedSystemTemplatesFromLocal()
       }
     } catch (error) {
-      console.error('從伺服器載入系統模板失敗:', error)
-      // 如果伺服器載入失敗，嘗試從 localStorage 載入（向後相容）
+      console.error('從 GitHub 載入系統模板失敗:', error)
+      // 如果 GitHub 載入失敗，嘗試從 localStorage 載入（向後相容）
       this.loadSavedSystemTemplatesFromLocal()
     }
   }

@@ -2,9 +2,9 @@ import type { SystemCard } from '../types/cards'
 
 export const defaultSystemCards: SystemCard[] = [
   {
-    id: 'system-threads-1',
-    name: 'Threads 第一則貼文',
-    description: '生成 Threads 第一則貼文，字數 480-500 字',
+    id: 'template-1',
+    name: '生活體悟',
+    description: '分享生活感悟、個人成長、心靈啟發',
     category: 'threads',
     prompt: `請嚴格遵守以下規則生成 Threads 第一則貼文：
 - 聚焦於一個清晰的主題（體悟、情境、對話）
@@ -17,67 +17,68 @@ export const defaultSystemCards: SystemCard[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     platform: 'threads',
-    templateTitle: '第一則貼文',
-    templateFeatures: '480-500字，完整觀點論述，獨立主題',
+    templateTitle: '生活體悟',
+    templateFeatures: '分享生活感悟、個人成長、心靈啟發',
     isSelected: false
   },
   {
-    id: 'system-threads-2',
-    name: 'Threads 第二則貼文',
-    description: '生成 Threads 第二則貼文，字數 330-350 字',
+    id: 'template-2',
+    name: '專業分享',
+    description: '行業見解、技能分享、專業知識',
     category: 'threads',
-    prompt: `請嚴格遵守以下規則生成 Threads 第二則貼文：
-- 聚焦於一個清晰的主題（體悟、情境、對話）
-- 包含獨立完整的觀點與論述，結尾加收束句
+    prompt: `請嚴格遵守以下規則生成 Threads 第一則貼文：
+- 聚焦於一個專業主題或技能分享
+- 包含實用的建議或見解，結尾加行動呼籲
 - 加入一個相關 hashtag（限一個）
-- 字數限制：330～350 字
+- 字數限制：480～500 字
 - 不能與其他貼文有上下文延續關係`,
     isActive: true,
     isSystem: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     platform: 'threads',
-    templateTitle: '第二則貼文',
-    templateFeatures: '330-350字，完整觀點論述，獨立主題',
+    templateTitle: '專業分享',
+    templateFeatures: '行業見解、技能分享、專業知識',
     isSelected: false
   },
   {
-    id: 'system-threads-3',
-    name: 'Threads 第三則貼文',
-    description: '生成 Threads 第三則貼文，字數 180-200 字',
+    id: 'template-3',
+    name: '創意故事',
+    description: '故事創作、想像力、創意表達',
     category: 'threads',
-    prompt: `請嚴格遵守以下規則生成 Threads 第三則貼文：
-- 聚焦於一個清晰的主題（體悟、情境、對話）
-- 包含獨立完整的觀點與論述，結尾加收束句
+    prompt: `請嚴格遵守以下規則生成 Threads 第一則貼文：
+- 聚焦於一個創意故事或想像情境
+- 包含生動的描述和情感表達，結尾加反思
 - 加入一個相關 hashtag（限一個）
-- 字數限制：180～200 字
+- 字數限制：480～500 字
 - 不能與其他貼文有上下文延續關係`,
     isActive: true,
     isSystem: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     platform: 'threads',
-    templateTitle: '第三則貼文',
-    templateFeatures: '180-200字，完整觀點論述，獨立主題',
+    templateTitle: '創意故事',
+    templateFeatures: '故事創作、想像力、創意表達',
     isSelected: false
   },
   {
-    id: 'system-instagram',
-    name: 'Instagram 貼文',
-    description: '生成 Instagram 貼文，語氣溫暖具洞察力',
-    category: 'instagram',
-    prompt: `請生成 Instagram 貼文：
-- 語氣溫暖但具洞察力
-- 可結尾搭配開放式問題（例如「你也有這樣的經驗嗎？」）
-- 長度可以略長於 Threads
-- 保持與主題相關的連貫性`,
+    id: 'template-4',
+    name: '時事評論',
+    description: '社會議題、時事分析、觀點表達',
+    category: 'threads',
+    prompt: `請嚴格遵守以下規則生成 Threads 第一則貼文：
+- 聚焦於一個時事議題或社會現象
+- 包含客觀分析和個人觀點，結尾加思考問題
+- 加入一個相關 hashtag（限一個）
+- 字數限制：480～500 字
+- 不能與其他貼文有上下文延續關係`,
     isActive: true,
     isSystem: true,
     createdAt: new Date(),
     updatedAt: new Date(),
-    platform: 'instagram',
-    templateTitle: '貼文',
-    templateFeatures: '溫暖語氣，開放式問題結尾，具洞察力',
+    platform: 'threads',
+    templateTitle: '時事評論',
+    templateFeatures: '社會議題、時事分析、觀點表達',
     isSelected: false
   }
 ]
