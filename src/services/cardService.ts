@@ -141,8 +141,8 @@ export class CardService {
           const backendTemplates = await response.json()
           console.log('[CardService] 從後端 API 載入到數據:', backendTemplates)
           
-          if (backendTemplates && Object.keys(backendTemplates).length >= 4) {
-            // 如果有完整的後端數據，使用後端數據並更新 localStorage
+          if (backendTemplates && Object.keys(backendTemplates).length > 0) {
+            // 如果有後端數據，使用後端數據並更新 localStorage
             const systemCards = this.convertBackendTemplatesToBaseCards(backendTemplates)
             const userCards = this.getUserCards(userId)
             
