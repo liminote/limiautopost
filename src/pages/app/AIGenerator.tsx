@@ -61,6 +61,10 @@ export default function AIGenerator() {
     try {
       console.log('🔍 開始載入模板數據...')
       
+      // 🔥 強制清空舊的 localStorage 數據，確保使用新的空白模板
+      console.log('🧹 強制清空舊的 localStorage 數據')
+      localStorage.removeItem('aigenerator_templates')
+      
       // 1. 優先從後端 API 載入最新數據
       try {
         const response = await fetch('/.netlify/functions/update-system-template', {
