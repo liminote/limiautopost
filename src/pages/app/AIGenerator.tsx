@@ -51,48 +51,43 @@ const TEMPLATES: Template[] = [
 ]
 
 export default function AIGenerator() {
-  const [templates, setTemplates] = useState<Template[]>(TEMPLATES)
+  // 初始化時就從 localStorage 載入，避免先使用預設值
+  const [templates, setTemplates] = useState<Template[]>(() => {
+    try {
+      const localSaved = localStorage.getItem('aigenerator_templates')
+      if (localSaved) {
+        const localTemplates = JSON.parse(localSaved)
+        console.log('初始化時從 localStorage 讀取到模板:', localTemplates)
+        
+        // 將 localStorage 的資料應用到模板
+        const updatedTemplates = TEMPLATES.map(template => {
+          const localTemplate = localTemplates[template.id]
+          if (localTemplate) {
+            return {
+              ...template,
+              platform: localTemplate.platform !== undefined ? localTemplate.platform : template.platform,
+              title: localTemplate.title !== undefined ? localTemplate.title : template.title,
+              features: localTemplate.features !== undefined ? localTemplate.features : template.features,
+              prompt: localTemplate.prompt !== undefined ? localTemplate.prompt : template.prompt
+            }
+          }
+          return template
+        })
+        
+        console.log('初始化模板載入完成，數量:', updatedTemplates.length)
+        return updatedTemplates
+      } else {
+        console.log('初始化時 localStorage 中沒有保存的模板，使用預設模板')
+        return TEMPLATES
+      }
+    } catch (error) {
+      console.error('初始化載入模板失敗:', error)
+      return TEMPLATES
+    }
+  })
+  
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
-
-  // 載入已保存的模板
-  useEffect(() => {
-    const loadSavedTemplates = () => {
-      try {
-        const localSaved = localStorage.getItem('aigenerator_templates')
-        if (localSaved) {
-          const localTemplates = JSON.parse(localSaved)
-          console.log('從 localStorage 讀取到模板:', localTemplates)
-          
-          // 將 localStorage 的資料應用到模板
-          const updatedTemplates = TEMPLATES.map(template => {
-            const localTemplate = localTemplates[template.id]
-            if (localTemplate) {
-              return {
-                ...template,
-                platform: localTemplate.platform !== undefined ? localTemplate.platform : template.platform,
-                title: localTemplate.title !== undefined ? localTemplate.title : template.title,
-                features: localTemplate.features !== undefined ? localTemplate.features : template.features,
-                prompt: localTemplate.prompt !== undefined ? localTemplate.prompt : template.prompt
-              }
-            }
-            return template
-          })
-          
-          setTemplates(updatedTemplates)
-          console.log('模板載入完成，數量:', updatedTemplates.length)
-        } else {
-          console.log('localStorage 中沒有保存的模板，使用預設模板')
-          setTemplates(TEMPLATES)
-        }
-      } catch (error) {
-        console.error('載入模板失敗:', error)
-        setTemplates(TEMPLATES)
-      }
-    }
-    
-    loadSavedTemplates()
-  }, [])
 
   // 開始編輯
   const startEdit = (id: string) => {
