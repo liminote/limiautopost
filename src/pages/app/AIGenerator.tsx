@@ -130,6 +130,8 @@ export default function AIGenerator() {
       const editingTemplate = templates.find((t: Template) => t.id === editingId)
       if (!editingTemplate) return
       
+      console.log('正在保存模板:', editingTemplate)
+      
       // 保存到伺服器
       const response = await fetch('/.netlify/functions/update-system-template', {
         method: 'POST',
@@ -145,18 +147,30 @@ export default function AIGenerator() {
       })
       
       if (response.ok) {
-        console.log('模板保存成功:', editingTemplate)
+        const result = await response.json()
+        console.log('模板保存成功:', result)
         setEditingId(null)
         
         // 觸發頁面重新載入以同步其他組件
         window.dispatchEvent(new CustomEvent('templatesUpdated'))
+        
+        // 同時更新 localStorage 以確保向後相容
+        const currentSaved = JSON.parse(localStorage.getItem('aigenerator_templates') || '{}')
+        currentSaved[editingTemplate.id] = {
+          ...editingTemplate,
+          updatedAt: new Date().toISOString()
+        }
+        localStorage.setItem('aigenerator_templates', JSON.stringify(currentSaved))
+        
+        alert('模板保存成功！')
       } else {
-        console.error('保存模板失敗:', response.status)
-        alert('保存失敗，請重試')
+        const errorText = await response.text()
+        console.error('保存模板失敗:', response.status, errorText)
+        alert(`保存失敗 (${response.status}): ${errorText}`)
       }
     } catch (error) {
       console.error('保存模板時發生錯誤:', error)
-      alert('保存失敗，請重試')
+      alert(`保存失敗: ${error instanceof Error ? error.message : '網路錯誤'}`)
     } finally {
       setIsSaving(false)
     }

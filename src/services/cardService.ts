@@ -18,8 +18,18 @@ export class CardService {
 
   // 監聽 AIGenerator 的模板更新事件
   private setupTemplateUpdateListener() {
-    window.addEventListener('templatesUpdated', () => {
-      console.log('[CardService] 收到模板更新事件，通知所有監聽器')
+    window.addEventListener('templatesUpdated', async () => {
+      console.log('[CardService] 收到模板更新事件，重新載入系統模板並通知所有監聽器')
+      
+      // 重新載入最新的系統模板
+      try {
+        await this.loadSavedSystemTemplates()
+        console.log('[CardService] 系統模板重新載入完成')
+      } catch (error) {
+        console.warn('[CardService] 重新載入系統模板失敗:', error)
+      }
+      
+      // 通知所有監聽器
       this.notifyChanges()
     })
   }
@@ -126,9 +136,12 @@ export class CardService {
   // 從伺服器讀取最新的系統模板，如果失敗則回退到預設模板
   private async getSystemTemplatesFromServer(): Promise<BaseCard[]> {
     try {
+      console.log('[CardService] 正在從伺服器讀取系統模板...')
       const response = await fetch('/.netlify/functions/get-system-templates')
+      
       if (response.ok) {
         const savedTemplates = await response.json()
+        console.log('[CardService] 從伺服器讀取到模板:', savedTemplates)
         
         // 將保存的修改應用到系統模板
         const updatedSystemCards = defaultSystemCards.map(card => {
@@ -146,13 +159,17 @@ export class CardService {
           return card
         })
         
+        console.log('[CardService] 更新後的系統模板:', updatedSystemCards)
         return updatedSystemCards
+      } else {
+        console.warn('[CardService] 伺服器回應錯誤:', response.status, response.statusText)
       }
     } catch (error) {
-      console.warn('無法從伺服器讀取系統模板:', error)
+      console.warn('[CardService] 無法從伺服器讀取系統模板:', error)
     }
     
     // 如果無法讀取，回退到預設模板
+    console.log('[CardService] 使用預設系統模板')
     return defaultSystemCards
   }
 

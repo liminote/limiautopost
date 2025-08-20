@@ -20,24 +20,35 @@ export default function UserSettings(){
   const cardService = CardService.getInstance()
 
   // 載入模板管理資訊
-  const loadTemplateManagement = () => {
+  const loadTemplateManagement = async () => {
     if (!session) return
     
-    // 使用 CardService 的統一方法獲取所有模板
-    const allTemplates = cardService.getAllCards(session.email)
-    
-    // 正確過濾已選擇的模板
-    const selectedTemplates = allTemplates.filter(template => template.isSelected)
-    
-    console.log('[UserSettings] 載入模板:', {
-      total: allTemplates.length,
-      selected: selectedTemplates.length,
-      maxSelections
-    })
-    
-    setAvailableTemplates(allTemplates)
-    setSelectedTemplates(selectedTemplates)
-    setMaxSelections(5) // 固定最大選擇數量
+    try {
+      // 使用 CardService 的非同步方法獲取最新模板
+      const allTemplates = await cardService.getAllCardsAsync(session.email)
+      
+      // 正確過濾已選擇的模板
+      const selectedTemplates = allTemplates.filter(template => template.isSelected)
+      
+      console.log('[UserSettings] 載入模板:', {
+        total: allTemplates.length,
+        selected: selectedTemplates.length,
+        maxSelections
+      })
+      
+      setAvailableTemplates(allTemplates)
+      setSelectedTemplates(selectedTemplates)
+      setMaxSelections(5) // 固定最大選擇數量
+    } catch (error) {
+      console.warn('[UserSettings] 載入模板失敗，使用同步方法:', error)
+      // 回退到同步方法
+      const allTemplates = cardService.getAllCards(session.email)
+      const selectedTemplates = allTemplates.filter(template => template.isSelected)
+      
+      setAvailableTemplates(allTemplates)
+      setSelectedTemplates(selectedTemplates)
+      setMaxSelections(5)
+    }
   }
 
   // 強制重新載入模板（清除快取）
@@ -57,6 +68,20 @@ export default function UserSettings(){
     // 重新載入
     loadTemplateManagement()
   }
+
+  // 監聽模板更新事件
+  useEffect(() => {
+    const handleTemplatesUpdated = () => {
+      console.log('[UserSettings] 收到模板更新事件，重新載入模板')
+      loadTemplateManagement()
+    }
+
+    window.addEventListener('templatesUpdated', handleTemplatesUpdated)
+    
+    return () => {
+      window.removeEventListener('templatesUpdated', handleTemplatesUpdated)
+    }
+  }, [])
 
   // 統一的授權狀態檢查函數
   const checkAuthStatus = async () => {
