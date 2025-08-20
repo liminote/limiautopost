@@ -1,5 +1,5 @@
 const { Handler } = require('@netlify/functions')
-const { put } = require('@netlify/blobs')
+const { getStore } = require('@netlify/blobs')
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -19,19 +19,31 @@ exports.handler = async (event) => {
       }
     }
 
-    // 儲存到 Netlify Blobs
-    await put('system-templates', cardId, JSON.stringify({
+    // 使用 getStore 來儲存到 Netlify Blobs
+    const store = getStore('system-templates')
+    
+    // 讀取現有的模板資料
+    let existingTemplates = {}
+    try {
+      const existing = await store.get('templates', { type: 'json' })
+      if (existing) {
+        existingTemplates = existing
+      }
+    } catch (error) {
+      console.log('沒有現有的模板資料，創建新的')
+    }
+    
+    // 更新指定模板
+    existingTemplates[cardId] = {
       platform,
       templateTitle,
       templateFeatures,
       prompt,
       updatedAt
-    }), {
-      metadata: { 
-        contentType: 'application/json',
-        lastModified: new Date().toISOString()
-      }
-    })
+    }
+    
+    // 儲存到 Netlify Blobs
+    await store.set('templates', JSON.stringify(existingTemplates))
 
     return {
       statusCode: 200,

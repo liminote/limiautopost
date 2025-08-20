@@ -1,5 +1,5 @@
 const { Handler } = require('@netlify/functions')
-const { list, get } = require('@netlify/blobs')
+const { getStore } = require('@netlify/blobs')
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') {
@@ -10,28 +10,21 @@ exports.handler = async (event) => {
   }
 
   try {
-    // 列出所有系統模板
-    const { blobs } = await list('system-templates')
+    // 使用 getStore 來讀取 Netlify Blobs
+    const store = getStore('system-templates')
     
-    if (blobs.length === 0) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({})
+    // 從 Netlify Blobs 讀取模板資料
+    let templates = {}
+    try {
+      const existing = await store.get('templates', { type: 'json' })
+      if (existing) {
+        templates = existing
+        console.log(`成功讀取 ${Object.keys(templates).length} 個模板`)
+      } else {
+        console.log('沒有找到保存的模板資料')
       }
-    }
-
-    // 讀取所有模板資料
-    const templates: Record<string, any> = {}
-    
-    for (const blob of blobs) {
-      try {
-        const templateData = await get('system-templates', blob.key, { type: 'json' })
-        if (templateData) {
-          templates[blob.key] = templateData
-        }
-      } catch (error) {
-        console.warn(`Failed to read template ${blob.key}:`, error)
-      }
+    } catch (error) {
+      console.log('沒有現有的模板資料')
     }
 
     return {
