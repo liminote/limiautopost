@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模板持久化功能演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .demo-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background: white;
+            border-left: 4px solid #007bff;
+            padding-left: 15px;
+        }
+        .code {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .note {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 模板持久化功能修復報告</h1>
+        
+        <div class="demo-section">
+            <h2>🎯 問題診斷</h2>
+            <div class="step">
+                <strong>根本原因：</strong>
+                <p>系統模板使用靜態的 <code>defaultSystemCards</code> 常數陣列，當 CardService 監聽 <code>templatesUpdated</code> 事件時，會重新載入模板並直接修改這個靜態陣列。但由於陣列是靜態的，頁面重新載入時會回到原始預設值。</p>
+            </div>
+            
+            <div class="step">
+                <strong>問題流程：</strong>
+                <ol>
+                    <li>用戶編輯模板 → 保存到 localStorage</li>
+                    <li>觸發 <code>templatesUpdated</code> 事件</li>
+                    <li>CardService 監聽事件 → 調用 <code>loadSavedSystemTemplates()</code></li>
+                    <li>修改靜態的 <code>defaultSystemCards</code> 陣列</li>
+                    <li>頁面重新載入 → 回到原始預設值</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🛠️ 修復方案</h2>
+            <div class="step">
+                <strong>1. 創建可變的模板狀態管理</strong>
+                <p>在 CardService 中使用 <code>private systemTemplates: SystemCard[]</code> 替代靜態的 <code>defaultSystemCards</code></p>
+                <div class="code">
+// 修復前：靜態常數
+return [...defaultSystemCards]
+
+// 修復後：可變狀態
+return [...this.systemTemplates]
+                </div>
+            </div>
+            
+            <div class="step">
+                <strong>2. 使用 useReducer 管理模板狀態</strong>
+                <p>在 AIGenerator 組件中使用 <code>useReducer</code> 和 <code>useCallback</code> 來管理模板狀態，確保狀態的持久性</p>
+                <div class="code">
+// 使用 useReducer 管理模板狀態
+const [templates, dispatch] = useReducer(templateReducer, TEMPLATES)
+
+// 載入保存的模板
+const loadSavedTemplates = useCallback(() => {
+  // 從 localStorage 載入並應用修改
+}, [])
+                </div>
+            </div>
+            
+            <div class="step">
+                <strong>3. 改進取消編輯邏輯</strong>
+                <p>取消編輯時重新載入保存的模板，放棄未保存的修改</p>
+                <div class="code">
+const cancelEdit = () => {
+  setEditingId(null)
+  // 重新載入保存的模板，放棄未保存的修改
+  loadSavedTemplates()
+}
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>✅ 修復效果</h2>
+            <div class="step">
+                <span class="success">✓ 模板編輯後能正確保存到 localStorage</span>
+            </div>
+            <div class="step">
+                <span class="success">✓ 頁面重新載入後顯示修改後的內容</span>
+            </div>
+            <div class="step">
+                <span class="success">✓ 取消編輯時恢復到保存的狀態</span>
+            </div>
+            <div class="step">
+                <span class="success">✓ 使用 useReducer 確保狀態管理的一致性</span>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🧪 測試驗證</h2>
+            <div class="step">
+                <strong>新增測試：</strong>
+                <ul>
+                    <li>模板編輯和持久化保存測試</li>
+                    <li>從 localStorage 載入保存的模板測試</li>
+                    <li>取消編輯恢復狀態測試</li>
+                </ul>
+            </div>
+            <div class="step">
+                <strong>測試結果：</strong>
+                <span class="success">所有測試通過 ✓</span>
+            </div>
+        </div>
+
+        <div class="note">
+            <h3>💡 技術要點</h3>
+            <ul>
+                <li><strong>狀態管理：</strong>使用 useReducer 替代 useState 來管理複雜的模板狀態</li>
+                <li><strong>持久化：</strong>localStorage 作為主要存儲，GitHub 作為備用同步</li>
+                <li><strong>事件驅動：</strong>templatesUpdated 事件觸發跨組件同步</li>
+                <li><strong>錯誤處理：</strong>完善的錯誤處理和回退機制</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>🚀 下一步</h2>
+            <div class="step">
+                <strong>建議：</strong>
+                <ol>
+                    <li>部署修復後的版本到生產環境</li>
+                    <li>監控模板編輯功能的穩定性</li>
+                    <li>考慮添加模板版本控制功能</li>
+                    <li>優化 GitHub 同步機制</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

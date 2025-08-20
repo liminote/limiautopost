@@ -1,24 +1,44 @@
 import type { BaseCard, SystemCard, UserCard, CardGenerationRequest, CardGenerationResult, TemplateManagement } from '../types/cards'
 import { defaultSystemCards } from '../data/defaultCards'
-import { githubSyncService, type GitHubTemplate } from './githubSyncService'
+import { GitHubSyncService } from './githubSyncService'
+
+// 定義 GitHubTemplate 類型
+interface GitHubTemplate {
+  platform: string
+  title: string
+  features: string
+  prompt: string
+  updatedAt: string
+}
 
 export class CardService {
   private static instance: CardService
-  
-  // 常數定義
   private static readonly MAX_USER_TEMPLATES = 6
   
+  // 可變的系統模板狀態，而不是靜態的 defaultSystemCards
+  private systemTemplates: SystemCard[] = []
   private userCards: Map<string, UserCard[]> = new Map()
   private userSelections: Map<string, Set<string>> = new Map() // userId -> selected cardIds
   private listeners: Set<() => void> = new Set()
+  private githubSyncService: GitHubSyncService
 
   private constructor() {
-    // 從 localStorage 載入用戶卡片數據
+    this.githubSyncService = GitHubSyncService.getInstance()
+    
+    // 初始化系統模板為預設值的副本
+    this.systemTemplates = JSON.parse(JSON.stringify(defaultSystemCards))
+    
+    // 載入用戶卡片數據
     this.loadUserCardsFromStorage()
-    // 注意：loadSavedSystemTemplates 是 async，在建構函數中不呼叫
+    
+    // 初始化預設選擇
+    this.initializeDefaultSelections()
     
     // 監聽 AIGenerator 的模板更新事件
     this.setupTemplateUpdateListener()
+    
+    // 初始化時載入保存的模板修改
+    this.loadSavedSystemTemplatesFromLocal()
   }
 
   // 監聽 AIGenerator 的模板更新事件
@@ -155,13 +175,13 @@ export class CardService {
   private async getSystemTemplatesFromServer(): Promise<BaseCard[]> {
     try {
       console.log('[CardService] 正在從 GitHub 讀取系統模板...')
-      const savedTemplates = await githubSyncService.getSystemTemplatesFromGitHub()
+      const savedTemplates = await this.githubSyncService.getSystemTemplatesFromGitHub()
       
       if (Object.keys(savedTemplates).length > 0) {
         console.log('[CardService] 從 GitHub 讀取到模板:', savedTemplates)
         
         // 將保存的修改應用到系統模板
-        const updatedSystemCards = defaultSystemCards.map(card => {
+        const updatedSystemCards = this.systemTemplates.map(card => {
           const savedTemplate = savedTemplates[card.id]
           if (savedTemplate) {
             return {
@@ -176,6 +196,7 @@ export class CardService {
           return card
         })
         
+        this.systemTemplates = updatedSystemCards // 更新系統模板狀態
         console.log('[CardService] 更新後的系統模板:', updatedSystemCards)
         return updatedSystemCards
       } else {
@@ -253,13 +274,13 @@ export class CardService {
     await this.loadSavedSystemTemplates()
     
     // 返回最新的系統模板
-    return [...defaultSystemCards]
+    return [...this.systemTemplates]
   }
 
   // 同步版本的 getSystemCards（向後相容）
   public getSystemCardsSync(): SystemCard[] {
     // 返回記憶體中的系統模板（可能不是最新的）
-    return [...defaultSystemCards]
+    return [...this.systemTemplates]
   }
 
   // 創建使用者卡片
@@ -517,7 +538,7 @@ export class CardService {
     templateFeatures: string,
     prompt: string
   ): Promise<boolean> {
-    const systemCard = defaultSystemCards.find(card => card.id === cardId)
+    const systemCard = this.systemTemplates.find(card => card.id === cardId)
     if (!systemCard) {
       console.warn(`找不到系統模板：${cardId}`)
       return false
@@ -558,12 +579,12 @@ export class CardService {
   // 載入保存的系統模板修改（從 GitHub）
   public async loadSavedSystemTemplates(): Promise<void> {
     try {
-      const savedTemplates = await githubSyncService.getSystemTemplatesFromGitHub()
+      const savedTemplates = await this.githubSyncService.getSystemTemplatesFromGitHub()
       
       if (Object.keys(savedTemplates).length > 0) {
         // 將保存的修改應用到系統模板
         Object.entries(savedTemplates).forEach(([cardId, templateData]: [string, GitHubTemplate]) => {
-          const systemCard = defaultSystemCards.find(card => card.id === cardId)
+          const systemCard = this.systemTemplates.find(card => card.id === cardId)
           if (systemCard && templateData) {
             Object.assign(systemCard, {
               platform: templateData.platform,
@@ -599,7 +620,7 @@ export class CardService {
         
         // 將保存的修改應用到系統模板
         Object.entries(templates).forEach(([cardId, templateData]: [string, any]) => {
-          const systemCard = defaultSystemCards.find(card => card.id === cardId)
+          const systemCard = this.systemTemplates.find(card => card.id === cardId)
           if (systemCard && templateData) {
             Object.assign(systemCard, {
               platform: templateData.platform,
