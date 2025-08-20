@@ -18,74 +18,90 @@ const PLATFORM_OPTIONS = [
   { value: 'general', label: '通用' }
 ]
 
-// 固定的四個模板
+// 固定的四個模板 - 清空內容
 const TEMPLATES: Template[] = [
   {
     id: 'template-1',
-    title: '生活體悟',
+    title: '',
     platform: 'threads',
-    features: '分享生活感悟、個人成長、心靈啟發',
-    prompt: '請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係'
+    features: '',
+    prompt: ''
   },
   {
     id: 'template-2',
-    title: '專業分享',
+    title: '',
     platform: 'threads',
-    features: '行業見解、技能分享、專業知識',
-    prompt: '請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個專業主題或技能分享\n- 包含實用的建議或見解，結尾加行動呼籲\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係'
+    features: '',
+    prompt: ''
   },
   {
     id: 'template-3',
-    title: '創意故事',
+    title: '',
     platform: 'threads',
-    features: '故事創作、想像力、創意表達',
-    prompt: '請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個創意故事或想像情境\n- 包含生動的描述和情感表達，結尾加反思\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係'
+    features: '',
+    prompt: ''
   },
   {
     id: 'template-4',
-    title: '時事評論',
+    title: '',
     platform: 'threads',
-    features: '社會議題、時事分析、觀點表達',
-    prompt: '請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個時事議題或社會現象\n- 包含客觀分析和個人觀點，結尾加思考問題\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係'
+    features: '',
+    prompt: ''
   }
 ]
 
 export default function AIGenerator() {
   // 直接使用 useState，簡化邏輯
-  const [templates, setTemplates] = useState<Template[]>(TEMPLATES)
+  const [templates, setTemplates] = useState<Template[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  // 全新的載入邏輯：直接覆蓋預設模板
+  // 全新的載入邏輯：最直接的方法
   const loadSavedTemplates = useCallback(() => {
     try {
       const localSaved = localStorage.getItem('aigenerator_templates')
+      console.log('🔍 檢查 localStorage:', localSaved ? '有數據' : '無數據')
+      
       if (localSaved) {
         const localTemplates = JSON.parse(localSaved)
-        console.log('🔍 從 localStorage 讀取到模板:', localTemplates)
+        console.log('📥 從 localStorage 讀取到數據:', localTemplates)
         
-        // 直接創建新的模板陣列，優先使用保存的數據
-        const updatedTemplates = TEMPLATES.map(template => {
-          const savedTemplate = localTemplates[template.id]
-          if (savedTemplate) {
-            // 如果有保存的數據，完全使用保存的數據
-            return {
-              id: template.id,
-              platform: savedTemplate.platform || template.platform,
-              title: savedTemplate.title || template.title,
-              features: savedTemplate.features || template.features,
-              prompt: savedTemplate.prompt || template.prompt
+        // 檢查是否有完整的模板數據
+        const hasCompleteData = Object.keys(localTemplates).length >= 4
+        
+        if (hasCompleteData) {
+          // 如果有完整的數據，直接使用
+          const savedTemplates = Object.values(localTemplates).map((saved: any) => ({
+            id: saved.id,
+            platform: saved.platform || 'threads',
+            title: saved.title || '',
+            features: saved.features || '',
+            prompt: saved.prompt || ''
+          }))
+          
+          setTemplates(savedTemplates)
+          console.log('✅ 使用保存的完整模板數據:', savedTemplates)
+        } else {
+          // 如果數據不完整，合併預設模板
+          const mergedTemplates = TEMPLATES.map(template => {
+            const saved = localTemplates[template.id]
+            if (saved) {
+              return {
+                ...template,
+                platform: saved.platform || template.platform,
+                title: saved.title || template.title,
+                features: saved.features || template.features,
+                prompt: saved.prompt || template.prompt
+              }
             }
-          }
-          // 如果沒有保存的數據，使用預設值
-          return template
-        })
-        
-        setTemplates(updatedTemplates)
-        console.log('✅ 模板載入完成，數量:', updatedTemplates.length)
-        console.log('📋 載入的模板:', updatedTemplates)
+            return template
+          })
+          
+          setTemplates(mergedTemplates)
+          console.log('🔄 合併預設和保存的數據:', mergedTemplates)
+        }
       } else {
-        console.log('ℹ️ localStorage 中沒有保存的模板，使用預設模板')
+        console.log('ℹ️ localStorage 中沒有數據，使用空白預設模板')
         setTemplates(TEMPLATES)
       }
     } catch (error) {
@@ -114,7 +130,7 @@ export default function AIGenerator() {
     console.log('🔄 已重新載入保存的模板')
   }
 
-  // 保存編輯 - 簡化邏輯
+  // 保存編輯 - 完全重寫邏輯
   const saveEdit = async () => {
     if (!editingId) return
     
@@ -129,10 +145,12 @@ export default function AIGenerator() {
         return
       }
 
-      console.log('📝 保存的模板資料:', editingTemplate)
+      console.log('📝 準備保存的模板資料:', editingTemplate)
 
-      // 保存到 localStorage - 使用更簡單的結構
+      // 保存到 localStorage - 使用新的結構
       const currentSaved = JSON.parse(localStorage.getItem('aigenerator_templates') || '{}')
+      
+      // 保存當前編輯的模板
       currentSaved[editingTemplate.id] = {
         id: editingTemplate.id,
         platform: editingTemplate.platform,
@@ -142,8 +160,22 @@ export default function AIGenerator() {
         updatedAt: new Date().toISOString()
       }
       
+      // 同時保存所有其他模板的當前狀態
+      templates.forEach(template => {
+        if (template.id !== editingId) {
+          currentSaved[template.id] = {
+            id: template.id,
+            platform: template.platform,
+            title: template.title,
+            features: template.features,
+            prompt: template.prompt,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      })
+      
       localStorage.setItem('aigenerator_templates', JSON.stringify(currentSaved))
-      console.log('💾 已保存到 localStorage:', currentSaved)
+      console.log('💾 已保存到 localStorage，包含所有模板:', currentSaved)
 
       // 觸發同步事件
       window.dispatchEvent(new CustomEvent('templatesUpdated'))
@@ -155,6 +187,7 @@ export default function AIGenerator() {
       
       // 重要：保存後立即重新載入，確保狀態一致
       setTimeout(() => {
+        console.log('🔄 保存後重新載入模板...')
         loadSavedTemplates()
       }, 100)
       

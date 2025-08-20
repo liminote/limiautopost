@@ -46,12 +46,13 @@ describe('AIGenerator 模板持久化功能測試', () => {
     const editButtons = screen.getAllByText('編輯')
     fireEvent.click(editButtons[0])
     
-    // 修改標題
-    const titleInput = screen.getByDisplayValue('生活體悟')
+    // 修改標題 - 使用 getAllByDisplayValue 然後選擇第一個
+    const titleInputs = screen.getAllByDisplayValue('')
+    const titleInput = titleInputs[0] // 第一個輸入框是標題
     fireEvent.change(titleInput, { target: { value: '測試標題' } })
     
-    // 修改功能描述
-    const featuresInput = screen.getByDisplayValue('分享生活感悟、個人成長、心靈啟發')
+    // 修改功能描述 - 第二個輸入框
+    const featuresInput = titleInputs[1] // 第二個輸入框是功能描述
     fireEvent.change(featuresInput, { target: { value: '測試描述' } })
     
     // 點擊保存
