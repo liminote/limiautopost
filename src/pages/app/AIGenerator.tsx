@@ -59,51 +59,13 @@ export default function AIGenerator() {
   // 全新的載入邏輯：最直接的方法
   const loadSavedTemplates = useCallback(() => {
     try {
-      const localSaved = localStorage.getItem('aigenerator_templates')
-      console.log('🔍 檢查 localStorage:', localSaved ? '有數據' : '無數據')
+      // 🔥 強制清空舊的 localStorage 數據，使用新的空白模板
+      console.log('🧹 強制清空舊的 localStorage 數據')
+      localStorage.removeItem('aigenerator_templates')
       
-      if (localSaved) {
-        const localTemplates = JSON.parse(localSaved)
-        console.log('📥 從 localStorage 讀取到數據:', localTemplates)
-        
-        // 檢查是否有完整的模板數據
-        const hasCompleteData = Object.keys(localTemplates).length >= 4
-        
-        if (hasCompleteData) {
-          // 如果有完整的數據，直接使用
-          const savedTemplates = Object.values(localTemplates).map((saved: any) => ({
-            id: saved.id,
-            platform: saved.platform || 'threads',
-            title: saved.title || '',
-            features: saved.features || '',
-            prompt: saved.prompt || ''
-          }))
-          
-          setTemplates(savedTemplates)
-          console.log('✅ 使用保存的完整模板數據:', savedTemplates)
-        } else {
-          // 如果數據不完整，合併預設模板
-          const mergedTemplates = TEMPLATES.map(template => {
-            const saved = localTemplates[template.id]
-            if (saved) {
-              return {
-                ...template,
-                platform: saved.platform || template.platform,
-                title: saved.title || template.title,
-                features: saved.features || template.features,
-                prompt: saved.prompt || template.prompt
-              }
-            }
-            return template
-          })
-          
-          setTemplates(mergedTemplates)
-          console.log('🔄 合併預設和保存的數據:', mergedTemplates)
-        }
-      } else {
-        console.log('ℹ️ localStorage 中沒有數據，使用空白預設模板')
-        setTemplates(TEMPLATES)
-      }
+      console.log('ℹ️ 使用空白預設模板')
+      setTemplates(TEMPLATES)
+      
     } catch (error) {
       console.error('❌ 載入模板失敗:', error)
       setTemplates(TEMPLATES)
