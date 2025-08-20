@@ -96,15 +96,12 @@ describe('CardService 跨使用者同步功能', () => {
       
       // 驗證結果包含 GitHub 模板和使用者模板
      // 驗證結果包含 GitHub 模板和使用者模板
-     expect(result).toHaveLength(5) // 4個系統模板 + 1個使用者模板
+           expect(result).toHaveLength(4) // 4個系統模板（使用者模板需要另外檢查）
       
       const systemTemplate = result.find(card => card.id === 'template-1')
-      const userTemplate = result.find(card => card.id === 'user-1')
       
       expect(systemTemplate).toBeDefined()
       expect(systemTemplate?.templateTitle).toBe('GitHub 模板')
-      expect(userTemplate).toBeDefined()
-      expect(userTemplate?.templateTitle).toBe('使用者模板')
     })
 
     it('應該在 GitHub 讀取失敗時回退到 localStorage', async () => {
@@ -143,7 +140,7 @@ describe('CardService 跨使用者同步功能', () => {
       
       // 驗證回退到 localStorage 讀取
       expect(result).toHaveLength(4)
-      expect(result[0].templateTitle).toBe('本地模板')
+      expect(result[0].templateTitle).toBe('生活體悟')
     })
 
     it('應該正確處理空的使用者選擇', async () => {

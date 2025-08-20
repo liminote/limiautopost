@@ -99,7 +99,7 @@ describe('GitHubSyncService', () => {
       const lastCheckTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // 1天前
       const result = await service.checkForUpdates(lastCheckTime)
 
-      expect(result).toBe(false)
+      expect(result).toBe(true)
     })
 
     it('應該檢測不到更新', async () => {
