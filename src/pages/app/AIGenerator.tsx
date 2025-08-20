@@ -215,7 +215,11 @@ export default function AIGenerator() {
         // 同時更新 localStorage 以確保向後相容
         const currentSaved = JSON.parse(localStorage.getItem('aigenerator_templates') || '{}')
         currentSaved[editingTemplate.id] = {
-          ...editingTemplate,
+          id: editingTemplate.id,
+          title: editingTemplate.title,
+          platform: editingTemplate.platform,
+          features: editingTemplate.features,
+          prompt: editingTemplate.prompt,
           updatedAt: new Date().toISOString()
         }
         localStorage.setItem('aigenerator_templates', JSON.stringify(currentSaved))
