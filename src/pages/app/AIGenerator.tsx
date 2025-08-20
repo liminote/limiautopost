@@ -157,9 +157,19 @@ export default function AIGenerator() {
   // 更新模板欄位
   const updateTemplateField = (id: string, field: keyof Template, value: string) => {
     console.log(`更新模板 ${id} 的 ${field} 欄位為:`, value)
-    setTemplates(prev => prev.map(template =>
-      template.id === id ? { ...template, [field]: value } : template
-    ))
+    
+    // 防止重複更新相同值
+    setTemplates(prev => {
+      const currentTemplate = prev.find(t => t.id === id)
+      if (currentTemplate && currentTemplate[field] === value) {
+        console.log(`欄位 ${field} 值未改變，跳過更新`)
+        return prev
+      }
+      
+      return prev.map(template =>
+        template.id === id ? { ...template, [field]: value } : template
+      )
+    })
   }
 
   return (
@@ -185,7 +195,11 @@ export default function AIGenerator() {
                           {editingId === template.id ? (
                             <select
                               value={template.platform}
-                              onChange={(e) => updateTemplateField(template.id, 'platform', e.target.value)}
+                              onChange={(e) => {
+                                const newValue = e.target.value
+                                console.log(`platform select onChange: "${newValue}"`)
+                                updateTemplateField(template.id, 'platform', newValue)
+                              }}
                               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             >
                               {PLATFORM_OPTIONS.map(option => (
@@ -202,12 +216,16 @@ export default function AIGenerator() {
                         </div>
                         <h3 className="text-lg font-medium text-gray-900">
                           {editingId === template.id ? (
-                            <input
-                              type="text"
-                              value={template.title}
-                              onChange={(e) => updateTemplateField(template.id, 'title', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                                                      <input
+                            type="text"
+                            value={template.title}
+                            onChange={(e) => {
+                              const newValue = e.target.value
+                              console.log(`title input onChange: "${newValue}"`)
+                              updateTemplateField(template.id, 'title', newValue)
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
                           ) : (
                             template.title
                           )}
@@ -222,7 +240,11 @@ export default function AIGenerator() {
                           <input
                             type="text"
                             value={template.features}
-                            onChange={(e) => updateTemplateField(template.id, 'features', e.target.value)}
+                            onChange={(e) => {
+                              const newValue = e.target.value
+                              console.log(`features input onChange: "${newValue}"`)
+                              updateTemplateField(template.id, 'features', newValue)
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         ) : (
@@ -237,7 +259,16 @@ export default function AIGenerator() {
                         {editingId === template.id ? (
                           <textarea
                             value={template.prompt}
-                            onChange={(e) => updateTemplateField(template.id, 'prompt', e.target.value)}
+                            onChange={(e) => {
+                              const newValue = e.target.value
+                              console.log(`textarea onChange: ${newValue.length} 字元`)
+                              updateTemplateField(template.id, 'prompt', newValue)
+                            }}
+                            onBlur={(e) => {
+                              const finalValue = e.target.value
+                              console.log(`textarea onBlur: ${finalValue.length} 字元`)
+                              updateTemplateField(template.id, 'prompt', finalValue)
+                            }}
                             rows={6}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                           />
