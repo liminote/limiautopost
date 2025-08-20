@@ -34,9 +34,9 @@ exports.handler = async (event) => {
       }
       
     } catch (blobsError) {
-      console.warn('Netlify Blobs 不可用，返回空資料:', blobsError.message)
+      console.warn('Netlify Blobs 不可用，使用備用方案:', blobsError.message)
       
-      // 備用方案：返回空資料，讓前端使用 localStorage
+      // 備用方案：返回成功狀態，讓前端知道使用 localStorage
       return {
         statusCode: 200,
         body: JSON.stringify({}),

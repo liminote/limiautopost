@@ -55,6 +55,34 @@ export default function AIGenerator() {
         if (response.ok) {
           const savedTemplates = await response.json()
           
+          // 如果伺服器返回空資料，嘗試從 localStorage 讀取
+          if (Object.keys(savedTemplates).length === 0) {
+            console.log('伺服器返回空資料，嘗試從 localStorage 讀取')
+            const localSaved = localStorage.getItem('aigenerator_templates')
+            if (localSaved) {
+              const localTemplates = JSON.parse(localSaved)
+              console.log('從 localStorage 讀取到模板:', localTemplates)
+              
+              // 將 localStorage 的資料應用到模板
+              const updatedTemplates = TEMPLATES.map(template => {
+                const localTemplate = localTemplates[template.id]
+                if (localTemplate) {
+                  return {
+                    ...template,
+                    platform: localTemplate.platform,
+                    title: localTemplate.templateTitle || localTemplate.title,
+                    features: localTemplate.templateFeatures || localTemplate.features,
+                    prompt: localTemplate.prompt
+                  }
+                }
+                return template
+              })
+              
+              setTemplates(updatedTemplates)
+              return
+            }
+          }
+          
           // 將保存的修改應用到模板
           const updatedTemplates = TEMPLATES.map(template => {
             const savedTemplate = savedTemplates[template.id]
@@ -73,7 +101,37 @@ export default function AIGenerator() {
           setTemplates(updatedTemplates)
         }
       } catch (error) {
-        console.warn('無法從伺服器載入模板，使用預設模板:', error)
+        console.warn('無法從伺服器載入模板，嘗試從 localStorage 讀取:', error)
+        
+        // 備用方案：從 localStorage 讀取
+        const localSaved = localStorage.getItem('aigenerator_templates')
+        if (localSaved) {
+          try {
+            const localTemplates = JSON.parse(localSaved)
+            console.log('從 localStorage 讀取到模板:', localTemplates)
+            
+            const updatedTemplates = TEMPLATES.map(template => {
+              const localTemplate = localTemplates[template.id]
+              if (localTemplate) {
+                return {
+                  ...template,
+                  platform: localTemplate.platform,
+                  title: localTemplate.templateTitle || localTemplate.title,
+                  features: localTemplate.templateFeatures || localTemplate.features,
+                  prompt: localTemplate.prompt
+                }
+              }
+              return template
+            })
+            
+            setTemplates(updatedTemplates)
+            return
+          } catch (parseError) {
+            console.warn('解析 localStorage 資料失敗:', parseError)
+          }
+        }
+        
+        // 最後備用：使用預設模板
         setTemplates(TEMPLATES)
       }
     }
