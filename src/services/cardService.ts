@@ -129,12 +129,50 @@ export class CardService {
   // 獲取所有可用卡片（系統 + 使用者）
   public async getAllCardsAsync(userId: string): Promise<BaseCard[]> {
     try {
-      // 優先從 localStorage 讀取已保存的模板（包括清空的版本）
       console.log('[CardService] 正在獲取最新模板...')
+      
+      // 1. 優先嘗試從後端 API 載入最新數據
+      try {
+        const response = await fetch('/.netlify/functions/update-system-template', {
+          method: 'GET'
+        })
+        
+        if (response.ok) {
+          const backendTemplates = await response.json()
+          console.log('[CardService] 從後端 API 載入到數據:', backendTemplates)
+          
+          if (backendTemplates && Object.keys(backendTemplates).length >= 4) {
+            // 如果有完整的後端數據，使用後端數據並更新 localStorage
+            const systemCards = this.convertBackendTemplatesToBaseCards(backendTemplates)
+            const userCards = this.getUserCards(userId)
+            
+            // 更新 localStorage 作為備用
+            localStorage.setItem('aigenerator_templates', JSON.stringify(backendTemplates))
+            
+            console.log('[CardService] 使用後端 API 模板數據，系統模板數量:', systemCards.length)
+            
+            // 合併並標記選擇狀態
+            const allCards = [...systemCards, ...userCards]
+            const userSelections = this.getUserSelections(userId)
+            
+            const result = allCards.map(card => ({
+              ...card,
+              isSelected: userSelections.has(card.id)
+            }))
+            
+            console.log('[CardService] 總共返回模板數量:', result.length)
+            return result
+          }
+        }
+      } catch (backendError) {
+        console.warn('[CardService] 後端 API 載入失敗，回退到 localStorage:', backendError)
+      }
+      
+      // 2. 如果後端載入失敗，從 localStorage 讀取
       const systemCards = this.getSystemTemplatesFromLocalStorage()
       const userCards = this.getUserCards(userId)
       
-      console.log('[CardService] 系統模板數量:', systemCards.length)
+      console.log('[CardService] 使用 localStorage 模板數據，系統模板數量:', systemCards.length)
       console.log('[CardService] 使用者模板數量:', userCards.length)
       
       // 合併並標記選擇狀態
@@ -211,6 +249,33 @@ export class CardService {
     return defaultSystemCards
   }
 
+  // 將後端 API 返回的模板數據轉換為 BaseCard 格式
+  private convertBackendTemplatesToBaseCards(backendTemplates: any): BaseCard[] {
+    try {
+      if (typeof backendTemplates === 'object' && backendTemplates !== null) {
+        return Object.values(backendTemplates).map((template: any) => ({
+          id: template.id || 'unknown',
+          name: template.templateTitle || template.title || '',
+          description: template.templateFeatures || template.features || '',
+          category: template.platform?.toLowerCase() || 'threads',
+          prompt: template.prompt || '',
+          isActive: true,
+          isSystem: true,
+          createdAt: new Date(),
+          updatedAt: new Date(template.updatedAt) || new Date(),
+          platform: template.platform?.toLowerCase() || 'threads',
+          templateTitle: template.templateTitle || template.title || '',
+          templateFeatures: template.templateFeatures || template.features || '',
+          isSelected: false
+        }))
+      }
+      return []
+    } catch (error) {
+      console.warn('轉換後端模板數據失敗:', error)
+      return []
+    }
+  }
+
   // 同步版本：從 localStorage 讀取（向後相容）
   private getSystemTemplatesFromLocalStorage(): BaseCard[] {
     try {
@@ -240,8 +305,8 @@ export class CardService {
           // 對象格式（新版本，從後端 API 獲取）
           const templateArray = Object.values(templates).map((template: any) => ({
             id: template.id || 'unknown',
-            name: template.templateTitle || '',
-            description: template.templateFeatures || '',
+            name: template.templateTitle || template.title || '',
+            description: template.templateFeatures || template.features || '',
             category: template.platform?.toLowerCase() || 'threads',
             prompt: template.prompt || '',
             isActive: true,
@@ -249,8 +314,8 @@ export class CardService {
             createdAt: new Date(),
             updatedAt: new Date(template.updatedAt) || new Date(),
             platform: template.platform?.toLowerCase() || 'threads',
-            templateTitle: template.templateTitle || '',
-            templateFeatures: template.templateFeatures || '',
+            templateTitle: template.templateTitle || template.title || '',
+            templateFeatures: template.templateFeatures || template.features || '',
             isSelected: false
           }))
           return templateArray

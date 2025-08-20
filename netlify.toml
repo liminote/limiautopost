@@ -9,6 +9,15 @@
   node_bundler = "esbuild"
   included_files = ["netlify/functions/**/*"]
 
+# 配置 Netlify Blobs
+[[edge_functions]]
+  function = "update-system-template"
+  path = "/.netlify/functions/update-system-template"
+
+# 啟用 Blobs 功能
+[build.environment]
+  NETLIFY_BLOBS_ENABLED = "true"
+
 # 確保 Functions 在 SPA 回退之前處理
 [[redirects]]
   from = "/api/*"
