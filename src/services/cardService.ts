@@ -129,9 +129,9 @@ export class CardService {
   // 獲取所有可用卡片（系統 + 使用者）
   public async getAllCardsAsync(userId: string): Promise<BaseCard[]> {
     try {
-      // 優先從 GitHub 讀取最新的系統模板
+      // 優先從 localStorage 讀取已保存的模板（包括清空的版本）
       console.log('[CardService] 正在獲取最新模板...')
-      const systemCards = await this.getSystemTemplatesFromServer()
+      const systemCards = this.getSystemTemplatesFromLocalStorage()
       const userCards = this.getUserCards(userId)
       
       console.log('[CardService] 系統模板數量:', systemCards.length)
