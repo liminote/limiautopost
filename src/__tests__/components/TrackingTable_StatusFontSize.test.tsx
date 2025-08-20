@@ -86,7 +86,7 @@ describe('TrackingTable Status Column Font Size', () => {
     
     statusBadges.forEach(badge => {
       // 檢查是否有正確的 CSS 類別
-      expect(badge).toHaveClass('rounded-full', 'font-medium')
+      expect(badge).toHaveClass('rounded', 'font-medium')
       
       // 檢查是否在狀態欄位中（第4列）
       const td = badge.closest('td')

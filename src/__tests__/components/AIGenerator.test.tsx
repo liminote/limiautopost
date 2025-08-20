@@ -40,16 +40,16 @@ describe('AIGenerator 編輯功能測試', () => {
     })
     
     // 4. 檢查編輯表單是否顯示
-    expect(screen.getByDisplayValue('第一則貼文')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('480-500字，完整觀點論述，獨立主題')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('生活體悟')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('分享生活感悟、個人成長、心靈啟發')).toBeInTheDocument()
     
     // 5. 修改模板名稱
-    const titleInput = screen.getByDisplayValue('第一則貼文')
+    const titleInput = screen.getByDisplayValue('生活體悟')
     fireEvent.change(titleInput, { target: { value: '測試修改標題' } })
     expect(titleInput).toHaveValue('測試修改標題')
     
     // 6. 修改平台
-    const platformSelect = screen.getByDisplayValue('Threads')
+    const platformSelect = screen.getByRole('combobox')
     fireEvent.change(platformSelect, { target: { value: 'instagram' } })
     expect(platformSelect).toHaveValue('instagram')
     
@@ -76,7 +76,7 @@ describe('AIGenerator 編輯功能測試', () => {
     })
     
     // 修改一些內容
-    const titleInput = screen.getByDisplayValue('第一則貼文')
+    const titleInput = screen.getByDisplayValue('生活體悟')
     fireEvent.change(titleInput, { target: { value: '修改後的標題' } })
     
     // 點擊取消
@@ -90,17 +90,23 @@ describe('AIGenerator 編輯功能測試', () => {
     })
   })
 
-  test('CardService 整合測試', async () => {
-    const mockUpdateSystemTemplate = vi.fn().mockResolvedValue(true)
-    const mockCardService = {
-      loadSavedSystemTemplates: vi.fn().mockResolvedValue(undefined),
-      getSystemCardsSync: vi.fn().mockReturnValue([]),
-      updateSystemTemplate: mockUpdateSystemTemplate
+  test('localStorage 保存測試', async () => {
+    // Mock localStorage
+    const mockLocalStorage = {
+      getItem: vi.fn(),
+      setItem: vi.fn(),
     }
+    Object.defineProperty(window, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+    })
     
-    // 替換 mock 實現
-    const { CardService } = await import('../../services/cardService')
-    vi.mocked(CardService.getInstance).mockReturnValue(mockCardService)
+    // Mock CustomEvent
+    const mockDispatchEvent = vi.fn()
+    Object.defineProperty(window, 'dispatchEvent', {
+      value: mockDispatchEvent,
+      writable: true,
+    })
     
     render(<AIGenerator />)
     
@@ -115,15 +121,19 @@ describe('AIGenerator 編輯功能測試', () => {
     const saveButton = screen.getByText('保存')
     fireEvent.click(saveButton)
     
-    // 檢查 CardService 是否被調用
+    // 檢查 localStorage 是否被調用
     await waitFor(() => {
-      expect(mockUpdateSystemTemplate).toHaveBeenCalledWith(
-        'system-threads-1',
-        'threads',
-        '第一則貼文',
-        '480-500字，完整觀點論述，獨立主題',
-        expect.stringContaining('請嚴格遵守以下規則生成 Threads 第一則貼文')
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'aigenerator_templates',
+        expect.stringContaining('template-1')
       )
     })
+    
+    // 檢查同步事件是否被觸發
+    expect(mockDispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'templatesUpdated'
+      })
+    )
   })
 })
