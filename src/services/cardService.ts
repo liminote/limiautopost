@@ -4,6 +4,10 @@ import { githubSyncService, type GitHubTemplate } from './githubSyncService'
 
 export class CardService {
   private static instance: CardService
+  
+  // 常數定義
+  private static readonly MAX_USER_TEMPLATES = 6
+  
   private userCards: Map<string, UserCard[]> = new Map()
   private userSelections: Map<string, Set<string>> = new Map() // userId -> selected cardIds
   private listeners: Set<() => void> = new Set()
@@ -235,12 +239,12 @@ export class CardService {
       return false
     }
     const currentUserCards = this.userCards.get(userId) || []
-    return currentUserCards.length < 6
+    return currentUserCards.length < CardService.MAX_USER_TEMPLATES
   }
 
   // 獲取使用者個人模板數量限制
   public getUserCardLimit(): number {
-    return 6
+    return CardService.MAX_USER_TEMPLATES
   }
 
   // 獲取系統卡片
@@ -264,10 +268,10 @@ export class CardService {
       throw new Error('無效的用戶 ID')
     }
 
-    // 檢查個人模板數量限制（最多6個）
+    // 檢查個人模板數量限制
     const currentUserCards = this.userCards.get(userId) || []
-    if (currentUserCards.length >= 6) {
-      throw new Error('已達到個人模板數量上限（最多6個）')
+    if (currentUserCards.length >= CardService.MAX_USER_TEMPLATES) {
+      throw new Error(`已達到個人模板數量上限（最多${CardService.MAX_USER_TEMPLATES}個）`)
     }
 
     const newCard: UserCard = {

@@ -388,7 +388,7 @@ export default function UserSettings(){
         <div className="mb-4">
           <h2 className="font-semibold mb-2">個人模板管理</h2>
           <p className="text-gray-500 text-sm">
-            創建和管理你的個人 AI 生成模板（最多 {cardService.getUserCardLimit()} 個）
+            創建和管理你的個人 AI 生成模板（最多 6 個）
           </p>
         </div>
         <CardManager />

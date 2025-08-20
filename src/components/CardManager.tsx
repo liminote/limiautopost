@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { CardService } from '../services/cardService'
 import type { UserCard } from '../types/cards'
 import { useSession } from '../auth/auth'
@@ -13,6 +13,17 @@ export default function CardManager() {
 
   // 獲取當前用戶 ID
   const currentUserId = session?.email || 'anonymous'
+
+  // 使用 useMemo 避免重複計算
+  const canCreateMore = useMemo(() => 
+    cardService.canCreateMoreUserCards(currentUserId), 
+    [cardService, currentUserId, userCards.length]
+  )
+  
+  const userCardLimit = useMemo(() => 
+    cardService.getUserCardLimit(), 
+    [cardService]
+  )
 
   // 載入使用者卡片
   useEffect(() => {
@@ -84,20 +95,20 @@ export default function CardManager() {
           <p className="text-gray-500 text-sm mt-1">
             管理你的自定義 AI 生成卡片，創建專屬的內容生成模板
             <span className="ml-2 text-gray-400">
-              ({userCards.length}/{cardService.getUserCardLimit()} 個)
+              ({userCards.length}/{userCardLimit} 個)
             </span>
           </p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          disabled={!cardService.canCreateMoreUserCards(currentUserId)}
+          disabled={!canCreateMore}
           className={`px-4 py-2 rounded-md ${
-            cardService.canCreateMoreUserCards(currentUserId)
+            canCreateMore
               ? 'bg-[color:var(--yinmn-blue)] text-white hover:bg-[color:var(--yinmn-blue-600)]'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {cardService.canCreateMoreUserCards(currentUserId) ? '新增卡片' : '已達上限'}
+          {canCreateMore ? '新增卡片' : '已達上限'}
         </button>
       </div>
 
@@ -106,9 +117,9 @@ export default function CardManager() {
         <CreateCardForm
           onSubmit={handleCreateCard}
           onCancel={() => setShowCreateForm(false)}
-          canCreate={cardService.canCreateMoreUserCards(currentUserId)}
+          canCreate={canCreateMore}
           currentCount={userCards.length}
-          limit={cardService.getUserCardLimit()}
+          limit={userCardLimit}
         />
       )}
 
