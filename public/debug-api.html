@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 調試頁面</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>🔧 API 調試頁面</h1>
+    <p>這個頁面用來測試後端 API 是否正常工作</p>
+
+    <div class="section">
+        <h2>📥 測試讀取模板 (GET)</h2>
+        <button onclick="testGetTemplates()">測試讀取模板</button>
+        <div id="getResult" class="result">點擊按鈕測試...</div>
+    </div>
+
+    <div class="section">
+        <h2>💾 測試保存模板 (POST)</h2>
+        <button onclick="testPostTemplate()">測試保存模板</button>
+        <div id="postResult" class="result">點擊按鈕測試...</div>
+    </div>
+
+    <div class="section">
+        <h2>🔍 檢查 localStorage</h2>
+        <button onclick="checkLocalStorage()">檢查 localStorage</button>
+        <div id="localStorageResult" class="result">點擊按鈕測試...</div>
+    </div>
+
+    <div class="section">
+        <h2>🧹 清理 localStorage</h2>
+        <button onclick="clearLocalStorage()">清理 localStorage</button>
+        <div id="clearResult" class="result">點擊按鈕測試...</div>
+    </div>
+
+    <script>
+        async function testGetTemplates() {
+            const resultDiv = document.getElementById('getResult');
+            resultDiv.innerHTML = '🔄 正在測試...';
+            
+            try {
+                const response = await fetch('/.netlify/functions/update-system-template', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ GET 請求成功</div>
+                        <div><strong>狀態碼:</strong> ${response.status}</div>
+                        <div><strong>數據類型:</strong> ${typeof data}</div>
+                        <div><strong>數據長度:</strong> ${Array.isArray(data) ? data.length : Object.keys(data).length}</div>
+                        <div><strong>原始數據:</strong></div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ GET 請求失敗</div>
+                        <div><strong>狀態碼:</strong> ${response.status}</div>
+                        <div><strong>錯誤信息:</strong> ${JSON.stringify(data)}</div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ 請求異常</div>
+                    <div><strong>錯誤:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testPostTemplate() {
+            const resultDiv = document.getElementById('postResult');
+            resultDiv.innerHTML = '🔄 正在測試...';
+            
+            const testData = {
+                cardId: 'template-1',
+                platform: 'threads',
+                templateTitle: '測試模板',
+                templateFeatures: '這是一個測試模板',
+                prompt: '請生成一個測試貼文',
+                updatedAt: new Date().toISOString()
+            };
+            
+            try {
+                const response = await fetch('/.netlify/functions/update-system-template', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ POST 請求成功</div>
+                        <div><strong>狀態碼:</strong> ${response.status}</div>
+                        <div><strong>響應數據:</strong></div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ POST 請求失敗</div>
+                        <div><strong>狀態碼:</strong> ${response.status}</div>
+                        <div><strong>錯誤信息:</strong> ${JSON.stringify(data)}</div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ 請求異常</div>
+                    <div><strong>錯誤:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        function checkLocalStorage() {
+            const resultDiv = document.getElementById('localStorageResult');
+            
+            try {
+                const templates = localStorage.getItem('aigenerator_templates');
+                
+                if (templates) {
+                    const parsed = JSON.parse(templates);
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ localStorage 中有數據</div>
+                        <div><strong>數據類型:</strong> ${typeof parsed}</div>
+                        <div><strong>數據長度:</strong> ${Array.isArray(parsed) ? parsed.length : Object.keys(parsed).length}</div>
+                        <div><strong>原始數據:</strong></div>
+                        <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ localStorage 中沒有模板數據</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ 解析 localStorage 數據失敗</div>
+                    <div><strong>錯誤:</strong> ${error.message}</div>
+                `;
+            }
+        }
+
+        function clearLocalStorage() {
+            const resultDiv = document.getElementById('clearResult');
+            
+            try {
+                localStorage.removeItem('aigenerator_templates');
+                resultDiv.innerHTML = '<div class="success">✅ localStorage 已清理</div>';
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ 清理 localStorage 失敗</div>
+                    <div><strong>錯誤:</strong> ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
