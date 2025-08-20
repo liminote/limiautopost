@@ -70,10 +70,10 @@ export default function AIGenerator() {
             if (localTemplate) {
               return {
                 ...template,
-                platform: localTemplate.platform || template.platform,
-                title: localTemplate.title || template.title,
-                features: localTemplate.features || template.features,
-                prompt: localTemplate.prompt || template.prompt
+                platform: localTemplate.platform !== undefined ? localTemplate.platform : template.platform,
+                title: localTemplate.title !== undefined ? localTemplate.title : template.title,
+                features: localTemplate.features !== undefined ? localTemplate.features : template.features,
+                prompt: localTemplate.prompt !== undefined ? localTemplate.prompt : template.prompt
               }
             }
             return template
