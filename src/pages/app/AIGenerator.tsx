@@ -80,9 +80,14 @@ export default function AIGenerator() {
           })
           
           setTemplates(updatedTemplates)
+          console.log('模板載入完成，數量:', updatedTemplates.length)
+        } else {
+          console.log('localStorage 中沒有保存的模板，使用預設模板')
+          setTemplates(TEMPLATES)
         }
       } catch (error) {
         console.error('載入模板失敗:', error)
+        setTemplates(TEMPLATES)
       }
     }
     
@@ -99,38 +104,8 @@ export default function AIGenerator() {
   const cancelEdit = () => {
     console.log('取消編輯')
     setEditingId(null)
-    // 重新載入已保存的模板
-    const loadSavedTemplates = () => {
-      try {
-        const localSaved = localStorage.getItem('aigenerator_templates')
-        if (localSaved) {
-          const localTemplates = JSON.parse(localSaved)
-          
-          const updatedTemplates = TEMPLATES.map(template => {
-            const localTemplate = localTemplates[template.id]
-            if (localTemplate) {
-              return {
-                ...template,
-                platform: localTemplate.platform || template.platform,
-                title: localTemplate.title || template.title,
-                features: localTemplate.features || template.features,
-                prompt: localTemplate.prompt || template.prompt
-              }
-            }
-            return template
-          })
-          
-          setTemplates(updatedTemplates)
-        } else {
-          setTemplates(TEMPLATES)
-        }
-      } catch (error) {
-        console.warn('無法載入模板，使用預設模板:', error)
-        setTemplates(TEMPLATES)
-      }
-    }
-    
-    loadSavedTemplates()
+    // 不需要重新載入，因為當前狀態已經是最新的
+    console.log('取消編輯完成，保持當前狀態')
   }
 
   // 保存編輯
@@ -150,12 +125,6 @@ export default function AIGenerator() {
 
       console.log('保存的模板資料:', editingTemplate)
 
-      // 更新模板資料
-      const updatedTemplates = templates.map(template =>
-        template.id === editingId ? editingTemplate : template
-      )
-      setTemplates(updatedTemplates)
-
       // 保存到 localStorage
       const currentSaved = JSON.parse(localStorage.getItem('aigenerator_templates') || '{}')
       currentSaved[editingTemplate.id] = {
@@ -173,8 +142,11 @@ export default function AIGenerator() {
       window.dispatchEvent(new CustomEvent('templatesUpdated'))
       console.log('已觸發同步事件')
 
-      setEditingId(null)
-      console.log('模板保存成功:', editingTemplate.id)
+      // 確保狀態更新完成後再關閉編輯模式
+      setTimeout(() => {
+        setEditingId(null)
+        console.log('模板保存成功:', editingTemplate.id)
+      }, 100)
     } catch (error) {
       console.error('保存失敗:', error)
     } finally {
