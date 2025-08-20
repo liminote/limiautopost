@@ -49,9 +49,28 @@ export default function AIGenerator() {
   })
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  // 當模板變化時，保存到 localStorage 並觸發頁面重新載入
+  // 當模板變化時，保存到伺服器並觸發頁面重新載入
   useEffect(() => {
-    localStorage.setItem('aigenerator_templates', JSON.stringify(templates))
+    // 保存到伺服器
+    templates.forEach(async (template: Template) => {
+      try {
+        await fetch('/.netlify/functions/update-system-template', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cardId: template.id,
+            platform: template.platform,
+            templateTitle: template.title,
+            templateFeatures: template.features,
+            prompt: template.prompt,
+            updatedAt: new Date().toISOString()
+          })
+        })
+      } catch (error) {
+        console.error('保存模板到伺服器失敗:', error)
+      }
+    })
+    
     // 觸發頁面重新載入以同步其他組件
     window.dispatchEvent(new CustomEvent('templatesUpdated'))
   }, [templates])
@@ -67,13 +86,13 @@ export default function AIGenerator() {
 
   // 保存編輯
   const saveEdit = () => {
-    console.log('保存模板:', templates.find(t => t.id === editingId))
+    console.log('保存模板:', templates.find((t: Template) => t.id === editingId))
     setEditingId(null)
   }
 
   // 更新模板欄位
   const updateField = (id: string, field: keyof Template, value: string) => {
-    setTemplates(prev => prev.map(t => 
+    setTemplates((prev: Template[]) => prev.map((t: Template) => 
       t.id === id ? { ...t, [field]: value } : t
     ))
   }
@@ -136,7 +155,7 @@ export default function AIGenerator() {
       </div>
 
       <div className="space-y-4">
-        {templates.map((template) => (
+        {templates.map((template: Template) => (
           <div key={template.id} className="border rounded-lg p-4 bg-white">
             {/* 標題行 */}
             <div className="flex justify-between items-center mb-4">

@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
+import { list, get } from '@netlify/blobs'
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'GET') {
@@ -10,38 +10,41 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    console.log('📖 讀取系統模板...')
+    // 列出所有系統模板
+    const { blobs } = await list('system-templates')
     
-    const store = getStore('system-templates')
-    
-    // 從 Netlify Blobs 讀取模板資料
-    let templates = {}
-    try {
-      const existing = await store.get('templates', { type: 'json' })
-      if (existing) {
-        templates = existing
-        console.log(`✅ 成功讀取 ${Object.keys(templates).length} 個模板`)
-      } else {
-        console.log('ℹ️ 沒有找到保存的模板資料')
+    if (blobs.length === 0) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({})
       }
-    } catch (error) {
-      console.log('沒有現有的模板資料')
     }
+
+    // 讀取所有模板資料
+    const templates: Record<string, any> = {}
     
+    for (const blob of blobs) {
+      try {
+        const templateData = await get('system-templates', blob.key, { type: 'json' })
+        if (templateData) {
+          templates[blob.key] = templateData
+        }
+      } catch (error) {
+        console.warn(`Failed to read template ${blob.key}:`, error)
+      }
+    }
+
     return {
       statusCode: 200,
-      body: JSON.stringify(templates),
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      body: JSON.stringify(templates)
     }
   } catch (error) {
-    console.error('❌ 讀取系統模板時發生錯誤:', error)
+    console.error('Error getting system templates:', error)
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: '讀取失敗',
-        details: String(error)
+      body: JSON.stringify({ 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
       })
     }
   }

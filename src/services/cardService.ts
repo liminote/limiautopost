@@ -92,9 +92,9 @@ export class CardService {
   }
 
   // 獲取所有可用卡片（系統 + 使用者）
-  public getAllCards(userId: string): BaseCard[] {
-    // 優先從 AIGenerator 讀取最新的系統模板
-    const systemCards = this.getSystemTemplatesFromAIGenerator()
+  public async getAllCardsAsync(userId: string): Promise<BaseCard[]> {
+    // 優先從伺服器讀取最新的系統模板
+    const systemCards = await this.getSystemTemplatesFromServer()
     const userCards = this.getUserCards(userId)
     
     // 合併並標記選擇狀態
@@ -107,8 +107,57 @@ export class CardService {
     }))
   }
 
-  // 從 AIGenerator 的 localStorage 讀取最新的系統模板
-  private getSystemTemplatesFromAIGenerator(): BaseCard[] {
+  // 同步版本（向後相容）
+  public getAllCards(userId: string): BaseCard[] {
+    // 從 localStorage 讀取系統模板（向後相容）
+    const systemCards = this.getSystemTemplatesFromLocalStorage()
+    const userCards = this.getUserCards(userId)
+    
+    // 合併並標記選擇狀態
+    const allCards = [...systemCards, ...userCards]
+    const userSelections = this.getUserSelections(userId)
+    
+    return allCards.map(card => ({
+      ...card,
+      isSelected: userSelections.has(card.id)
+    }))
+  }
+
+  // 從伺服器讀取最新的系統模板，如果失敗則回退到預設模板
+  private async getSystemTemplatesFromServer(): Promise<BaseCard[]> {
+    try {
+      const response = await fetch('/.netlify/functions/get-system-templates')
+      if (response.ok) {
+        const savedTemplates = await response.json()
+        
+        // 將保存的修改應用到系統模板
+        const updatedSystemCards = defaultSystemCards.map(card => {
+          const savedTemplate = savedTemplates[card.id]
+          if (savedTemplate) {
+            return {
+              ...card,
+              platform: savedTemplate.platform,
+              templateTitle: savedTemplate.templateTitle,
+              templateFeatures: savedTemplate.templateFeatures,
+              prompt: savedTemplate.prompt,
+              updatedAt: new Date(savedTemplate.updatedAt)
+            }
+          }
+          return card
+        })
+        
+        return updatedSystemCards
+      }
+    } catch (error) {
+      console.warn('無法從伺服器讀取系統模板:', error)
+    }
+    
+    // 如果無法讀取，回退到預設模板
+    return defaultSystemCards
+  }
+
+  // 同步版本：從 localStorage 讀取（向後相容）
+  private getSystemTemplatesFromLocalStorage(): BaseCard[] {
     try {
       const saved = localStorage.getItem('aigenerator_templates')
       if (saved) {
@@ -126,20 +175,19 @@ export class CardService {
           platform: template.platform.toLowerCase(),
           templateTitle: template.title,
           templateFeatures: template.features,
-          isSelected: false // 預設未選擇，由使用者決定
+          isSelected: false
         }))
       }
     } catch (error) {
-      console.warn('無法從 AIGenerator 讀取模板:', error)
+      console.warn('無法從 localStorage 讀取模板:', error)
     }
     
-    // 如果無法讀取，回退到預設模板
     return defaultSystemCards
   }
 
   // 獲取系統模板（BaseCard 格式）
   public getSystemTemplatesAsBaseCards(): BaseCard[] {
-    return this.getSystemTemplatesFromAIGenerator()
+    return this.getSystemTemplatesFromLocalStorage()
   }
 
   // 獲取使用者卡片
