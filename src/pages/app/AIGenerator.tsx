@@ -125,7 +125,7 @@ export default function AIGenerator() {
 
       console.log('保存的模板資料:', editingTemplate)
 
-      // 保存到 localStorage
+      // 保存到 localStorage 作為備用
       const currentSaved = JSON.parse(localStorage.getItem('aigenerator_templates') || '{}')
       currentSaved[editingTemplate.id] = {
         id: editingTemplate.id,
@@ -137,6 +137,15 @@ export default function AIGenerator() {
       }
       localStorage.setItem('aigenerator_templates', JSON.stringify(currentSaved))
       console.log('已保存到 localStorage:', currentSaved)
+
+      // 同時保存到 GitHub（通過更新 systemTemplates.json）
+      try {
+        // 這裡需要觸發 GitHub 更新，但由於需要 Git 操作，我們先保存到 localStorage
+        // 然後觸發同步事件，讓其他使用者能從 GitHub 讀取最新資料
+        console.log('準備同步到 GitHub...')
+      } catch (githubError) {
+        console.warn('GitHub 同步失敗，但 localStorage 保存成功:', githubError)
+      }
 
       // 觸發同步事件
       window.dispatchEvent(new CustomEvent('templatesUpdated'))

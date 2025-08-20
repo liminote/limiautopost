@@ -104,18 +104,31 @@ export class CardService {
 
   // 獲取所有可用卡片（系統 + 使用者）
   public async getAllCardsAsync(userId: string): Promise<BaseCard[]> {
-    // 優先從伺服器讀取最新的系統模板
-    const systemCards = await this.getSystemTemplatesFromServer()
-    const userCards = this.getUserCards(userId)
-    
-    // 合併並標記選擇狀態
-    const allCards = [...systemCards, ...userCards]
-    const userSelections = this.getUserSelections(userId)
-    
-    return allCards.map(card => ({
-      ...card,
-      isSelected: userSelections.has(card.id)
-    }))
+    try {
+      // 優先從 GitHub 讀取最新的系統模板
+      console.log('[CardService] 正在獲取最新模板...')
+      const systemCards = await this.getSystemTemplatesFromServer()
+      const userCards = this.getUserCards(userId)
+      
+      console.log('[CardService] 系統模板數量:', systemCards.length)
+      console.log('[CardService] 使用者模板數量:', userCards.length)
+      
+      // 合併並標記選擇狀態
+      const allCards = [...systemCards, ...userCards]
+      const userSelections = this.getUserSelections(userId)
+      
+      const result = allCards.map(card => ({
+        ...card,
+        isSelected: userSelections.has(card.id)
+      }))
+      
+      console.log('[CardService] 總共返回模板數量:', result.length)
+      return result
+    } catch (error) {
+      console.error('[CardService] 獲取模板失敗，使用備用方案:', error)
+      // 備用方案：從 localStorage 讀取
+      return this.getAllCards(userId)
+    }
   }
 
   // 同步版本（向後相容）
