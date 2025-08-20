@@ -70,8 +70,8 @@ export default function AIGenerator() {
                   return {
                     ...template,
                     platform: localTemplate.platform,
-                    title: localTemplate.templateTitle || localTemplate.title,
-                    features: localTemplate.templateFeatures || localTemplate.features,
+                    title: localTemplate.title,           // 直接使用 title
+                    features: localTemplate.features,     // 直接使用 features
                     prompt: localTemplate.prompt
                   }
                 }
@@ -116,8 +116,8 @@ export default function AIGenerator() {
                 return {
                   ...template,
                   platform: localTemplate.platform,
-                  title: localTemplate.templateTitle || localTemplate.title,
-                  features: localTemplate.templateFeatures || localTemplate.features,
+                  title: localTemplate.title,           // 直接使用 title
+                  features: localTemplate.features,     // 直接使用 features
                   prompt: localTemplate.prompt
                 }
               }
