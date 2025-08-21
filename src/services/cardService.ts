@@ -39,6 +39,9 @@ export class CardService {
     
     // 初始化時載入保存的模板修改
     this.loadSavedSystemTemplatesFromLocal()
+    
+    // 強制重新載入系統模板，確保無痕模式也能獲取到模板
+    this.forceReloadSystemTemplates()
   }
 
   // 監聽 AIGenerator 的模板更新事件
@@ -172,6 +175,31 @@ export class CardService {
       const systemCards = this.getSystemTemplatesFromLocalStorage()
       const userCards = this.getUserCards(userId)
       
+      // 3. 如果 localStorage 也沒有數據，使用預設系統模板
+      if (systemCards.length === 0) {
+        console.log('[CardService] localStorage 沒有模板數據，使用預設系統模板')
+        const defaultCards = this.convertDefaultCardsToBaseCards()
+        
+        // 將預設模板保存到 localStorage
+        try {
+          localStorage.setItem('aigenerator_templates', JSON.stringify(defaultCards))
+          console.log('[CardService] 已將預設模板保存到 localStorage')
+        } catch (error) {
+          console.warn('[CardService] 保存預設模板到 localStorage 失敗:', error)
+        }
+        
+        const allCards = [...defaultCards, ...userCards]
+        const userSelections = this.getUserSelections(userId)
+        
+        const result = allCards.map(card => ({
+          ...card,
+          isSelected: userSelections.has(card.id)
+        }))
+        
+        console.log('[CardService] 使用預設模板，總共返回模板數量:', result.length)
+        return result
+      }
+      
       console.log('[CardService] 使用 localStorage 模板數據，系統模板數量:', systemCards.length)
       console.log('[CardService] 使用者模板數量:', userCards.length)
       
@@ -188,8 +216,8 @@ export class CardService {
       return result
     } catch (error) {
       console.error('[CardService] 獲取模板失敗，使用備用方案:', error)
-      // 備用方案：從 localStorage 讀取
-      return this.getAllCards(userId)
+      // 備用方案：使用預設模板
+      return this.getFallbackTemplates(userId)
     }
   }
 
@@ -725,6 +753,53 @@ export class CardService {
     } catch (error) {
       console.error('從 localStorage 載入系統模板失敗:', error)
     }
+  }
+
+  // 強制重新載入系統模板，確保無痕模式也能獲取到模板
+  private forceReloadSystemTemplates(): void {
+    this.getSystemTemplatesFromServer().then(updatedSystemCards => {
+      if (updatedSystemCards.length > 0) {
+        console.log('[CardService] 強制重新載入系統模板成功，數量:', updatedSystemCards.length)
+      } else {
+        console.warn('[CardService] 強制重新載入系統模板失敗，回退到預設模板')
+      }
+    }).catch(error => {
+      console.warn('[CardService] 強制重新載入系統模板失敗，回退到預設模板:', error)
+    })
+  }
+
+  // 將預設系統卡片轉換為 BaseCard 格式
+  private convertDefaultCardsToBaseCards(): BaseCard[] {
+    return defaultSystemCards.map(card => ({
+      id: card.id,
+      name: card.name || card.templateTitle || '',
+      description: card.description || card.templateFeatures || '',
+      category: (card.platform?.toLowerCase() as 'threads' | 'instagram' | 'facebook' | 'general') || 'threads',
+      prompt: card.prompt || '',
+      isActive: true,
+      isSystem: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      platform: (card.platform?.toLowerCase() as 'threads' | 'instagram' | 'facebook' | 'general') || 'threads',
+      templateTitle: card.name || card.templateTitle || '',
+      templateFeatures: card.description || card.templateFeatures || '',
+      isSelected: false
+    }))
+  }
+
+  // 備用模板獲取方法
+  private getFallbackTemplates(userId: string): BaseCard[] {
+    console.log('[CardService] 使用備用模板方案')
+    const defaultCards = this.convertDefaultCardsToBaseCards()
+    const userCards = this.getUserCards(userId)
+    
+    const allCards = [...defaultCards, ...userCards]
+    const userSelections = this.getUserSelections(userId)
+    
+    return allCards.map(card => ({
+      ...card,
+      isSelected: userSelections.has(card.id)
+    }))
   }
 
   // 獲取用戶可用的模板（包含系統模板和用戶自訂模板）
