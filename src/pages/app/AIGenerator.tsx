@@ -56,71 +56,89 @@ export default function AIGenerator() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  // 全新的載入邏輯：優先從後端載入，備用 localStorage
+  // 載入已保存的模板
   const loadSavedTemplates = useCallback(async () => {
     try {
-      console.log('🔍 開始載入模板數據...')
+      console.log('[AIGenerator] 開始載入已保存的模板...')
       
-      // 1. 優先從後端 API 載入最新數據
+      // 1. 優先從後端 API 獲取
       try {
         const response = await fetch('/.netlify/functions/update-system-template', {
-          method: 'GET'
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store'
         })
         
         if (response.ok) {
           const backendTemplates = await response.json()
-          console.log('📥 從後端載入到數據:', backendTemplates)
+          console.log('[AIGenerator] 後端 API 返回數據:', backendTemplates)
           
-          if (backendTemplates && Object.keys(backendTemplates).length >= 4) {
-            // 如果有完整的後端數據，使用後端數據
-            const templatesFromBackend = Object.values(backendTemplates).map((saved: any) => ({
-              id: saved.id || saved.cardId,
-              platform: saved.platform || 'threads',
-              title: saved.title || saved.templateTitle || '',
-              features: saved.features || saved.templateFeatures || '',
-              prompt: saved.prompt || ''
+          if (backendTemplates && Object.keys(backendTemplates).length > 0) {
+            console.log('[AIGenerator] 成功從後端獲取模板，數量:', Object.keys(backendTemplates).length)
+            
+            // 轉換後端數據格式為前端格式
+            const convertedTemplates = Object.values(backendTemplates).map((template: any) => ({
+              id: template.id,
+              title: template.title || template.templateTitle || '',
+              platform: template.platform || 'threads',
+              features: template.features || template.templateFeatures || '',
+              prompt: template.prompt || ''
             }))
             
-            setTemplates(templatesFromBackend)
-            console.log('✅ 使用後端模板數據:', templatesFromBackend)
+            console.log('[AIGenerator] 轉換後的模板:', convertedTemplates)
+            
+            // 更新狀態
+            setTemplates(convertedTemplates)
             
             // 同時更新 localStorage 作為備用
             localStorage.setItem('aigenerator_templates', JSON.stringify(backendTemplates))
+            
+            return
+          } else {
+            console.log('[AIGenerator] 後端 API 返回空數據，嘗試從 localStorage 獲取')
+          }
+        } else {
+          console.warn('[AIGenerator] 後端 API 返回錯誤狀態:', response.status)
+        }
+      } catch (error) {
+        console.warn('[AIGenerator] 後端 API 調用失敗:', error)
+      }
+      
+      // 2. 如果後端失敗，從 localStorage 獲取
+      const savedTemplates = localStorage.getItem('aigenerator_templates')
+      if (savedTemplates) {
+        try {
+          const parsedTemplates = JSON.parse(savedTemplates)
+          console.log('[AIGenerator] 從 localStorage 獲取到數據:', parsedTemplates)
+          
+          if (typeof parsedTemplates === 'object' && parsedTemplates !== null) {
+            // 如果是對象格式，轉換為數組
+            const templateArray = Object.values(parsedTemplates).map((template: any) => ({
+              id: template.id,
+              title: template.title || template.templateTitle || '',
+              platform: template.platform || 'threads',
+              features: template.features || template.templateFeatures || '',
+              prompt: template.prompt || ''
+            }))
+            
+            console.log('[AIGenerator] 轉換後的 localStorage 模板:', templateArray)
+            setTemplates(templateArray)
             return
           }
-        }
-      } catch (backendError) {
-        console.warn('⚠️ 後端載入失敗，嘗試使用 localStorage:', backendError)
-      }
-      
-      // 2. 如果後端載入失敗，嘗試從 localStorage 載入
-      const localSaved = localStorage.getItem('aigenerator_templates')
-      if (localSaved) {
-        const localTemplates = JSON.parse(localSaved)
-        console.log('📥 從 localStorage 載入到數據:', localTemplates)
-        
-        if (Object.keys(localTemplates).length >= 4) {
-          // 如果有完整的 localStorage 數據，使用它
-          const templatesFromLocal = Object.values(localTemplates).map((saved: any) => ({
-            id: saved.id,
-            platform: saved.platform || 'threads',
-            title: saved.title || '',
-            features: saved.features || '',
-            prompt: saved.prompt || ''
-          }))
-          
-          setTemplates(templatesFromLocal)
-          console.log('✅ 使用 localStorage 模板數據:', templatesFromLocal)
-          return
+        } catch (parseError) {
+          console.error('[AIGenerator] 解析 localStorage 數據失敗:', parseError)
         }
       }
       
-      // 3. 如果都沒有數據，使用空白預設模板
-      console.log('ℹ️ 沒有保存的數據，使用空白預設模板')
+      // 3. 如果都沒有數據，使用默認模板
+      console.log('[AIGenerator] 沒有找到已保存的模板，使用默認模板')
       setTemplates(TEMPLATES)
       
     } catch (error) {
-      console.error('❌ 載入模板失敗:', error)
+      console.error('[AIGenerator] 載入模板失敗:', error)
+      // 出錯時使用默認模板
       setTemplates(TEMPLATES)
     }
   }, [])
@@ -145,93 +163,88 @@ export default function AIGenerator() {
     console.log('🔄 已重新載入保存的模板')
   }
 
-  // 保存編輯 - 同時保存到 localStorage 和後端
+  // 保存編輯
   const saveEdit = async () => {
     if (!editingId) return
     
-    console.log('💾 開始保存模板:', editingId)
     setIsSaving(true)
-    
     try {
+      console.log('[AIGenerator] 開始保存模板:', editingId)
+      
       // 找到正在編輯的模板
-      const editingTemplate = templates.find((t: Template) => t.id === editingId)
+      const editingTemplate = templates.find(t => t.id === editingId)
       if (!editingTemplate) {
-        console.error('❌ 找不到正在編輯的模板')
+        console.error('[AIGenerator] 找不到正在編輯的模板')
         return
       }
-
-      console.log('📝 準備保存的模板資料:', editingTemplate)
-
-      // 1. 保存到 localStorage（作為備用）
-      const currentSaved = JSON.parse(localStorage.getItem('aigenerator_templates') || '{}')
       
-      // 保存當前編輯的模板
-      currentSaved[editingTemplate.id] = {
-        id: editingTemplate.id,
-        platform: editingTemplate.platform,
-        title: editingTemplate.title,
-        features: editingTemplate.features,
-        prompt: editingTemplate.prompt,
-        updatedAt: new Date().toISOString()
-      }
-      
-      // 同時保存所有其他模板的當前狀態
-      templates.forEach(template => {
-        if (template.id !== editingId) {
-          currentSaved[template.id] = {
-            id: template.id,
-            platform: template.platform,
-            title: template.title,
-            features: template.features,
-            prompt: template.prompt,
-            updatedAt: new Date().toISOString()
-          }
-        }
-      })
-      
-      localStorage.setItem('aigenerator_templates', JSON.stringify(currentSaved))
-      console.log('💾 已保存到 localStorage，包含所有模板:', currentSaved)
-
-      // 2. 同時保存到後端 API（讓所有用戶都能看到）
+      // 1. 保存到後端 API
       try {
         const response = await fetch('/.netlify/functions/update-system-template', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             cardId: editingTemplate.id,
-            platform: editingTemplate.platform,
-            templateTitle: editingTemplate.title,
-            templateFeatures: editingTemplate.features,
-            prompt: editingTemplate.prompt,
+            platform: editingTemplate.platform || 'threads',
+            templateTitle: editingTemplate.title || '',
+            templateFeatures: editingTemplate.features || '',
+            prompt: editingTemplate.prompt || '',
             updatedAt: new Date().toISOString()
           })
         })
-
+        
         if (response.ok) {
           const result = await response.json()
-          console.log('✅ 後端保存成功:', result)
+          console.log('[AIGenerator] 後端保存成功:', result)
         } else {
-          console.warn('⚠️ 後端保存失敗，但 localStorage 保存成功')
+          console.warn('[AIGenerator] 後端保存失敗:', response.status)
         }
-      } catch (apiError) {
-        console.warn('⚠️ 後端 API 調用失敗，但 localStorage 保存成功:', apiError)
+      } catch (error) {
+        console.warn('[AIGenerator] 後端 API 調用失敗:', error)
       }
-
-      // 觸發同步事件
-      window.dispatchEvent(new CustomEvent('templatesUpdated'))
-      console.log('📡 已觸發同步事件')
-
-      // 關閉編輯模式
-      setEditingId(null)
-      console.log('✅ 模板保存成功:', editingTemplate.id)
       
-      // 不要立即重新載入，讓用戶看到保存成功的狀態
-      // 如果需要重新載入，可以在頁面刷新時進行
+      // 2. 更新本地狀態
+      const updatedTemplates = templates.map(template =>
+        template.id === editingId
+          ? {
+              ...template,
+              title: editingTemplate.title || '',
+              features: editingTemplate.features || '',
+              prompt: editingTemplate.prompt || ''
+            }
+          : template
+      )
+      
+      setTemplates(updatedTemplates)
+      
+      // 3. 保存到 localStorage 作為備用
+      const templatesForStorage = updatedTemplates.reduce((acc, template) => {
+        acc[template.id] = {
+          id: template.id,
+          title: template.title || '',
+          features: template.features || '',
+          prompt: template.prompt || '',
+          platform: template.platform || 'threads',
+          updatedAt: new Date()
+        }
+        return acc
+      }, {} as Record<string, any>)
+      
+      localStorage.setItem('aigenerator_templates', JSON.stringify(templatesForStorage))
+      console.log('[AIGenerator] 本地狀態和 localStorage 已更新')
+      
+      // 4. 關閉編輯模式
+      setEditingId(null)
+      
+      // 5. 重新載入模板以確保同步
+      setTimeout(() => {
+        loadSavedTemplates()
+      }, 100)
       
     } catch (error) {
-      console.error('❌ 保存失敗:', error)
+      console.error('[AIGenerator] 保存失敗:', error)
     } finally {
       setIsSaving(false)
     }

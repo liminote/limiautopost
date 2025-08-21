@@ -129,84 +129,126 @@ export class CardService {
     }
   }
 
-  // 獲取所有可用卡片（系統 + 使用者）
+  // 異步版本：優先從後端 API 獲取系統模板
   public async getAllCardsAsync(userId: string): Promise<BaseCard[]> {
     try {
-      console.log('[CardService] 正在獲取最新模板...')
-      console.log('[CardService] 用戶ID:', userId)
+      console.log('[CardService] 開始獲取所有卡片，用戶ID:', userId)
       
-      // 1. 優先嘗試從後端 API 載入最新數據
+      // 1. 優先從後端 API 獲取系統模板
       try {
-        console.log('[CardService] 開始調用後端 API...')
+        console.log('[CardService] 嘗試從後端 API 獲取系統模板...')
         const response = await fetch('/.netlify/functions/update-system-template', {
           method: 'GET',
-          cache: 'no-store', // 禁用快取，確保獲取最新數據
           headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          }
+            'Content-Type': 'application/json'
+          },
+          cache: 'no-store' // 確保獲取最新數據
         })
-        
-        console.log('[CardService] 後端 API 響應狀態:', response.status)
-        console.log('[CardService] 後端 API 響應 headers:', Object.fromEntries(response.headers.entries()))
         
         if (response.ok) {
           const backendTemplates = await response.json()
-          console.log('[CardService] 從後端 API 載入到數據:', backendTemplates)
-          console.log('[CardService] 後端數據類型:', typeof backendTemplates)
-          console.log('[CardService] 後端數據鍵數量:', backendTemplates ? Object.keys(backendTemplates).length : 'null/undefined')
+          console.log('[CardService] 後端 API 返回數據:', backendTemplates)
           
           if (backendTemplates && Object.keys(backendTemplates).length > 0) {
-            // 如果有後端數據，使用後端數據並更新 localStorage
+            console.log('[CardService] 成功從後端獲取模板，數量:', Object.keys(backendTemplates).length)
+            
+            // 轉換後端數據格式為 BaseCard 格式
             const systemCards = this.convertBackendTemplatesToBaseCards(backendTemplates)
-            const userCards = this.getUserCards(userId)
-            
             console.log('[CardService] 轉換後的系統模板:', systemCards)
-            console.log('[CardService] 用戶模板:', userCards)
             
-            // 更新 localStorage 作為備用
-            localStorage.setItem('aigenerator_templates', JSON.stringify(backendTemplates))
+            // 獲取用戶卡片
+            const userCards = this.getUserCards(userId)
+            console.log('[CardService] 用戶卡片數量:', userCards.length)
             
-            console.log('[CardService] 使用後端 API 模板數據，系統模板數量:', systemCards.length)
-            
-            // 合併並標記選擇狀態
+            // 合併所有卡片
             const allCards = [...systemCards, ...userCards]
-            const userSelections = this.getUserSelections(userId)
+            console.log('[CardService] 合併後的總卡片數量:', allCards.length)
             
+            // 獲取用戶選擇狀態
+            const userSelections = this.getUserSelections(userId)
+            console.log('[CardService] 用戶選擇的模板數量:', userSelections.size)
+            
+            // 標記選擇狀態
             const result = allCards.map(card => ({
               ...card,
               isSelected: userSelections.has(card.id)
             }))
             
-            console.log('[CardService] 總共返回模板數量:', result.length)
-            console.log('[CardService] 最終結果:', result)
+            console.log('[CardService] 返回最終結果，數量:', result.length)
             return result
+            
           } else {
-            console.log('[CardService] 後端 API 返回空數據，沒有管理者設定的模板')
-            console.log('[CardService] 後端數據詳情:', backendTemplates)
-            // 如果後端沒有數據，返回空數組，讓系統真正去獲取管理者設定的模板
-            console.log('[CardService] 返回空數組，等待管理者設定模板')
-            return []
+            console.log('[CardService] 後端 API 返回空數據，嘗試從 localStorage 獲取')
+            
+            // 後端沒有數據，嘗試從 localStorage 獲取
+            const localStorageTemplates = this.getSystemTemplatesFromLocalStorage()
+            if (localStorageTemplates.length > 0) {
+              console.log('[CardService] 從 localStorage 獲取到模板，數量:', localStorageTemplates.length)
+              
+              const userCards = this.getUserCards(userId)
+              const allCards = [...localStorageTemplates, ...userCards]
+              const userSelections = this.getUserSelections(userId)
+              
+              return allCards.map(card => ({
+                ...card,
+                isSelected: userSelections.has(card.id)
+              }))
+            }
+            
+            // 如果 localStorage 也沒有數據，使用默認模板
+            console.log('[CardService] localStorage 也沒有數據，使用默認模板')
+            return this.getFallbackTemplates(userId)
           }
         } else {
           console.warn('[CardService] 後端 API 返回錯誤狀態:', response.status)
-          console.warn('[CardService] 響應文本:', await response.text())
-          // API 錯誤時返回空數組，讓系統真正去獲取管理者設定的模板
-          console.log('[CardService] API 錯誤，返回空數組，等待管理者設定模板')
-          return []
+          
+          // API 失敗，嘗試從 localStorage 獲取
+          const localStorageTemplates = this.getSystemTemplatesFromLocalStorage()
+          if (localStorageTemplates.length > 0) {
+            console.log('[CardService] 從 localStorage 獲取到模板，數量:', localStorageTemplates.length)
+            
+            const userCards = this.getUserCards(userId)
+            const allCards = [...localStorageTemplates, ...userCards]
+            const userSelections = this.getUserSelections(userId)
+            
+            return allCards.map(card => ({
+              ...card,
+              isSelected: userSelections.has(card.id)
+            }))
+          }
+          
+          // 如果 localStorage 也沒有數據，使用默認模板
+          console.log('[CardService] localStorage 也沒有數據，使用默認模板')
+          return this.getFallbackTemplates(userId)
         }
       } catch (backendError) {
-        console.warn('[CardService] 後端 API 載入失敗，返回空數組:', backendError)
-        console.warn('[CardService] 錯誤詳情:', backendError)
-        // API 失敗時返回空數組，讓系統真正去獲取管理者設定的模板
-        console.log('[CardService] API 失敗，返回空數組，等待管理者設定模板')
-        return []
+        console.warn('[CardService] 後端 API 調用失敗:', backendError)
+        
+        // API 調用失敗，嘗試從 localStorage 獲取
+        const localStorageTemplates = this.getSystemTemplatesFromLocalStorage()
+        if (localStorageTemplates.length > 0) {
+          console.log('[CardService] 從 localStorage 獲取到模板，數量:', localStorageTemplates.length)
+          
+          const userCards = this.getUserCards(userId)
+          const allCards = [...localStorageTemplates, ...userCards]
+          const userSelections = this.getUserSelections(userId)
+          
+          return allCards.map(card => ({
+            ...card,
+            isSelected: userSelections.has(card.id)
+          }))
+        }
+        
+        // 如果 localStorage 也沒有數據，使用默認模板
+        console.log('[CardService] localStorage 也沒有數據，使用默認模板')
+        return this.getFallbackTemplates(userId)
       }
     } catch (error) {
-      console.error('[CardService] 獲取模板失敗，返回空數組:', error)
-      // 備用方案：返回空數組，讓系統真正去獲取管理者設定的模板
-      console.log('[CardService] 獲取失敗，返回空數組，等待管理者設定模板')
-      return []
+      console.error('[CardService] 獲取模板失敗:', error)
+      
+      // 最後的回退：使用默認模板
+      console.log('[CardService] 使用默認模板作為最後回退')
+      return this.getFallbackTemplates(userId)
     }
   }
 
