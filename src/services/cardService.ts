@@ -185,9 +185,9 @@ export class CardService {
       return localStorageTemplates
     }
     
-    // 3. 沒有模板數據，返回空數組
-    console.log('[CardService] 沒有找到任何模板數據')
-    return []
+    // 3. 沒有模板數據，返回預設的空白模板供編輯
+    console.log('[CardService] 沒有找到模板數據，返回預設空白模板')
+    return this.getFallbackTemplates('system')
   }
 
   // 同步版本（向後相容）

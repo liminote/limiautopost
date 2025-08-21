@@ -75,13 +75,14 @@ export default function AIGenerator() {
         return
       }
       
-      // 沒有找到任何模板，顯示空狀態
-      console.log('[AIGenerator] 沒有找到任何模板')
-      setTemplates([])
+      // 沒有找到任何模板，顯示 4 個可編輯的空白預設模板
+      console.log('[AIGenerator] 沒有找到模板數據，顯示空白預設模板供編輯')
+      setTemplates(TEMPLATES)
       
     } catch (error) {
       console.error('[AIGenerator] 載入模板失敗:', error)
-      setTemplates([])
+      // 出錯時也顯示空白預設模板
+      setTemplates(TEMPLATES)
     }
   }, [])
 
