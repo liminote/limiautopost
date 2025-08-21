@@ -58,13 +58,21 @@ const readFromBlobs = async () => {
     const store = getStore('system-templates')
     const existing = await store.get('templates', { type: 'json' })
     
-    if (existing && Object.keys(existing).length > 0) {
+    console.log('🔍 Blobs 讀取結果:', existing)
+    console.log('🔍 existing 類型:', typeof existing)
+    console.log('🔍 existing 是否為 null:', existing === null)
+    console.log('🔍 existing 是否為 undefined:', existing === undefined)
+    
+    if (existing !== null && existing !== undefined) {
+      console.log('✅ Blobs 讀取成功，數據:', existing)
       memoryStorage = { ...existing }
       return existing
+    } else {
+      console.log('ℹ️ Blobs 中沒有數據')
+      return null
     }
-    return null
   } catch (error) {
-    console.warn('Blobs 讀取失敗:', error.message)
+    console.warn('⚠️ Blobs 讀取失敗:', error.message)
     return null
   }
 }
