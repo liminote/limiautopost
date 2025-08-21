@@ -61,87 +61,88 @@ export default function AIGenerator() {
     try {
       console.log('[AIGenerator] 開始載入已保存的模板...')
       
-      // 1. 優先從後端 API 獲取
-      try {
-        const response = await fetch('/.netlify/functions/update-system-template', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          cache: 'no-store'
-        })
-        
-        if (response.ok) {
-          const backendTemplates = await response.json()
-          console.log('[AIGenerator] 後端 API 返回數據:', backendTemplates)
-          
-          if (backendTemplates && Object.keys(backendTemplates).length > 0) {
-            console.log('[AIGenerator] 成功從後端獲取模板，數量:', Object.keys(backendTemplates).length)
-            
-            // 轉換後端數據格式為前端格式
-            const convertedTemplates = Object.values(backendTemplates).map((template: any) => ({
-              id: template.id,
-              title: template.title || template.templateTitle || '',
-              platform: template.platform || 'threads',
-              features: template.features || template.templateFeatures || '',
-              prompt: template.prompt || ''
-            }))
-            
-            console.log('[AIGenerator] 轉換後的模板:', convertedTemplates)
-            
-            // 更新狀態
-            setTemplates(convertedTemplates)
-            
-            // 同時更新 localStorage 作為備用
-            localStorage.setItem('aigenerator_templates', JSON.stringify(backendTemplates))
-            
-            return
-          } else {
-            console.log('[AIGenerator] 後端 API 返回空數據，嘗試從 localStorage 獲取')
-          }
-        } else {
-          console.warn('[AIGenerator] 後端 API 返回錯誤狀態:', response.status)
-        }
-      } catch (error) {
-        console.warn('[AIGenerator] 後端 API 調用失敗:', error)
+      // 嘗試從後端 API 獲取
+      const templates = await fetchTemplatesFromBackend()
+      if (templates.length > 0) {
+        setTemplates(templates)
+        return
       }
       
-      // 2. 如果後端失敗，從 localStorage 獲取
-      const savedTemplates = localStorage.getItem('aigenerator_templates')
-      if (savedTemplates) {
-        try {
-          const parsedTemplates = JSON.parse(savedTemplates)
-          console.log('[AIGenerator] 從 localStorage 獲取到數據:', parsedTemplates)
-          
-          if (typeof parsedTemplates === 'object' && parsedTemplates !== null) {
-            // 如果是對象格式，轉換為數組
-            const templateArray = Object.values(parsedTemplates).map((template: any) => ({
-              id: template.id,
-              title: template.title || template.templateTitle || '',
-              platform: template.platform || 'threads',
-              features: template.features || template.templateFeatures || '',
-              prompt: template.prompt || ''
-            }))
-            
-            console.log('[AIGenerator] 轉換後的 localStorage 模板:', templateArray)
-            setTemplates(templateArray)
-            return
-          }
-        } catch (parseError) {
-          console.error('[AIGenerator] 解析 localStorage 數據失敗:', parseError)
-        }
+      // 嘗試從 localStorage 獲取
+      const localTemplates = getTemplatesFromLocalStorage()
+      if (localTemplates.length > 0) {
+        setTemplates(localTemplates)
+        return
       }
       
-      // 3. 如果都沒有數據，使用默認模板
-      console.log('[AIGenerator] 沒有找到已保存的模板，使用默認模板')
+      // 使用默認模板
+      console.log('[AIGenerator] 使用默認模板')
       setTemplates(TEMPLATES)
       
     } catch (error) {
       console.error('[AIGenerator] 載入模板失敗:', error)
-      // 出錯時使用默認模板
       setTemplates(TEMPLATES)
     }
   }, [])
+
+  // 從後端獲取模板
+  const fetchTemplatesFromBackend = async (): Promise<Template[]> => {
+    try {
+      const response = await fetch('/.netlify/functions/update-system-template', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store'
+      })
+      
+      if (response.ok) {
+        const backendTemplates = await response.json()
+        if (backendTemplates && Object.keys(backendTemplates).length > 0) {
+          console.log('[AIGenerator] 從後端獲取到模板，數量:', Object.keys(backendTemplates).length)
+          
+          // 轉換數據格式
+          const converted = convertBackendTemplates(backendTemplates)
+          
+          // 更新 localStorage 作為備用
+          localStorage.setItem('aigenerator_templates', JSON.stringify(backendTemplates))
+          
+          return converted
+        }
+      }
+    } catch (error) {
+      console.warn('[AIGenerator] 後端 API 調用失敗:', error)
+    }
+    
+    return []
+  }
+
+  // 從 localStorage 獲取模板
+  const getTemplatesFromLocalStorage = (): Template[] => {
+    try {
+      const saved = localStorage.getItem('aigenerator_templates')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (typeof parsed === 'object' && parsed !== null) {
+          console.log('[AIGenerator] 從 localStorage 獲取到模板')
+          return convertBackendTemplates(parsed)
+        }
+      }
+    } catch (error) {
+      console.error('[AIGenerator] 解析 localStorage 數據失敗:', error)
+    }
+    
+    return []
+  }
+
+  // 轉換後端數據格式為前端格式
+  const convertBackendTemplates = (backendTemplates: any): Template[] => {
+    return Object.values(backendTemplates).map((template: any) => ({
+      id: template.id,
+      title: template.title || template.templateTitle || '',
+      platform: template.platform || 'threads',
+      features: template.features || template.templateFeatures || '',
+      prompt: template.prompt || ''
+    }))
+  }
 
   // 初始化時載入模板
   useEffect(() => {
