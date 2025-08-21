@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模板調試工具</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { background: #f8f9fa; padding: 10px; border-radius: 3px; margin: 10px 0; white-space: pre-wrap; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <h1>🔧 模板調試工具</h1>
+    <p>這個工具用來測試後端 API 的模板獲取功能，幫助診斷為什麼無痕模式顯示錯誤的模板。</p>
+    
+    <div class="section">
+        <h2>1. 測試後端 API</h2>
+        <button onclick="testBackendAPI()">調用後端 API (GET)</button>
+        <div id="backendResult" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. 檢查 localStorage</h2>
+        <button onclick="checkLocalStorage()">檢查 localStorage</button>
+        <div id="localStorageResult" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. 模擬 CardService 調用</h2>
+        <button onclick="simulateCardService()">模擬 CardService.getAllCardsAsync</button>
+        <div id="cardServiceResult" class="result"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. 清除快取</h2>
+        <button onclick="clearCache()">清除所有快取</button>
+        <div id="clearResult" class="result"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleString('zh-TW');
+            const logMessage = `[${timestamp}] ${message}`;
+            element.textContent = logMessage;
+            element.className = `result ${isError ? 'error' : 'success'}`;
+        }
+
+        async function testBackendAPI() {
+            try {
+                log('backendResult', '正在調用後端 API...');
+                
+                const response = await fetch('/.netlify/functions/update-system-template', {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                log('backendResult', `API 響應狀態: ${response.status}`);
+                log('backendResult', `API 響應 headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('backendResult', `API 返回數據:\n${JSON.stringify(data, null, 2)}`);
+                    
+                    if (data && Object.keys(data).length > 0) {
+                        log('backendResult', `✅ 成功獲取到 ${Object.keys(data).length} 個模板`);
+                    } else {
+                        log('backendResult', `⚠️ API 返回空數據或無效數據`);
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log('backendResult', `❌ API 錯誤: ${response.status}\n${errorText}`, true);
+                }
+            } catch (error) {
+                log('backendResult', `❌ 調用失敗: ${error.message}`, true);
+            }
+        }
+
+        function checkLocalStorage() {
+            try {
+                const templates = localStorage.getItem('aigenerator_templates');
+                const userSelections = localStorage.getItem('limiautopost:userSelections');
+                
+                let result = 'localStorage 檢查結果:\n\n';
+                
+                if (templates) {
+                    const parsedTemplates = JSON.parse(templates);
+                    result += `✅ aigenerator_templates:\n`;
+                    result += `類型: ${typeof parsedTemplates}\n`;
+                    result += `鍵數量: ${Object.keys(parsedTemplates).length}\n`;
+                    result += `內容: ${JSON.stringify(parsedTemplates, null, 2)}\n\n`;
+                } else {
+                    result += `❌ aigenerator_templates: 不存在\n\n`;
+                }
+                
+                if (userSelections) {
+                    const parsedSelections = JSON.parse(userSelections);
+                    result += `✅ limiautopost:userSelections:\n`;
+                    result += `類型: ${typeof parsedSelections}\n`;
+                    result += `內容: ${JSON.stringify(parsedSelections, null, 2)}\n`;
+                } else {
+                    result += `❌ limiautopost:userSelections: 不存在\n`;
+                }
+                
+                log('localStorageResult', result);
+            } catch (error) {
+                log('localStorageResult', `❌ 檢查失敗: ${error.message}`, true);
+            }
+        }
+
+        async function simulateCardService() {
+            try {
+                log('cardServiceResult', '正在模擬 CardService 調用...');
+                
+                // 模擬 CardService.getAllCardsAsync 的邏輯
+                const response = await fetch('/.netlify/functions/update-system-template', {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (response.ok) {
+                    const backendTemplates = await response.json();
+                    
+                    if (backendTemplates && Object.keys(backendTemplates).length > 0) {
+                        // 轉換為 BaseCard 格式
+                        const systemCards = Object.values(backendTemplates).map((template) => ({
+                            id: template.id || 'unknown',
+                            name: template.templateTitle || template.title || '',
+                            description: template.templateFeatures || template.features || '',
+                            category: template.platform?.toLowerCase() || 'threads',
+                            prompt: template.prompt || '',
+                            isActive: true,
+                            isSystem: true,
+                            createdAt: new Date(),
+                            updatedAt: new Date(template.updatedAt) || new Date(),
+                            platform: template.platform?.toLowerCase() || 'threads',
+                            templateTitle: template.templateTitle || template.title || '',
+                            templateFeatures: template.templateFeatures || template.features || '',
+                            isSelected: false
+                        }));
+                        
+                        log('cardServiceResult', `✅ 模擬成功:\n系統模板數量: ${systemCards.length}\n模板詳情:\n${JSON.stringify(systemCards, null, 2)}`);
+                    } else {
+                        log('cardServiceResult', `⚠️ 後端數據為空，會回退到預設模板`);
+                    }
+                } else {
+                    log('cardServiceResult', `❌ API 調用失敗: ${response.status}`, true);
+                }
+            } catch (error) {
+                log('cardServiceResult', `❌ 模擬失敗: ${error.message}`, true);
+            }
+        }
+
+        function clearCache() {
+            try {
+                localStorage.removeItem('aigenerator_templates');
+                localStorage.removeItem('limiautopost:userSelections');
+                log('clearResult', '✅ 已清除所有快取');
+            } catch (error) {
+                log('clearResult', `❌ 清除失敗: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

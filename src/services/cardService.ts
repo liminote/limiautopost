@@ -133,9 +133,11 @@ export class CardService {
   public async getAllCardsAsync(userId: string): Promise<BaseCard[]> {
     try {
       console.log('[CardService] 正在獲取最新模板...')
+      console.log('[CardService] 用戶ID:', userId)
       
       // 1. 優先嘗試從後端 API 載入最新數據
       try {
+        console.log('[CardService] 開始調用後端 API...')
         const response = await fetch('/.netlify/functions/update-system-template', {
           method: 'GET',
           cache: 'no-store', // 禁用快取，確保獲取最新數據
@@ -145,14 +147,22 @@ export class CardService {
           }
         })
         
+        console.log('[CardService] 後端 API 響應狀態:', response.status)
+        console.log('[CardService] 後端 API 響應 headers:', Object.fromEntries(response.headers.entries()))
+        
         if (response.ok) {
           const backendTemplates = await response.json()
           console.log('[CardService] 從後端 API 載入到數據:', backendTemplates)
+          console.log('[CardService] 後端數據類型:', typeof backendTemplates)
+          console.log('[CardService] 後端數據鍵數量:', backendTemplates ? Object.keys(backendTemplates).length : 'null/undefined')
           
           if (backendTemplates && Object.keys(backendTemplates).length > 0) {
             // 如果有後端數據，使用後端數據並更新 localStorage
             const systemCards = this.convertBackendTemplatesToBaseCards(backendTemplates)
             const userCards = this.getUserCards(userId)
+            
+            console.log('[CardService] 轉換後的系統模板:', systemCards)
+            console.log('[CardService] 用戶模板:', userCards)
             
             // 更新 localStorage 作為備用
             localStorage.setItem('aigenerator_templates', JSON.stringify(backendTemplates))
@@ -169,19 +179,23 @@ export class CardService {
             }))
             
             console.log('[CardService] 總共返回模板數量:', result.length)
+            console.log('[CardService] 最終結果:', result)
             return result
           } else {
             console.log('[CardService] 後端 API 返回空數據，使用預設系統模板')
+            console.log('[CardService] 後端數據詳情:', backendTemplates)
             // 直接使用預設模板，不依賴可能過期的 localStorage
             return this.getFallbackTemplates(userId)
           }
         } else {
           console.warn('[CardService] 後端 API 返回錯誤狀態:', response.status)
+          console.warn('[CardService] 響應文本:', await response.text())
           // API 錯誤時使用預設模板
           return this.getFallbackTemplates(userId)
         }
       } catch (backendError) {
         console.warn('[CardService] 後端 API 載入失敗，使用預設系統模板:', backendError)
+        console.warn('[CardService] 錯誤詳情:', backendError)
         // API 失敗時使用預設模板
         return this.getFallbackTemplates(userId)
       }
