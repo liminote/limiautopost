@@ -75,13 +75,13 @@ export default function AIGenerator() {
         return
       }
       
-      // 使用默認模板
-      console.log('[AIGenerator] 使用默認模板')
-      setTemplates(TEMPLATES)
+      // 沒有找到任何模板，顯示空狀態
+      console.log('[AIGenerator] 沒有找到任何模板')
+      setTemplates([])
       
     } catch (error) {
       console.error('[AIGenerator] 載入模板失敗:', error)
-      setTemplates(TEMPLATES)
+      setTemplates([])
     }
   }, [])
 

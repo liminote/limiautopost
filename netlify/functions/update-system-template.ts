@@ -83,7 +83,7 @@ const saveToBlobs = async (templates) => {
   }
 }
 
-// 獲取模板數據（優先級：Blobs > 內存 > 默認）
+// 獲取模板數據（優先級：Blobs > 內存，不自動創建默認）
 const getTemplates = async () => {
   // 1. 嘗試從 Blobs 讀取
   const blobsData = await readFromBlobs()
@@ -92,8 +92,8 @@ const getTemplates = async () => {
   // 2. 檢查內存存儲
   if (Object.keys(memoryStorage).length > 0) return memoryStorage
   
-  // 3. 使用默認模板
-  return DEFAULT_TEMPLATES
+  // 3. 返回空對象，不自動創建默認模板
+  return {}
 }
 
 exports.handler = async (event) => {
