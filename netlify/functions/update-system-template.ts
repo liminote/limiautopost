@@ -3,37 +3,37 @@ const { Handler } = require('@netlify/functions')
 // 使用內存存儲作為備用方案
 let memoryStorage = {}
 
-// 默認模板數據
+// 默認模板數據 - 只提供空白模板位置，不填充內容
 const DEFAULT_TEMPLATES = {
   'template-1': {
     id: 'template-1',
-    title: '生活體悟模板',
-    features: '分享日常生活感悟和思考',
-    prompt: '請根據以下主題，生成一篇生活體悟的文章：',
+    title: '',
+    features: '',
+    prompt: '',
     platform: 'threads',
     updatedAt: new Date().toISOString()
   },
   'template-2': {
     id: 'template-2',
-    title: '知識分享模板',
-    features: '分享專業知識和學習心得',
-    prompt: '請根據以下主題，生成一篇知識分享的文章：',
+    title: '',
+    features: '',
+    prompt: '',
     platform: 'threads',
     updatedAt: new Date().toISOString()
   },
   'template-3': {
     id: 'template-3',
-    title: '創意靈感模板',
-    features: '分享創意想法和靈感來源',
-    prompt: '請根據以下主題，生成一篇創意靈感的文章：',
+    title: '',
+    features: '',
+    prompt: '',
     platform: 'threads',
     updatedAt: new Date().toISOString()
   },
   'template-4': {
     id: 'template-4',
-    title: '情感表達模板',
-    features: '分享情感體驗和內心感受',
-    prompt: '請根據以下主題，生成一篇情感表達的文章：',
+    title: '',
+    features: '',
+    prompt: '',
     platform: 'threads',
     updatedAt: new Date().toISOString()
   }
