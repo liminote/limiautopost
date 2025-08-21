@@ -65,10 +65,8 @@ exports.handler = async (event) => {
       console.log('ℹ️ 沒有找到任何模板數據')
       console.log('ℹ️ 內存存儲狀態:', memoryStorage)
       
-      // 3. 如果沒有任何模板數據，返回空對象，讓系統去獲取真正的管理者設定模板
-      console.log('🔧 沒有模板數據，返回空對象，讓系統去獲取真正的管理者設定模板')
-      
-      console.log('ℹ️ 返回空對象，等待管理者設定模板')
+      // 3. 返回空對象表示沒有模板數據
+      console.log('ℹ️ 沒有模板數據，返回空對象')
       return {
         statusCode: 200,
         headers: {
