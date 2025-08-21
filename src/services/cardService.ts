@@ -165,6 +165,8 @@ export class CardService {
             
             console.log('[CardService] 總共返回模板數量:', result.length)
             return result
+          } else {
+            console.log('[CardService] 後端 API 返回空數據，回退到預設模板')
           }
         }
       } catch (backendError) {
