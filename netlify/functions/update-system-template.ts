@@ -102,7 +102,7 @@ const getTemplates = async () => {
   return DEFAULT_TEMPLATES
 }
 
-// 確保所有 4 個模板位置都存在
+// 確保所有 4 個模板位置都存在，但不覆蓋已有內容
 const ensureAllTemplatesExist = (existingTemplates) => {
   const result = { ...existingTemplates }
   
@@ -110,6 +110,7 @@ const ensureAllTemplatesExist = (existingTemplates) => {
   for (let i = 1; i <= 4; i++) {
     const templateId = `template-${i}`
     if (!result[templateId]) {
+      // 只創建真正缺失的模板
       result[templateId] = {
         id: templateId,
         title: '',
@@ -119,6 +120,7 @@ const ensureAllTemplatesExist = (existingTemplates) => {
         updatedAt: new Date().toISOString()
       }
     }
+    // 如果模板已存在，保留其所有內容，不做任何修改
   }
   
   return result
