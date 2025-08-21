@@ -63,6 +63,40 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// 緊急修復：確保管理者帳號存在
+function emergencyFixAdminAccount() {
+  if (typeof window !== 'undefined') {
+    try {
+      // 強制創建管理者帳號
+      ensureUser('vannyma@gmail.com', 'admin123')
+      console.log('🚨 緊急修復：管理者帳號已確保存在')
+      
+      // 檢查並修復 session
+      const currentSession = getSession()
+      if (currentSession && currentSession.email === 'vannyma@gmail.com') {
+        // 如果當前登入的是管理者，確保角色正確
+        if (!currentSession.roles.includes('admin')) {
+          const fixedSession: Session = { 
+            email: 'vannyma@gmail.com', 
+            roles: ['admin', 'user'] 
+          }
+          localStorage.setItem(LS_KEY, JSON.stringify(fixedSession))
+          console.log('🚨 緊急修復：管理者 session 角色已修正')
+          // 觸發重新渲染
+          window.dispatchEvent(new Event('limiautopost:session'))
+        }
+      }
+    } catch (error) {
+      console.error('🚨 緊急修復失敗:', error)
+    }
+  }
+}
+
+// 在頁面加載時執行緊急修復
+if (typeof window !== 'undefined') {
+  emergencyFixAdminAccount()
+}
+
 export function signIn(email: string): Session {
   // 登入前檢查啟用與到期
   try {
@@ -168,8 +202,31 @@ export function getSession(): Session | null {
 }
 
 export function hasRole(required: 'admin' | 'user', session: Session | null = getSession()): boolean {
-  if (!session) return false
-  return session.roles.includes(required)
+  if (!session) {
+    console.log('🔍 hasRole 檢查失敗：沒有 session')
+    return false
+  }
+  
+  console.log('🔍 hasRole 檢查:', { required, session, roles: session.roles })
+  
+  // 檢查是否為已知的管理者 email
+  const isKnownAdmin = ADMIN_EMAILS.includes(session.email.toLowerCase().trim())
+  if (isKnownAdmin && !session.roles.includes('admin')) {
+    console.warn('🚨 發現已知管理者但角色不正確，自動修復...')
+    // 自動修復管理者角色
+    const fixedSession: Session = { 
+      email: session.email, 
+      roles: ['admin', 'user'] 
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(fixedSession))
+    // 觸發重新渲染
+    window.dispatchEvent(new Event('limiautopost:session'))
+    return true
+  }
+  
+  const hasRole = session.roles.includes(required)
+  console.log('🔍 hasRole 結果:', { required, hasRole, sessionEmail: session.email, isKnownAdmin })
+  return hasRole
 }
 
 // 讓 React 元件可以訂閱 session 變化

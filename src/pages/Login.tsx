@@ -69,6 +69,18 @@ export default function Login() {
     }
   }
 
+  const emergencyFixAdmin = () => {
+    try {
+      // 強制創建管理者帳號
+      ensureUser('vannyma@gmail.com', 'admin123')
+      // 清除可能損壞的 session
+      localStorage.removeItem('limiautopost:session')
+      setError('🚨 緊急修復完成！管理者帳號已確保存在。請使用 vannyma@gmail.com / admin123 登入')
+    } catch (error) {
+      setError('緊急修復失敗，請重新整理後再試')
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--surface)' }}>
       <form onSubmit={onSubmit} className="w-full max-w-sm bg-white rounded-lg shadow p-6 space-y-4">
@@ -87,7 +99,10 @@ export default function Login() {
         {error && <div className="text-sm text-red-600">{error}</div>}
         <button type="submit" className="w-full rounded bg-[color:var(--yinmn-blue)] text-white py-2">登入</button>
         {import.meta.env.DEV && (
-          <button type="button" onClick={resetLocal} className="w-full mt-2 text-xs text-gray-500 hover:text-gray-800">重置本機帳號（本機測試用）</button>
+          <>
+            <button type="button" onClick={resetLocal} className="w-full mt-2 text-xs text-gray-500 hover:text-gray-800">重置本機帳號（本機測試用）</button>
+            <button type="button" onClick={emergencyFixAdmin} className="w-full mt-2 text-xs text-red-500 hover:text-red-800 border border-red-300 rounded">🚨 緊急修復管理者帳號</button>
+          </>
         )}
       </form>
       
