@@ -83,17 +83,45 @@ const saveToBlobs = async (templates) => {
   }
 }
 
-// 獲取模板數據（優先級：Blobs > 內存，不自動創建默認）
+// 獲取模板數據（優先級：Blobs > 內存，補充缺失的模板位置）
 const getTemplates = async () => {
   // 1. 嘗試從 Blobs 讀取
   const blobsData = await readFromBlobs()
-  if (blobsData) return blobsData
+  if (blobsData) {
+    // 補充缺失的模板位置
+    return ensureAllTemplatesExist(blobsData)
+  }
   
   // 2. 檢查內存存儲
-  if (Object.keys(memoryStorage).length > 0) return memoryStorage
+  if (Object.keys(memoryStorage).length > 0) {
+    // 補充缺失的模板位置
+    return ensureAllTemplatesExist(memoryStorage)
+  }
   
-  // 3. 返回空對象，不自動創建默認模板
-  return {}
+  // 3. 返回 4 個空白模板位置
+  return DEFAULT_TEMPLATES
+}
+
+// 確保所有 4 個模板位置都存在
+const ensureAllTemplatesExist = (existingTemplates) => {
+  const result = { ...existingTemplates }
+  
+  // 檢查並補充缺失的模板
+  for (let i = 1; i <= 4; i++) {
+    const templateId = `template-${i}`
+    if (!result[templateId]) {
+      result[templateId] = {
+        id: templateId,
+        title: '',
+        features: '',
+        prompt: '',
+        platform: 'threads',
+        updatedAt: new Date().toISOString()
+      }
+    }
+  }
+  
+  return result
 }
 
 exports.handler = async (event) => {
