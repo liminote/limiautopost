@@ -137,7 +137,12 @@ export class CardService {
       // 1. 優先嘗試從後端 API 載入最新數據
       try {
         const response = await fetch('/.netlify/functions/update-system-template', {
-          method: 'GET'
+          method: 'GET',
+          cache: 'no-store', // 禁用快取，確保獲取最新數據
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
         })
         
         if (response.ok) {
@@ -166,56 +171,20 @@ export class CardService {
             console.log('[CardService] 總共返回模板數量:', result.length)
             return result
           } else {
-            console.log('[CardService] 後端 API 返回空數據，回退到預設模板')
+            console.log('[CardService] 後端 API 返回空數據，使用預設系統模板')
+            // 直接使用預設模板，不依賴可能過期的 localStorage
+            return this.getFallbackTemplates(userId)
           }
+        } else {
+          console.warn('[CardService] 後端 API 返回錯誤狀態:', response.status)
+          // API 錯誤時使用預設模板
+          return this.getFallbackTemplates(userId)
         }
       } catch (backendError) {
-        console.warn('[CardService] 後端 API 載入失敗，回退到 localStorage:', backendError)
+        console.warn('[CardService] 後端 API 載入失敗，使用預設系統模板:', backendError)
+        // API 失敗時使用預設模板
+        return this.getFallbackTemplates(userId)
       }
-      
-      // 2. 如果後端載入失敗，從 localStorage 讀取
-      const systemCards = this.getSystemTemplatesFromLocalStorage()
-      const userCards = this.getUserCards(userId)
-      
-      // 3. 如果 localStorage 也沒有數據，使用預設系統模板
-      if (systemCards.length === 0) {
-        console.log('[CardService] localStorage 沒有模板數據，使用預設系統模板')
-        const defaultCards = this.convertDefaultCardsToBaseCards()
-        
-        // 將預設模板保存到 localStorage
-        try {
-          localStorage.setItem('aigenerator_templates', JSON.stringify(defaultCards))
-          console.log('[CardService] 已將預設模板保存到 localStorage')
-        } catch (error) {
-          console.warn('[CardService] 保存預設模板到 localStorage 失敗:', error)
-        }
-        
-        const allCards = [...defaultCards, ...userCards]
-        const userSelections = this.getUserSelections(userId)
-        
-        const result = allCards.map(card => ({
-          ...card,
-          isSelected: userSelections.has(card.id)
-        }))
-        
-        console.log('[CardService] 使用預設模板，總共返回模板數量:', result.length)
-        return result
-      }
-      
-      console.log('[CardService] 使用 localStorage 模板數據，系統模板數量:', systemCards.length)
-      console.log('[CardService] 使用者模板數量:', userCards.length)
-      
-      // 合併並標記選擇狀態
-      const allCards = [...systemCards, ...userCards]
-      const userSelections = this.getUserSelections(userId)
-      
-      const result = allCards.map(card => ({
-        ...card,
-        isSelected: userSelections.has(card.id)
-      }))
-      
-      console.log('[CardService] 總共返回模板數量:', result.length)
-      return result
     } catch (error) {
       console.error('[CardService] 獲取模板失敗，使用備用方案:', error)
       // 備用方案：使用預設模板

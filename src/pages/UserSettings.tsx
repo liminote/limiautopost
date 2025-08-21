@@ -24,16 +24,19 @@ export default function UserSettings(){
     if (!session) return
     
     try {
+      console.log('[UserSettings] 開始載入最新模板...')
+      
       // 使用 CardService 的非同步方法獲取最新模板
       const allTemplates = await cardService.getAllCardsAsync(session.email)
       
       // 正確過濾已選擇的模板
       const selectedTemplates = allTemplates.filter(template => template.isSelected)
       
-      console.log('[UserSettings] 載入模板:', {
+      console.log('[UserSettings] 載入模板完成:', {
         total: allTemplates.length,
         selected: selectedTemplates.length,
-        maxSelections
+        maxSelections,
+        templates: allTemplates.map(t => ({ id: t.id, title: t.templateTitle, isSystem: t.isSystem }))
       })
       
       setAvailableTemplates(allTemplates)
@@ -60,7 +63,8 @@ export default function UserSettings(){
     // 清除可能的快取
     try {
       localStorage.removeItem('limiautopost:userSelections')
-      console.log('[UserSettings] 已清除用戶選擇快取')
+      localStorage.removeItem('aigenerator_templates') // 清除系統模板快取
+      console.log('[UserSettings] 已清除所有模板快取')
     } catch (error) {
       console.warn('[UserSettings] 清除快取失敗:', error)
     }
