@@ -182,27 +182,31 @@ export class CardService {
             console.log('[CardService] 最終結果:', result)
             return result
           } else {
-            console.log('[CardService] 後端 API 返回空數據，使用預設系統模板')
+            console.log('[CardService] 後端 API 返回空數據，沒有管理者設定的模板')
             console.log('[CardService] 後端數據詳情:', backendTemplates)
-            // 直接使用預設模板，不依賴可能過期的 localStorage
-            return this.getFallbackTemplates(userId)
+            // 如果後端沒有數據，返回空數組，讓系統真正去獲取管理者設定的模板
+            console.log('[CardService] 返回空數組，等待管理者設定模板')
+            return []
           }
         } else {
           console.warn('[CardService] 後端 API 返回錯誤狀態:', response.status)
           console.warn('[CardService] 響應文本:', await response.text())
-          // API 錯誤時使用預設模板
-          return this.getFallbackTemplates(userId)
+          // API 錯誤時返回空數組，讓系統真正去獲取管理者設定的模板
+          console.log('[CardService] API 錯誤，返回空數組，等待管理者設定模板')
+          return []
         }
       } catch (backendError) {
-        console.warn('[CardService] 後端 API 載入失敗，使用預設系統模板:', backendError)
+        console.warn('[CardService] 後端 API 載入失敗，返回空數組:', backendError)
         console.warn('[CardService] 錯誤詳情:', backendError)
-        // API 失敗時使用預設模板
-        return this.getFallbackTemplates(userId)
+        // API 失敗時返回空數組，讓系統真正去獲取管理者設定的模板
+        console.log('[CardService] API 失敗，返回空數組，等待管理者設定模板')
+        return []
       }
     } catch (error) {
-      console.error('[CardService] 獲取模板失敗，使用備用方案:', error)
-      // 備用方案：使用預設模板
-      return this.getFallbackTemplates(userId)
+      console.error('[CardService] 獲取模板失敗，返回空數組:', error)
+      // 備用方案：返回空數組，讓系統真正去獲取管理者設定的模板
+      console.log('[CardService] 獲取失敗，返回空數組，等待管理者設定模板')
+      return []
     }
   }
 

@@ -65,58 +65,10 @@ exports.handler = async (event) => {
       console.log('ℹ️ 沒有找到任何模板數據')
       console.log('ℹ️ 內存存儲狀態:', memoryStorage)
       
-      // 3. 如果沒有任何模板數據，創建預設的系統模板
-      console.log('🔧 創建預設系統模板...')
-      const defaultTemplates = {
-        'template-1': {
-          id: 'template-1',
-          platform: 'threads',
-          title: '生活體悟模板',
-          features: '分享日常生活感悟和思考的模板',
-          prompt: '請分享一個今天讓你有所感悟的生活片段，可以是小事也可以是大事，重點是表達你的思考和感受。',
-          updatedAt: new Date().toISOString()
-        },
-        'template-2': {
-          id: 'template-2',
-          platform: 'threads',
-          title: '知識分享模板',
-          features: '分享專業知識和學習心得的模板',
-          prompt: '請分享一個你最近學到的新知識或技能，解釋它的重要性，以及你如何應用它。',
-          updatedAt: new Date().toISOString()
-        },
-        'template-3': {
-          id: 'template-3',
-          platform: 'threads',
-          title: '創意靈感模板',
-          features: '激發創意和靈感的模板',
-          prompt: '請分享一個讓你感到興奮的創意想法或靈感，描述它是如何產生的，以及你計劃如何實現它。',
-          updatedAt: new Date().toISOString()
-        },
-        'template-4': {
-          id: 'template-4',
-          platform: 'threads',
-          title: '反思總結模板',
-          features: '定期反思和總結的模板',
-          prompt: '請對最近一段時間的經歷進行反思總結，分享你的收穫、挑戰和成長。',
-          updatedAt: new Date().toISOString()
-        }
-      }
+      // 3. 如果沒有任何模板數據，返回空對象，讓系統去獲取真正的管理者設定模板
+      console.log('🔧 沒有模板數據，返回空對象，讓系統去獲取真正的管理者設定模板')
       
-      // 保存預設模板到內存存儲
-      memoryStorage = { ...defaultTemplates }
-      console.log('✅ 已創建並保存預設系統模板:', Object.keys(defaultTemplates))
-      
-      // 嘗試保存到 Netlify Blobs
-      try {
-        const { getStore } = require('@netlify/blobs')
-        const store = getStore('system-templates')
-        await store.set('templates', JSON.stringify(defaultTemplates))
-        console.log('✅ 預設模板已保存到 Netlify Blobs')
-      } catch (blobsError) {
-        console.warn('⚠️ 保存預設模板到 Blobs 失敗:', blobsError.message)
-      }
-      
-      console.log('ℹ️ 返回預設模板')
+      console.log('ℹ️ 返回空對象，等待管理者設定模板')
       return {
         statusCode: 200,
         headers: {
@@ -124,7 +76,7 @@ exports.handler = async (event) => {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Headers': 'Content-Type'
         },
-        body: JSON.stringify(defaultTemplates)
+        body: JSON.stringify({})
       }
       
     } catch (error) {
