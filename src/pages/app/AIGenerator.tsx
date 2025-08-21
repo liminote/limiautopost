@@ -276,6 +276,12 @@ export default function AIGenerator() {
           
           <div className="p-6">
             <div className="space-y-6">
+              {/* 調試信息 */}
+              <div className="bg-gray-100 p-3 rounded text-sm">
+                <p>調試信息：templates 數組長度: {templates.length}</p>
+                <p>templates 內容: {JSON.stringify(templates, null, 2)}</p>
+              </div>
+              
               {templates.map((template) => (
                 <div key={template.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-4">
