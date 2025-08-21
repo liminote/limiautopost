@@ -266,21 +266,33 @@ export class CardService {
   private convertBackendTemplatesToBaseCards(backendTemplates: any): BaseCard[] {
     try {
       if (typeof backendTemplates === 'object' && backendTemplates !== null) {
-        return Object.values(backendTemplates).map((template: any) => ({
-          id: template.id || 'unknown',
-          name: template.templateTitle || template.title || '',
-          description: template.templateFeatures || template.features || '',
-          category: template.platform?.toLowerCase() || 'threads',
-          prompt: template.prompt || '',
-          isActive: true,
-          isSystem: true,
-          createdAt: new Date(),
-          updatedAt: new Date(template.updatedAt) || new Date(),
-          platform: template.platform?.toLowerCase() || 'threads',
-          templateTitle: template.templateTitle || template.title || '',
-          templateFeatures: template.templateFeatures || template.features || '',
-          isSelected: false
-        }))
+        console.log('[CardService] 開始轉換後端模板數據:', backendTemplates)
+        
+        const result = Object.values(backendTemplates).map((template: any) => {
+          console.log('[CardService] 轉換模板:', template)
+          
+          const converted = {
+            id: template.id || 'unknown',
+            name: template.title || template.templateTitle || '',  // 優先使用 title
+            description: template.features || template.templateFeatures || '',  // 優先使用 features
+            category: template.platform?.toLowerCase() || 'threads',
+            prompt: template.prompt || '',
+            isActive: true,
+            isSystem: true,
+            createdAt: new Date(),
+            updatedAt: new Date(template.updatedAt) || new Date(),
+            platform: template.platform?.toLowerCase() || 'threads',
+            templateTitle: template.title || template.templateTitle || '',  // 優先使用 title
+            templateFeatures: template.features || template.templateFeatures || '',  // 優先使用 features
+            isSelected: false
+          }
+          
+          console.log('[CardService] 轉換結果:', converted)
+          return converted
+        })
+        
+        console.log('[CardService] 所有模板轉換完成，數量:', result.length)
+        return result
       }
       return []
     } catch (error) {
@@ -316,21 +328,29 @@ export class CardService {
           }))
         } else if (typeof templates === 'object' && templates !== null) {
           // 對象格式（新版本，從後端 API 獲取）
-          const templateArray = Object.values(templates).map((template: any) => ({
-            id: template.id || 'unknown',
-            name: template.templateTitle || template.title || '',
-            description: template.templateFeatures || template.features || '',
-            category: template.platform?.toLowerCase() || 'threads',
-            prompt: template.prompt || '',
-            isActive: true,
-            isSystem: true,
-            createdAt: new Date(),
-            updatedAt: new Date(template.updatedAt) || new Date(),
-            platform: template.platform?.toLowerCase() || 'threads',
-            templateTitle: template.templateTitle || template.title || '',
-            templateFeatures: template.templateFeatures || template.features || '',
-            isSelected: false
-          }))
+          console.log('[CardService] 從 localStorage 讀取對象格式模板:', templates)
+          
+          const templateArray = Object.values(templates).map((template: any) => {
+            console.log('[CardService] 處理 localStorage 模板:', template)
+            
+            return {
+              id: template.id || 'unknown',
+              name: template.title || template.templateTitle || '',  // 優先使用 title
+              description: template.features || template.templateFeatures || '',  // 優先使用 features
+              category: template.platform?.toLowerCase() || 'threads',
+              prompt: template.prompt || '',
+              isActive: true,
+              isSystem: true,
+              createdAt: new Date(),
+              updatedAt: new Date(template.updatedAt) || new Date(),
+              platform: template.platform?.toLowerCase() || 'threads',
+              templateTitle: template.title || template.templateTitle || '',  // 優先使用 title
+              templateFeatures: template.features || template.templateFeatures || '',  // 優先使用 features
+              isSelected: false
+            }
+          })
+          
+          console.log('[CardService] localStorage 模板轉換完成，數量:', templateArray.length)
           return templateArray
         }
       }
