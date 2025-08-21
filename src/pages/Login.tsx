@@ -20,6 +20,7 @@ export default function Login() {
       ensureUser('vannyma@gmail.com', 'admin123')
       ensureUser('operatic', 'operatic123')
       ensureUser('operatic@gmail.com', 'operatic123')
+      ensureUser('guest@gmail.com', 'guest123') // 添加 guest 帳號
     } catch (error) {
       console.warn('創建測試用戶時發生錯誤:', error)
     }
@@ -28,8 +29,23 @@ export default function Login() {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) { setError('請輸入 Email'); return }
+    
     const u = findUserByEmail(email)
-    if (!u || u.password !== password) { setError('帳號或密碼錯誤'); return }
+    if (!u) { 
+      setError(`找不到用戶：${email}`); 
+      return 
+    }
+    
+    if (!u.enabled) {
+      setError('帳號已被停用，請聯繫管理員'); 
+      return 
+    }
+    
+    if (u.password !== password) { 
+      setError('密碼錯誤，請檢查密碼是否正確'); 
+      return 
+    }
+    
     try {
       signIn(email)
       nav('/app', { replace: true })
@@ -37,7 +53,6 @@ export default function Login() {
       setError(err instanceof Error ? err.message : '登入失敗')
       return
     }
-    
   }
 
   const resetLocal = () => {
@@ -47,7 +62,8 @@ export default function Login() {
       ensureUser('vannyma@gmail.com', 'admin123')
       ensureUser('operatic', 'operatic123')
       ensureUser('operatic@gmail.com', 'operatic123')
-      setError('已重置本機帳號，請使用 operatic/operatic123 或 vannyma@gmail.com/admin123 登入')
+      ensureUser('guest@gmail.com', 'guest123') // 添加 guest 帳號
+      setError('已重置本機帳號，請使用 operatic/operatic123、operatic@gmail.com/operatic123、guest@gmail.com/guest123 或 vannyma@gmail.com/admin123 登入')
     } catch {
       setError('重置失敗，請重新整理後再試')
     }
