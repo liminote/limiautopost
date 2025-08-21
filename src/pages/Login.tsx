@@ -10,9 +10,19 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const nav = useNavigate()
+  
   useEffect(() => {
     const s = getSession()
     if (s) nav('/app', { replace: true })
+    
+    // 確保測試用戶數據存在（解決無痕視窗問題）
+    try {
+      ensureUser('vannyma@gmail.com', 'admin123')
+      ensureUser('operatic', 'operatic123')
+      ensureUser('operatic@gmail.com', 'operatic123')
+    } catch (error) {
+      console.warn('創建測試用戶時發生錯誤:', error)
+    }
   }, [])
 
   const onSubmit = (e: React.FormEvent) => {

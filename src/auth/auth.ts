@@ -11,13 +11,39 @@ const LS_KEY = 'limiautopost:session'
 const ADMIN_EMAILS: string[] = [
   'vannyma@gmail.com',
 ]
+
 // 開發期：確保管理者帳號存在（預設密碼可稍後修改）
 import { ensureUser, findUserByEmail, updateUser, getUsers, type AppUser } from './users'
-// 僅在開發環境建立本機測試帳號；正式環境不會執行
-if (typeof window !== 'undefined' && import.meta.env.DEV) {
-  try { ensureUser('vannyma@gmail.com', 'admin123') } catch {}
-  try { ensureUser('operatic', 'operatic123') } catch {}
-  try { ensureUser('operatic@gmail.com', 'operatic123') } catch {}
+
+// 改進的用戶初始化函數
+function initializeTestUsers() {
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
+    try { 
+      ensureUser('vannyma@gmail.com', 'admin123') 
+      console.log('✅ 測試管理員帳號已創建: vannyma@gmail.com')
+    } catch (error) {
+      console.warn('創建管理員帳號失敗:', error)
+    }
+    
+    try { 
+      ensureUser('operatic', 'operatic123') 
+      console.log('✅ 測試用戶帳號已創建: operatic')
+    } catch (error) {
+      console.warn('創建測試用戶帳號失敗:', error)
+    }
+    
+    try { 
+      ensureUser('operatic@gmail.com', 'operatic123') 
+      console.log('✅ 測試用戶帳號已創建: operatic@gmail.com')
+    } catch (error) {
+      console.warn('創建測試用戶帳號失敗:', error)
+    }
+  }
+}
+
+// 在頁面加載時初始化用戶
+if (typeof window !== 'undefined') {
+  initializeTestUsers()
 }
 
 // 部署環境：若提供 Vite 環境變數，建立正式管理者帳號（注意：純前端原型，僅供內部測試）
@@ -30,7 +56,10 @@ if (typeof window !== 'undefined') {
       ensureUser(seedEmail, seedPassword)
       const e = seedEmail.toLowerCase().trim()
       if (!ADMIN_EMAILS.includes(e)) ADMIN_EMAILS.push(e)
-    } catch {}
+      console.log('✅ 正式管理員帳號已創建:', seedEmail)
+    } catch (error) {
+      console.warn('創建正式管理員帳號失敗:', error)
+    }
   }
 }
 
