@@ -226,12 +226,7 @@ export class CardService {
       console.warn('[CardService] 後端 API 調用失敗:', error)
     }
     
-    // 2. 嘗試從 localStorage 獲取
-    const localStorageTemplates = this.getSystemTemplatesFromLocalStorage()
-    if (localStorageTemplates.length > 0) {
-      console.log('[CardService] 從 localStorage 獲取到模板，數量:', localStorageTemplates.length)
-      return localStorageTemplates
-    }
+
     
     // 3. 優先使用當前的系統模板狀態，而不是預設模板
     if (this.systemTemplates.length > 0) {
@@ -340,72 +335,7 @@ export class CardService {
     }
   }
 
-  // 從 localStorage 讀取系統模板（向後相容）
-  private getSystemTemplatesFromLocalStorage(): BaseCard[] {
-    try {
-      // 優先檢查新的系統模板存儲鍵
-      let saved = localStorage.getItem('limiautopost:systemTemplates')
-      
-      // 如果沒有找到，檢查舊的存儲鍵（向後相容）
-      if (!saved) {
-        saved = localStorage.getItem('aigenerator_templates')
-      }
-      
-      if (saved) {
-        const templates = JSON.parse(saved)
-        
-        // 檢查數據格式：可能是數組或對象
-        if (Array.isArray(templates)) {
-          // 數組格式（舊版本）
-          return templates.map((template: any) => ({
-            id: template.id,
-            name: template.title || template.templateTitle || '',
-            description: template.features || template.templateFeatures || '',
-            category: template.platform?.toLowerCase() || 'threads',
-            prompt: template.prompt || '',
-            isActive: true,
-            isSystem: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            platform: template.platform?.toLowerCase() || 'threads',
-            templateTitle: template.title || template.templateTitle || '',
-            templateFeatures: template.features || template.templateFeatures || '',
-            isSelected: false
-          }))
-        } else if (typeof templates === 'object' && templates !== null) {
-          // 對象格式（新版本，從後端 API 獲取）
-          console.log('[CardService] 從 localStorage 讀取對象格式模板:', templates)
-          
-          const templateArray = Object.values(templates).map((template: any) => {
-            console.log('[CardService] 處理 localStorage 模板:', template)
-            
-            return {
-              id: template.id || 'unknown',
-              name: template.title || template.templateTitle || '',  // 優先使用 title
-              description: template.features || template.templateFeatures || '',  // 優先使用 features
-              category: template.platform?.toLowerCase() || 'threads',
-              prompt: template.prompt || '',
-              isActive: true,
-              isSystem: true,
-              createdAt: new Date(),
-              updatedAt: new Date(template.updatedAt) || new Date(),
-              platform: template.platform?.toLowerCase() || 'threads',
-              templateTitle: template.title || template.templateTitle || '',  // 優先使用 title
-              templateFeatures: template.features || template.templateFeatures || '',  // 優先使用 features
-              isSelected: false
-            }
-          })
-          
-          console.log('[CardService] localStorage 模板轉換完成，數量:', templateArray.length)
-          return templateArray
-        }
-      }
-    } catch (error) {
-      console.warn('無法從 localStorage 讀取模板:', error)
-    }
-    
-    return []
-  }
+
 
   // 獲取系統模板（BaseCard 格式）
   public getSystemTemplatesAsBaseCards(): BaseCard[] {
@@ -797,61 +727,9 @@ export class CardService {
     }
   }
 
-  // 向後相容：從 localStorage 載入（舊版本）
-  private loadSavedSystemTemplatesFromLocal(): void {
-    try {
-      const storageKey = 'limiautopost:systemTemplates'
-      const savedTemplates = localStorage.getItem(storageKey)
-      
-      if (savedTemplates) {
-        const templates = JSON.parse(savedTemplates)
-        
-        // 將保存的修改應用到系統模板
-        Object.entries(templates).forEach(([cardId, templateData]: [string, any]) => {
-          const systemCard = this.systemTemplates.find(card => card.id === cardId)
-          if (systemCard && templateData) {
-            Object.assign(systemCard, {
-              platform: templateData.platform,
-              templateTitle: templateData.templateTitle,
-              templateFeatures: templateData.templateFeatures,
-              prompt: templateData.prompt,
-              updatedAt: new Date(templateData.updatedAt)
-            })
-          }
-        })
-        
-        console.log('已從 localStorage 載入保存的系統模板修改（向後相容）')
-      }
-    } catch (error) {
-      console.error('從 localStorage 載入系統模板失敗:', error)
-    }
-  }
 
-  // 保存系統模板到 localStorage，確保模板修改能夠持久化
-  private saveSystemTemplatesToLocalStorage(): void {
-    try {
-      const storageKey = 'limiautopost:systemTemplates'
-      const templatesToSave: Record<string, any> = {}
-      
-      // 將系統模板轉換為可保存的格式
-      this.systemTemplates.forEach(card => {
-        templatesToSave[card.id] = {
-          id: card.id,
-          platform: card.platform,
-          templateTitle: card.templateTitle,
-          templateFeatures: card.templateFeatures,
-          prompt: card.prompt,
-          updatedAt: card.updatedAt.toISOString()
-        }
-      })
-      
-      // 保存到 localStorage
-      localStorage.setItem(storageKey, JSON.stringify(templatesToSave))
-      console.log('[CardService] 系統模板已保存到 localStorage，數量:', Object.keys(templatesToSave).length)
-    } catch (error) {
-      console.error('[CardService] 保存系統模板到 localStorage 失敗:', error)
-    }
-  }
+
+
 
   // 強制重新載入系統模板，確保無痕模式也能獲取到模板
   private forceReloadSystemTemplates(): void {
@@ -931,15 +809,14 @@ export class CardService {
     try {
       const currentSaved = JSON.parse(localStorage.getItem('limiautopost:systemTemplates') || '{}')
       if (Object.keys(currentSaved).length === 0) {
-        this.saveSystemTemplatesToLocalStorage()
+
         console.log('[CardService] 系統模板已保存到 localStorage（初始化）')
       } else {
         console.log('[CardService] 系統模板已經在 localStorage 中，無需重複保存')
       }
     } catch (error) {
       console.error('[CardService] 確保系統模板保存失敗:', error)
-      // 如果讀取失敗，強制保存
-      this.saveSystemTemplatesToLocalStorage()
+      
     }
   }
 
@@ -950,7 +827,7 @@ export class CardService {
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
           console.log('[CardService] 頁面重新可見，檢查系統模板狀態')
-          this.checkAndRestoreSystemTemplates()
+  
         }
       })
       
@@ -968,14 +845,9 @@ export class CardService {
       if (!systemTemplates || systemTemplates === '{}') {
         console.warn('[CardService] 檢測到系統模板丟失，正在自動恢復...')
         
-        // 嘗試從備份恢復
-        this.restoreSystemTemplatesFromBackup()
+
         
-        // 如果備份恢復失敗，重新初始化
-        if (!localStorage.getItem('limiautopost:systemTemplates')) {
-          console.warn('[CardService] 備份恢復失敗，重新初始化系統模板...')
-          this.initializeSystemTemplates()
-        }
+
         
         // 通知所有監聽器
         this.notifyChanges()
@@ -1018,11 +890,9 @@ export class CardService {
       // 重新初始化系統模板
       this.systemTemplates = JSON.parse(JSON.stringify(defaultSystemCards))
       
-      // 保存到 localStorage
-      this.saveSystemTemplatesToLocalStorage()
+
       
-      // 創建備份
-      this.createSystemTemplatesBackup()
+
       
       console.log('[CardService] 系統模板重新初始化完成')
     } catch (error) {
