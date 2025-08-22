@@ -568,7 +568,52 @@
         // 頁面載入時設置監聽器
         window.addEventListener('load', () => {
             setupLocalStorageListener();
+            enableSystemTemplateProtection(); // 啟用系統模板保護
         });
+
+        // 系統模板保護機制
+        function enableSystemTemplateProtection() {
+            try {
+                console.log('[Debug] 啟用系統模板保護機制...');
+                
+                // 保存原始方法
+                const originalRemoveItem = localStorage.removeItem;
+                const originalClear = localStorage.clear;
+                const originalSetItem = localStorage.setItem;
+                
+                // 保護 removeItem
+                localStorage.removeItem = function(key) {
+                    if (key === 'limiautopost:systemTemplates' || key === 'aigenerator_templates') {
+                        console.warn('[Debug] 保護：阻止清除系統模板:', key);
+                        return;
+                    }
+                    return originalRemoveItem.call(localStorage, key);
+                };
+                
+                // 保護 clear
+                localStorage.clear = function() {
+                    console.warn('[Debug] 保護：阻止清除所有 localStorage 數據');
+                    return;
+                };
+                
+                // 保護 setItem
+                localStorage.setItem = function(key, value) {
+                    if (key === 'limiautopost:systemTemplates' && (!value || value === '{}' || value === '[]')) {
+                        console.warn('[Debug] 保護：阻止將系統模板設置為空值');
+                        return;
+                    }
+                    return originalSetItem.call(localStorage, key, value);
+                };
+                
+                // 設置保護狀態
+                localStorage.setItem('limiautopost:protectionStatus', 'protected');
+                localStorage.setItem('limiautopost:protectionEnabledAt', new Date().toISOString());
+                
+                console.log('[Debug] 系統模板保護機制已啟用');
+            } catch (error) {
+                console.error('[Debug] 啟用系統模板保護機制失敗:', error);
+            }
+        }
 
         // 專業系統診斷功能
         let professionalMonitoring = null;
