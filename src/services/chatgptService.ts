@@ -14,7 +14,7 @@ export class ChatGPTService {
     }
   }
 
-  // 測試 ChatGPT 連接
+  // 測試 ChatGPT 連接 (GPT-4.1)
   async testConnection(): Promise<{ success: boolean; message: string }> {
     if (!this.isAvailable()) {
       return { success: false, message: 'OpenAI API Key 未設定' }
@@ -22,13 +22,13 @@ export class ChatGPTService {
 
     try {
       const response = await this.client!.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o', // GPT-4.1 (GPT-4 Omni)
         messages: [{ role: 'user', content: 'Hello, please respond with "OK" only.' }],
         max_tokens: 10
       })
 
       if (response.choices[0]?.message?.content === 'OK') {
-        return { success: true, message: 'ChatGPT 連接成功' }
+        return { success: true, message: 'ChatGPT (GPT-4.1) 連接成功' }
       } else {
         return { success: false, message: 'ChatGPT 回應格式異常' }
       }
@@ -36,12 +36,12 @@ export class ChatGPTService {
       console.error('ChatGPT 連接測試失敗:', error)
       return {
         success: false,
-        message: `ChatGPT 連接失敗: ${error.message || '未知錯誤'}`
+        message: `ChatGPT 連接失敗: ${error instanceof Error ? error.message : '未知錯誤'}`
       }
     }
   }
 
-  // 生成內容
+  // 生成內容 (GPT-4.1)
   async generateContent(request: { prompt: string; maxWords?: number }): Promise<{ success: boolean; content?: string; error?: string }> {
     if (!this.isAvailable()) {
       return { success: false, error: 'OpenAI API Key 未設定' }
@@ -49,7 +49,7 @@ export class ChatGPTService {
 
     try {
       const response = await this.client!.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o', // GPT-4.1 (GPT-4 Omni)
         messages: [{ role: 'user', content: request.prompt }],
         max_tokens: request.maxWords ? Math.ceil(request.maxWords * 1.5) : 1000,
         temperature: 0.7
@@ -65,7 +65,7 @@ export class ChatGPTService {
       console.error('ChatGPT 內容生成失敗:', error)
       return {
         success: false,
-        error: `ChatGPT 生成失敗: ${error.message || '未知錯誤'}`
+        error: `ChatGPT 生成失敗: ${error instanceof Error ? error.message : '未知錯誤'}`
       }
     }
   }
@@ -159,7 +159,7 @@ ${articleContent}
 
   // 獲取模型名稱
   getModelName(): string {
-    return 'gpt-4o'
+    return 'GPT-4.1 (GPT-4o)' // GPT-4.1 版本，官方名稱：gpt-4o
   }
 }
 
