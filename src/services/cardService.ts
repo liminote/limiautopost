@@ -1,6 +1,8 @@
 import type { BaseCard, SystemCard, UserCard, CardGenerationRequest, CardGenerationResult, TemplateManagement } from '../types/cards'
+import type { BackendSystemTemplate } from './backendTemplateService'
 import { defaultSystemCards } from '../data/defaultCards'
 import { GitHubSyncService } from './githubSyncService'
+import { BackendTemplateService } from './backendTemplateService'
 
 // 定義 GitHubTemplate 類型
 interface GitHubTemplate {
@@ -21,9 +23,11 @@ export class CardService {
   private userSelections: Map<string, Set<string>> = new Map() // userId -> selected cardIds
   private listeners: Set<() => void> = new Set()
   private githubSyncService: GitHubSyncService
+  private backendTemplateService: BackendTemplateService
 
   private constructor() {
     this.githubSyncService = GitHubSyncService.getInstance()
+    this.backendTemplateService = BackendTemplateService.getInstance()
     
     // 初始化系統模板為預設值的副本
     this.systemTemplates = JSON.parse(JSON.stringify(defaultSystemCards))
@@ -37,19 +41,55 @@ export class CardService {
     // 監聽 AIGenerator 的模板更新事件
     this.setupTemplateUpdateListener()
     
-    // 初始化時載入保存的模板修改
-    this.loadSavedSystemTemplatesFromLocal()
-    
-    // 確保系統模板被保存到 localStorage（如果還沒有保存的話）
-    this.ensureSystemTemplatesSaved()
-    
-    // 創建系統模板備份
-    this.createSystemTemplatesBackup()
+    // 從後端載入系統模板
+    this.loadSystemTemplatesFromBackend()
     
     // 啟用簡單的監控機制
     this.enableSimpleMonitoring()
     
     console.log('[CardService] 初始化完成，系統模板數量:', this.systemTemplates.length)
+  }
+
+  // 從後端載入系統模板
+  private async loadSystemTemplatesFromBackend(): Promise<void> {
+    try {
+      console.log('[CardService] 從後端載入系統模板...')
+      
+      // 檢查後端服務是否可用
+      const isBackendAvailable = await this.backendTemplateService.checkHealth()
+      
+      if (isBackendAvailable) {
+        // 從後端獲取最新模板
+        const backendTemplates = await this.backendTemplateService.getSystemTemplates()
+        
+        // 將後端模板轉換為系統模板格式
+        this.systemTemplates = backendTemplates.map(template => ({
+          id: template.id,
+          name: template.title, // 使用 title 作為 name
+          description: template.features, // 使用 features 作為 description
+          category: template.platform, // 使用 platform 作為 category
+          platform: template.platform,
+          templateTitle: template.title,
+          templateFeatures: template.features,
+          prompt: template.prompt,
+          isActive: true,
+          isSystem: true as const,
+          isSelected: true,
+          createdAt: new Date(),
+          updatedAt: new Date(template.updatedAt)
+        }))
+        
+        console.log(`[CardService] 從後端成功載入 ${this.systemTemplates.length} 個系統模板`)
+      } else {
+        console.warn('[CardService] 後端服務不可用，使用預設模板')
+        // 如果後端不可用，使用預設模板
+        this.systemTemplates = JSON.parse(JSON.stringify(defaultSystemCards))
+      }
+    } catch (error) {
+      console.error('[CardService] 從後端載入系統模板失敗:', error)
+      // 如果載入失敗，使用預設模板
+      this.systemTemplates = JSON.parse(JSON.stringify(defaultSystemCards))
+    }
   }
 
   // 監聽 AIGenerator 的模板更新事件
@@ -59,7 +99,7 @@ export class CardService {
       
       // 重新載入最新的系統模板
       try {
-        await this.loadSavedSystemTemplates()
+        await this.loadSystemTemplatesFromBackend()
         console.log('[CardService] 系統模板重新載入完成')
       } catch (error) {
         console.warn('[CardService] 重新載入系統模板失敗:', error)
@@ -671,36 +711,36 @@ export class CardService {
       return false
     }
 
-    // 更新模板內容
-    Object.assign(systemCard, {
-      platform,
-      templateTitle,
-      templateFeatures,
-      prompt,
-      updatedAt: new Date()
-    })
-
-    // 保存到 localStorage 使用新的鍵名
     try {
-      const currentSaved = JSON.parse(localStorage.getItem('limiautopost:systemTemplates') || '{}')
-      currentSaved[cardId] = {
-        id: cardId,
+      // 準備後端更新數據
+      const backendUpdates = {
+        title: templateTitle,
+        features: templateFeatures,
+        prompt: prompt,
+        platform: platform
+      }
+      
+      // 更新到後端
+      await this.backendTemplateService.updateSystemTemplate(cardId, backendUpdates)
+      
+      // 更新本地狀態
+      Object.assign(systemCard, {
         platform,
         templateTitle,
         templateFeatures,
         prompt,
-        updatedAt: systemCard.updatedAt.toISOString()
-      }
-      localStorage.setItem('limiautopost:systemTemplates', JSON.stringify(currentSaved))
-      console.log(`系統模板更新成功並保存到 localStorage：${cardId}`)
+        updatedAt: new Date()
+      })
+
+      // 通知所有監聽器資料已變更
+      this.notifyChanges()
+      
+      console.log(`[CardService] 系統模板更新成功：${cardId}`)
+      return true
     } catch (error) {
-      console.error('保存到 localStorage 失敗:', error)
+      console.error('[CardService] 更新系統模板到後端失敗:', error)
+      return false
     }
-
-    // 通知所有監聽器資料已變更
-    this.notifyChanges()
-
-    return true
   }
 
   // 載入保存的系統模板修改（從 GitHub）
