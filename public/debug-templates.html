@@ -88,6 +88,15 @@
         </div>
 
         <div class="section">
+            <h2>🔬 專業系統診斷</h2>
+            <button onclick="startProfessionalMonitoring()" class="success">開始專業監控</button>
+            <button onclick="analyzeSystemState()" class="warning">分析系統狀態</button>
+            <button onclick="traceTemplateLifecycle()" class="info">追蹤模板生命週期</button>
+            <button onclick="detectHiddenIssues()" class="danger">檢測隱藏問題</button>
+            <button onclick="generateSystemReport()" class="success">生成系統報告</button>
+        </div>
+
+        <div class="section">
             <h2>📋 診斷結果</h2>
             <div id="results"></div>
                </div>
@@ -559,6 +568,291 @@
         window.addEventListener('load', () => {
             setupLocalStorageListener();
         });
+
+        // 專業系統診斷功能
+        let professionalMonitoring = null;
+        let systemStateHistory = [];
+        let templateLifecycleEvents = [];
+
+        function startProfessionalMonitoring() {
+            if (professionalMonitoring) {
+                log('專業監控已經在運行中', 'warning');
+                return;
+            }
+            
+            log('🚀 開始專業系統監控...', 'success');
+            
+            // 記錄初始系統狀態
+            const initialState = captureSystemState();
+            systemStateHistory.push({
+                timestamp: new Date(),
+                state: initialState,
+                event: '監控開始'
+            });
+            
+            // 每1秒進行一次深度檢查
+            professionalMonitoring = setInterval(() => {
+                const currentState = captureSystemState();
+                const previousState = systemStateHistory[systemStateHistory.length - 1];
+                
+                // 檢測變化
+                if (JSON.stringify(currentState) !== JSON.stringify(previousState.state)) {
+                    const changes = detectStateChanges(previousState.state, currentState);
+                    if (changes.length > 0) {
+                        log(`🔍 檢測到系統狀態變化: ${changes.join(', ')}`, 'warning');
+                        
+                        // 記錄變化
+                        systemStateHistory.push({
+                            timestamp: new Date(),
+                            state: currentState,
+                            event: '狀態變化',
+                            changes: changes
+                        });
+                        
+                        // 如果系統模板丟失，立即記錄
+                        if (!currentState.systemTemplates || currentState.systemTemplates === '{}') {
+                            log('🚨 系統模板丟失！記錄詳細信息...', 'error');
+                            recordTemplateLoss();
+                        }
+                    }
+                }
+                
+                // 限制歷史記錄數量
+                if (systemStateHistory.length > 100) {
+                    systemStateHistory = systemStateHistory.slice(-50);
+                }
+                
+            }, 1000);
+            
+            log('✅ 專業監控已啟動，每1秒檢查一次', 'success');
+        }
+
+        function captureSystemState() {
+            try {
+                return {
+                    timestamp: new Date().toISOString(),
+                    systemTemplates: localStorage.getItem('limiautopost:systemTemplates'),
+                    systemTemplatesBackup: localStorage.getItem('limiautopost:systemTemplates_backup'),
+                    oldTemplates: localStorage.getItem('aigenerator_templates'),
+                    userSelections: localStorage.getItem('limiautopost:userSelections'),
+                    users: localStorage.getItem('limiautopost:users'),
+                    session: localStorage.getItem('limiautopost:session'),
+                    userCards: localStorage.getItem('limiautopost:userCards'),
+                    allKeys: Object.keys(localStorage),
+                    documentHidden: document.hidden,
+                    documentVisibilityState: document.visibilityState,
+                    windowFocus: document.hasFocus(),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent,
+                    memoryInfo: performance.memory ? {
+                        usedJSHeapSize: performance.memory.usedJSHeapSize,
+                        totalJSHeapSize: performance.memory.totalJSHeapSize,
+                        jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+                    } : null
+                };
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        function detectStateChanges(previousState, currentState) {
+            const changes = [];
+            
+            if (previousState.systemTemplates !== currentState.systemTemplates) {
+                changes.push('系統模板變化');
+            }
+            
+            if (previousState.documentHidden !== currentState.documentHidden) {
+                changes.push('頁面可見性變化');
+            }
+            
+            if (previousState.windowFocus !== currentState.windowFocus) {
+                changes.push('窗口焦點變化');
+            }
+            
+            if (previousState.url !== currentState.url) {
+                changes.push('URL變化');
+            }
+            
+            return changes;
+        }
+
+        function recordTemplateLoss() {
+            const lossInfo = {
+                timestamp: new Date().toISOString(),
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                systemState: captureSystemState(),
+                stackTrace: new Error().stack,
+                consoleLogs: [], // 可以擴展來捕獲控制台日誌
+                localStorageSnapshot: {}
+            };
+            
+            // 捕獲所有 localStorage 內容
+            try {
+                for (let key of Object.keys(localStorage)) {
+                    lossInfo.localStorageSnapshot[key] = localStorage.getItem(key);
+                }
+            } catch (error) {
+                lossInfo.localStorageError = error.message;
+            }
+            
+            templateLifecycleEvents.push(lossInfo);
+            log('📝 模板丟失事件已記錄', 'info');
+        }
+
+        function analyzeSystemState() {
+            log('🔬 開始分析系統狀態...', 'info');
+            
+            const currentState = captureSystemState();
+            
+            // 分析系統模板狀態
+            if (!currentState.systemTemplates || currentState.systemTemplates === '{}') {
+                log('❌ 系統模板狀態異常：不存在或為空', 'error');
+            } else {
+                try {
+                    const templates = JSON.parse(currentState.systemTemplates);
+                    log(`✅ 系統模板狀態正常：包含 ${Object.keys(templates).length} 個模板`, 'success');
+                } catch (error) {
+                    log(`❌ 系統模板數據損壞：${error.message}`, 'error');
+                }
+            }
+            
+            // 分析備份狀態
+            if (!currentState.systemTemplatesBackup) {
+                log('⚠️ 系統模板備份不存在', 'warning');
+            } else {
+                log('✅ 系統模板備份存在', 'success');
+            }
+            
+            // 分析 localStorage 狀態
+            log(`📊 localStorage 總共包含 ${currentState.allKeys.length} 個鍵`, 'info');
+            const limiautopostKeys = currentState.allKeys.filter(key => key.startsWith('limiautopost:'));
+            log(`📊 其中 ${limiautopostKeys.length} 個是 limiautopost 相關`, 'info');
+            
+            // 分析頁面狀態
+            log(`📱 頁面狀態：隱藏=${currentState.documentHidden}, 焦點=${currentState.windowFocus}`, 'info');
+            
+            // 分析瀏覽器信息
+            log(`🌐 瀏覽器：${currentState.userAgent}`, 'info');
+        }
+
+        function traceTemplateLifecycle() {
+            log('🔍 開始追蹤模板生命週期...', 'info');
+            
+            if (templateLifecycleEvents.length === 0) {
+                log('📝 沒有記錄到模板生命週期事件', 'info');
+                return;
+            }
+            
+            log(`📊 總共記錄了 ${templateLifecycleEvents.length} 個事件`, 'info');
+            
+            templateLifecycleEvents.forEach((event, index) => {
+                log(`事件 ${index + 1}: ${event.timestamp} - ${event.url}`, 'info');
+                if (event.changes) {
+                    log(`  變化: ${event.changes.join(', ')}`, 'warning');
+                }
+            });
+        }
+
+        function detectHiddenIssues() {
+            log('🔍 開始檢測隱藏問題...', 'info');
+            
+            const issues = [];
+            
+            // 檢查是否有其他組件在清除數據
+            const allKeys = Object.keys(localStorage);
+            const suspiciousKeys = allKeys.filter(key => 
+                key.includes('clear') || 
+                key.includes('reset') || 
+                key.includes('delete') ||
+                key.includes('remove')
+            );
+            
+            if (suspiciousKeys.length > 0) {
+                issues.push(`發現可疑的 localStorage 鍵: ${suspiciousKeys.join(', ')}`);
+            }
+            
+            // 檢查是否有過期的數據
+            const oldTemplates = localStorage.getItem('aigenerator_templates');
+            if (oldTemplates) {
+                issues.push('發現舊的存儲鍵 aigenerator_templates，可能導致數據不一致');
+            }
+            
+            // 檢查瀏覽器兼容性
+            if (!window.localStorage) {
+                issues.push('瀏覽器不支援 localStorage');
+            }
+            
+            if (!window.JSON) {
+                issues.push('瀏覽器不支援 JSON');
+            }
+            
+            // 檢查內存使用
+            if (performance.memory) {
+                const memoryUsage = performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit;
+                if (memoryUsage > 0.8) {
+                    issues.push(`內存使用率過高: ${(memoryUsage * 100).toFixed(1)}%`);
+                }
+            }
+            
+            // 輸出檢測結果
+            if (issues.length === 0) {
+                log('✅ 未發現隱藏問題', 'success');
+            } else {
+                log(`❌ 發現 ${issues.length} 個隱藏問題:`, 'error');
+                issues.forEach((issue, index) => {
+                    log(`${index + 1}. ${issue}`, 'error');
+                });
+            }
+            
+            return issues;
+        }
+
+        function generateSystemReport() {
+            log('📋 開始生成系統報告...', 'info');
+            
+            const report = {
+                timestamp: new Date().toISOString(),
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                currentState: captureSystemState(),
+                systemHistory: systemStateHistory.slice(-10), // 最近10個狀態
+                templateEvents: templateLifecycleEvents,
+                issues: detectHiddenIssues(),
+                localStorageKeys: Object.keys(localStorage),
+                localStorageSize: 0
+            };
+            
+            // 計算 localStorage 大小
+            try {
+                for (let key of Object.keys(localStorage)) {
+                    const value = localStorage.getItem(key);
+                    if (value) report.localStorageSize += value.length;
+                }
+            } catch (error) {
+                report.localStorageSizeError = error.message;
+            }
+            
+            // 輸出報告摘要
+            log('📊 系統報告摘要:', 'info');
+            log(`- 當前時間: ${report.timestamp}`, 'info');
+            log(`- 頁面URL: ${report.url}`, 'info');
+            log(`- localStorage 鍵數量: ${report.localStorageKeys.length}`, 'info');
+            log(`- localStorage 總大小: ${report.localStorageSize} 字符`, 'info');
+            log(`- 系統狀態歷史: ${report.systemHistory.length} 條記錄`, 'info');
+            log(`- 模板事件: ${report.templateEvents.length} 條記錄`, 'info');
+            log(`- 發現問題: ${report.issues.length} 個`, 'info');
+            
+            // 將完整報告保存到 localStorage 供下載
+            try {
+                localStorage.setItem('limiautopost:systemReport', JSON.stringify(report));
+                log('✅ 系統報告已保存，可在控制台查看', 'success');
+                console.log('完整系統報告:', report);
+            } catch (error) {
+                log(`❌ 保存系統報告失敗: ${error.message}`, 'error');
+            }
+        }
     </script>
 </body>
 </html>
