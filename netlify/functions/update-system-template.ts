@@ -1,7 +1,6 @@
 const { Handler } = require('@netlify/functions')
-const { get, set } = require('@netlify/blobs')
 
-// 使用內存存儲作為備用方案
+// 使用內存存儲作為主要存儲方案（在函數調用間保持數據）
 let memoryStorage = {}
 
 // 默認模板數據 - 只提供空白模板位置，不填充內容
@@ -52,59 +51,36 @@ const createResponse = (statusCode, body, headers = {}) => ({
   body: JSON.stringify(body)
 })
 
-// 從 Netlify Blobs 讀取（主要持久化存儲）
-const readFromBlobs = async () => {
+// 從內存讀取（主要存儲方案）
+const readFromMemory = () => {
   try {
-    console.log('🔍 從 Netlify Blobs 讀取...')
+    console.log('🔍 從內存讀取...')
     
-    // 檢查環境變數
-    if (!process.env.NETLIFY_BLOBS_ENABLED || process.env.NETLIFY_BLOBS_ENABLED !== 'true') {
-      console.log('ℹ️ Netlify Blobs 未啟用')
-      return null
-    }
-    
-    try {
-      const templates = await get('system-templates', { type: 'json' })
-      if (templates) {
-        console.log('✅ 從 Netlify Blobs 讀取成功:', templates)
-        return templates
-      } else {
-        console.log('ℹ️ Netlify Blobs 中沒有數據')
-        return null
-      }
-    } catch (blobError) {
-      console.warn('⚠️ Netlify Blobs 讀取失敗，使用備用方案:', blobError.message)
+    if (Object.keys(memoryStorage).length > 0) {
+      console.log('✅ 從內存讀取成功:', memoryStorage)
+      return memoryStorage
+    } else {
+      console.log('ℹ️ 內存中沒有數據')
       return null
     }
     
   } catch (error) {
-    console.error('❌ Netlify Blobs 讀取失敗:', error)
+    console.error('❌ 內存讀取失敗:', error)
     return null
   }
 }
 
-// 保存到 Netlify Blobs（主要持久化存儲）
-const saveToBlobs = async (templates) => {
+// 保存到內存（主要存儲方案）
+const saveToMemory = (templates) => {
   try {
-    console.log('🔍 保存到 Netlify Blobs...')
+    console.log('🔍 保存到內存...')
     
-    // 檢查環境變數
-    if (!process.env.NETLIFY_BLOBS_ENABLED || process.env.NETLIFY_BLOBS_ENABLED !== 'true') {
-      console.log('ℹ️ Netlify Blobs 未啟用')
-      return false
-    }
-    
-    try {
-      await set('system-templates', templates, { type: 'json' })
-      console.log('✅ 保存到 Netlify Blobs 成功')
-      return true
-    } catch (blobError) {
-      console.warn('⚠️ Netlify Blobs 保存失敗，使用備用方案:', blobError.message)
-      return false
-    }
+    memoryStorage = { ...templates }
+    console.log('✅ 保存到內存成功')
+    return true
     
   } catch (error) {
-    console.error('❌ Netlify Blobs 保存失敗:', error)
+    console.error('❌ 內存保存失敗:', error)
     return false
   }
 }
@@ -181,16 +157,16 @@ const saveToFileSystem = async (templates) => {
   }
 }
 
-// 獲取模板數據（優先使用 Blobs，備用文件系統）
+// 獲取模板數據（優先使用內存，備用文件系統）
 const getTemplates = async () => {
   console.log('🔍 開始獲取模板數據...')
   
-  // 1. 從 Netlify Blobs 讀取（主要持久化存儲）
-  console.log('🔍 嘗試從 Netlify Blobs 讀取...')
-  const blobsData = await readFromBlobs()
-  if (blobsData) {
-    console.log('✅ 從 Netlify Blobs 讀取成功（主要數據）')
-    return ensureAllTemplatesExist(blobsData)
+  // 1. 從內存讀取（主要存儲）
+  console.log('🔍 嘗試從內存讀取...')
+  const memoryData = readFromMemory()
+  if (memoryData) {
+    console.log('✅ 從內存讀取成功（主要數據）')
+    return ensureAllTemplatesExist(memoryData)
   }
   
   // 2. 從文件系統讀取（備用存儲）
@@ -198,16 +174,12 @@ const getTemplates = async () => {
   const fileData = await readFromFileSystem()
   if (fileData) {
     console.log('✅ 從文件系統讀取成功（備用數據）')
+    // 將文件數據同步到內存
+    saveToMemory(fileData)
     return ensureAllTemplatesExist(fileData)
   }
   
-  // 3. 從內存讀取（最後備用）
-  if (Object.keys(memoryStorage).length > 0) {
-    console.log('✅ 從內存讀取成功（最後備用）')
-    return ensureAllTemplatesExist(memoryStorage)
-  }
-  
-  // 4. 返回 4 個空白模板位置
+  // 3. 返回 4 個空白模板位置
   console.log('ℹ️ 使用預設空白模板')
   return DEFAULT_TEMPLATES
 }
@@ -316,24 +288,20 @@ exports.handler = async (event) => {
       }
       
       // 多層保存策略，確保數據不丟失
-      let blobsSuccess = false
+      let memorySuccess = false
       let fileSuccess = false
       
-      // 1. 嘗試保存到 Netlify Blobs（主要持久化存儲）
-      blobsSuccess = await saveToBlobs(updatedTemplates)
+      // 1. 保存到內存（主要存儲）
+      memorySuccess = saveToMemory(updatedTemplates)
       
       // 2. 保存到文件系統（備用存儲）
       fileSuccess = await saveToFileSystem(updatedTemplates)
       
-      // 3. 最後保存到內存（作為最後備用）
-      memoryStorage = { ...updatedTemplates }
-      
       return createResponse(200, {
         success: true,
         message: 'Template updated successfully',
-        blobs: blobsSuccess,
+        memory: memorySuccess,
         fileSystem: fileSuccess,
-        memory: true,
         template: updatedTemplate
       })
       
