@@ -246,8 +246,8 @@ export class CardService {
 
   // 同步版本（向後相容）
   public getAllCards(userId: string): BaseCard[] {
-    // 從 localStorage 讀取系統模板（向後相容）
-    const systemCards = this.getSystemTemplatesFromLocalStorage()
+    // 直接使用內存中的系統模板
+    const systemCards = this.getSystemTemplatesAsBaseCards()
     const userCards = this.getUserCards(userId)
     
     // 合併並標記選擇狀態
@@ -409,7 +409,22 @@ export class CardService {
 
   // 獲取系統模板（BaseCard 格式）
   public getSystemTemplatesAsBaseCards(): BaseCard[] {
-    return this.getSystemTemplatesFromLocalStorage()
+    // 直接返回內存中的系統模板，轉換為 BaseCard 格式
+    return this.systemTemplates.map(template => ({
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      prompt: template.prompt,
+      isActive: template.isActive,
+      isSystem: template.isSystem,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+      platform: template.platform,
+      templateTitle: template.templateTitle,
+      templateFeatures: template.templateFeatures,
+      isSelected: template.isSelected
+    }))
   }
 
   // 獲取使用者卡片
@@ -743,45 +758,42 @@ export class CardService {
     }
   }
 
-  // 載入保存的系統模板修改（從 GitHub）
+  // 載入保存的系統模板修改（使用新的後端服務）
   public async loadSavedSystemTemplates(): Promise<void> {
     try {
-      // 首先檢查本地是否有用戶編輯的模板
-      const localTemplates = localStorage.getItem('limiautopost:systemTemplates')
-      const hasLocalEdits = localTemplates && localTemplates !== '{}' && localTemplates !== '[]'
+      console.log('[CardService] 從後端服務載入系統模板...')
       
-      if (hasLocalEdits) {
-        console.log('[CardService] 檢測到本地有用戶編輯，優先使用本地版本')
-        this.loadSavedSystemTemplatesFromLocal()
-        return
-      }
+      // 使用後端服務獲取最新模板
+      const backendTemplates = await this.backendTemplateService.getSystemTemplates()
       
-      // 只有在沒有本地編輯時才從 GitHub 載入
-      const savedTemplates = await this.githubSyncService.getSystemTemplatesFromGitHub()
-      
-      if (Object.keys(savedTemplates).length > 0) {
-        // 將保存的修改應用到系統模板
-        Object.entries(savedTemplates).forEach(([cardId, templateData]: [string, GitHubTemplate]) => {
-          const systemCard = this.systemTemplates.find(card => card.id === cardId)
-          if (systemCard && templateData) {
-            Object.assign(systemCard, {
-              platform: templateData.platform,
-              templateTitle: templateData.title,
-              templateFeatures: templateData.features,
-              prompt: templateData.prompt,
-              updatedAt: new Date(templateData.updatedAt)
-            })
-          }
-        })
+      if (backendTemplates.length > 0) {
+        console.log('[CardService] 從後端服務獲取到模板，數量:', backendTemplates.length)
         
-        console.log('[CardService] 已從 GitHub 載入系統模板（無本地編輯時）')
+        // 將後端模板轉換為系統模板格式並更新內存
+        this.systemTemplates = backendTemplates.map(template => ({
+          id: template.id,
+          name: template.title,
+          description: template.features,
+          category: template.platform,
+          platform: template.platform,
+          templateTitle: template.title,
+          templateFeatures: template.features,
+          prompt: template.prompt,
+          isActive: true,
+          isSystem: true as const,
+          isSelected: true,
+          createdAt: new Date(),
+          updatedAt: new Date(template.updatedAt)
+        }))
+        
+        console.log('[CardService] 已從後端服務載入系統模板')
       } else {
-        console.warn('[CardService] 無法從 GitHub 載入模板，使用預設版本')
+        console.warn('[CardService] 後端服務沒有返回模板，使用預設版本')
       }
     } catch (error) {
-      console.error('[CardService] 從 GitHub 載入系統模板失敗:', error)
-      // 如果 GitHub 載入失敗，嘗試從 localStorage 載入（向後相容）
-      this.loadSavedSystemTemplatesFromLocal()
+      console.error('[CardService] 從後端服務載入系統模板失敗:', error)
+      // 如果後端服務失敗，保持當前的系統模板狀態
+      console.log('[CardService] 保持當前系統模板狀態，數量:', this.systemTemplates.length)
     }
   }
 
