@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>後端 API 測試</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 後端 API 測試</h1>
+        
+        <div class="section">
+            <h2>📡 測試 API 端點</h2>
+            <button onclick="testGetTemplates()">測試獲取系統模板</button>
+            <button onclick="testUpdateTemplate()">測試更新模板</button>
+            <button onclick="testSyncTemplates()">測試同步模板</button>
+            <div id="apiResults" class="result"></div>
+        </div>
+        
+        <div class="section">
+            <h2>📊 API 狀態</h2>
+            <div id="apiStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/.netlify/functions'
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('apiResults')
+            const timestamp = new Date().toLocaleTimeString()
+            results.textContent += `[${timestamp}] ${message}\n`
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('apiStatus')
+            status.innerHTML = `<span class="${type}">${message}</span>`
+        }
+        
+        // 測試獲取系統模板
+        async function testGetTemplates() {
+            try {
+                log('開始測試獲取系統模板...')
+                updateStatus('正在測試...', 'info')
+                
+                const response = await fetch(`${API_BASE}/get-system-templates`)
+                const data = await response.json()
+                
+                if (response.ok) {
+                    log(`✅ 成功獲取 ${Object.keys(data).length} 個模板`)
+                    log(`模板數據: ${JSON.stringify(data, null, 2)}`)
+                    updateStatus(`✅ API 正常，獲取到 ${Object.keys(data).length} 個模板`, 'success')
+                } else {
+                    log(`❌ API 錯誤: ${response.status} - ${data.error}`)
+                    updateStatus(`❌ API 錯誤: ${response.status}`, 'error')
+                }
+            } catch (error) {
+                log(`❌ 請求失敗: ${error.message}`)
+                updateStatus(`❌ 請求失敗: ${error.message}`, 'error')
+            }
+        }
+        
+        // 測試更新模板
+        async function testUpdateTemplate() {
+            try {
+                log('開始測試更新模板...')
+                updateStatus('正在測試更新...', 'info')
+                
+                const updateData = {
+                    id: 'template-1',
+                    updates: {
+                        title: '測試更新 - ' + new Date().toLocaleTimeString(),
+                        features: '測試功能',
+                        prompt: '測試提示詞',
+                        platform: 'threads'
+                    }
+                }
+                
+                const response = await fetch(`${API_BASE}/update-system-template`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                })
+                
+                const data = await response.json()
+                
+                if (response.ok) {
+                    log(`✅ 模板更新成功: ${data.message}`)
+                    log(`更新後的模板: ${JSON.stringify(data.template, null, 2)}`)
+                    updateStatus('✅ 模板更新成功', 'success')
+                } else {
+                    log(`❌ 更新失敗: ${response.status} - ${data.error}`)
+                    updateStatus(`❌ 更新失敗: ${response.status}`, 'error')
+                }
+            } catch (error) {
+                log(`❌ 更新請求失敗: ${error.message}`)
+                updateStatus(`❌ 更新請求失敗: ${error.message}`, 'error')
+            }
+        }
+        
+        // 測試同步模板
+        async function testSyncTemplates() {
+            try {
+                log('開始測試同步模板...')
+                updateStatus('正在測試同步...', 'info')
+                
+                const response = await fetch(`${API_BASE}/sync-system-templates`)
+                const data = await response.json()
+                
+                if (response.ok) {
+                    log(`✅ 同步成功: ${data.message}`)
+                    log(`同步結果: ${JSON.stringify(data, null, 2)}`)
+                    updateStatus('✅ 同步成功', 'success')
+                } else {
+                    log(`❌ 同步失敗: ${response.status} - ${data.error}`)
+                    updateStatus(`❌ 同步失敗: ${response.status}`, 'error')
+                }
+            } catch (error) {
+                log(`❌ 同步請求失敗: ${error.message}`)
+                updateStatus(`❌ 同步請求失敗: ${error.message}`, 'error')
+            }
+        }
+        
+        // 頁面載入時自動測試獲取模板
+        window.addEventListener('load', () => {
+            log('頁面載入完成，開始測試...')
+            testGetTemplates()
+        })
+    </script>
+</body>
+</html>

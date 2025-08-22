@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import AdminSubnav from '../../components/AdminSubnav'
+import type { BackendSystemTemplate } from '../../services/backendTemplateService'
+import { BackendTemplateService } from '../../services/backendTemplateService'
 
 // 簡化的模板資料結構
 type Template = {
@@ -55,6 +57,7 @@ export default function AIGenerator() {
   const [templates, setTemplates] = useState<Template[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [backendService] = useState(() => BackendTemplateService.getInstance())
 
   // 載入已保存的模板
   const loadSavedTemplates = useCallback(async () => {
