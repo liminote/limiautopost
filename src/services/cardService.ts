@@ -29,6 +29,9 @@ export class CardService {
     this.githubSyncService = GitHubSyncService.getInstance()
     this.backendTemplateService = BackendTemplateService.getInstance()
     
+    // 清理舊的存儲鍵，避免數據不一致
+    this.cleanupOldStorageKeys()
+    
     // 初始化系統模板為預設值的副本
     this.systemTemplates = JSON.parse(JSON.stringify(defaultSystemCards))
     
@@ -48,6 +51,30 @@ export class CardService {
     this.enableSimpleMonitoring()
     
     console.log('[CardService] 初始化完成，系統模板數量:', this.systemTemplates.length)
+  }
+
+  // 清理舊的存儲鍵，避免數據不一致
+  private cleanupOldStorageKeys(): void {
+    try {
+      // 清理舊的 aigenerator_templates 存儲鍵
+      if (localStorage.getItem('aigenerator_templates')) {
+        console.log('[CardService] 清理舊的存儲鍵: aigenerator_templates')
+        localStorage.removeItem('aigenerator_templates')
+      }
+      
+      // 清理其他可能導致衝突的舊存儲鍵
+      const oldKeys = ['removeItem', 'clear']
+      oldKeys.forEach(key => {
+        if (localStorage.getItem(key)) {
+          console.log(`[CardService] 清理可疑的存儲鍵: ${key}`)
+          localStorage.removeItem(key)
+        }
+      })
+      
+      console.log('[CardService] 舊存儲鍵清理完成')
+    } catch (error) {
+      console.warn('[CardService] 清理舊存儲鍵失敗:', error)
+    }
   }
 
   // 從後端載入系統模板
@@ -865,15 +892,8 @@ export class CardService {
         return
       }
       
-      // 如果沒有備份，嘗試從舊的存儲鍵恢復
-      const oldTemplates = localStorage.getItem('aigenerator_templates')
-      if (oldTemplates) {
-        localStorage.setItem('limiautopost:systemTemplates', oldTemplates)
-        console.log('[CardService] 從舊存儲鍵恢復系統模板成功')
-        return
-      }
-      
-      console.warn('[CardService] 沒有找到可用的備份')
+      // 不再從舊的存儲鍵恢復，避免數據不一致
+      console.warn('[CardService] 沒有找到可用的備份，使用預設模板')
     } catch (error) {
       console.error('[CardService] 從備份恢復系統模板失敗:', error)
     }
