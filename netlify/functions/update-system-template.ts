@@ -162,11 +162,11 @@ exports.handler = async (event) => {
         return createResponse(400, { error: 'Missing cardId' })
       }
       
-      // 構建更新的模板
+      // 構建更新的模板 - 統一使用 title/features/prompt 格式
       const updatedTemplate = {
         id: cardId,
-        title: templateTitle || '',
-        features: templateFeatures || '',
+        title: templateTitle || '',  // 統一使用 title
+        features: templateFeatures || '',  // 統一使用 features
         prompt: prompt || '',
         platform: platform || 'threads',
         updatedAt: new Date().toISOString()

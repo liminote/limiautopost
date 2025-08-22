@@ -160,9 +160,8 @@ export default function AIGenerator() {
   const cancelEdit = () => {
     console.log('❌ 取消編輯')
     setEditingId(null)
-    // 重新載入保存的模板
-    loadSavedTemplates()
-    console.log('🔄 已重新載入保存的模板')
+    // 不重新載入，避免覆蓋正在編輯的數據
+    console.log('🔄 取消編輯，保持當前狀態')
   }
 
   // 保存編輯

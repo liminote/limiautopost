@@ -285,7 +285,7 @@ export class CardService {
     }
   }
 
-  // 同步版本：從 localStorage 讀取（向後相容）
+  // 從 localStorage 讀取系統模板（向後相容）
   private getSystemTemplatesFromLocalStorage(): BaseCard[] {
     try {
       const saved = localStorage.getItem('aigenerator_templates')
@@ -297,17 +297,17 @@ export class CardService {
           // 數組格式（舊版本）
           return templates.map((template: any) => ({
             id: template.id,
-            name: template.title,
-            description: template.features,
-            category: template.platform.toLowerCase(),
-            prompt: template.prompt,
+            name: template.title || template.templateTitle || '',
+            description: template.features || template.templateFeatures || '',
+            category: template.platform?.toLowerCase() || 'threads',
+            prompt: template.prompt || '',
             isActive: true,
             isSystem: true,
             createdAt: new Date(),
             updatedAt: new Date(),
-            platform: template.platform.toLowerCase(),
-            templateTitle: template.title,
-            templateFeatures: template.features,
+            platform: template.platform?.toLowerCase() || 'threads',
+            templateTitle: template.title || template.templateTitle || '',
+            templateFeatures: template.features || template.templateFeatures || '',
             isSelected: false
           }))
         } else if (typeof templates === 'object' && templates !== null) {
@@ -342,7 +342,7 @@ export class CardService {
       console.warn('無法從 localStorage 讀取模板:', error)
     }
     
-    return defaultSystemCards
+    return []
   }
 
   // 獲取系統模板（BaseCard 格式）
