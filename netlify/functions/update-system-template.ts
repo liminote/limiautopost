@@ -76,74 +76,6 @@ const isOldTestData = (templates) => {
   return false
 }
 
-// 從 Blobs 讀取模板
-const readFromBlobs = async () => {
-  try {
-    const { getStore } = require('@netlify/blobs')
-    const store = getStore('system-templates')
-    const existing = await store.get('templates', { type: 'json' })
-    
-    console.log('🔍 Blobs 讀取結果:', existing)
-    console.log('🔍 existing 類型:', typeof existing)
-    console.log('🔍 existing 是否為 null:', existing === null)
-    console.log('🔍 existing 是否為 undefined:', existing === undefined)
-    
-    if (existing !== null && existing !== undefined) {
-      // 檢查是否為舊的測試數據
-      if (isOldTestData(existing)) {
-        console.log('🧹 清理舊的測試數據')
-        // 清理舊數據，不覆蓋內存
-        await store.delete('templates')
-        return null
-      }
-      
-      console.log('✅ Blobs 讀取成功，數據:', existing)
-      // 只在內存為空時才覆蓋
-      if (Object.keys(memoryStorage).length === 0) {
-        memoryStorage = { ...existing }
-      } else {
-        console.log('ℹ️ 內存已有數據，不覆蓋 Blobs 數據')
-      }
-      return existing
-    } else {
-      console.log('ℹ️ Blobs 中沒有數據')
-      return null
-    }
-  } catch (error) {
-    console.warn('⚠️ Blobs 讀取失敗:', error.message)
-    return null
-  }
-}
-
-// 保存到 Blobs
-const saveToBlobs = async (templates) => {
-  try {
-    console.log('🔍 開始保存到 Blobs...')
-    console.log('🔍 檢查 @netlify/blobs 模組...')
-    
-    const { getStore } = require('@netlify/blobs')
-    console.log('✅ @netlify/blobs 模組載入成功')
-    
-    const store = getStore('system-templates')
-    console.log('✅ Blobs store 創建成功')
-    
-    console.log('🔍 準備保存數據:', templates)
-    await store.set('templates', templates)
-    console.log('✅ Blobs 保存成功')
-    
-    // 不再覆蓋內存，因為內存會丟失
-    return true
-  } catch (error) {
-    console.error('❌ Blobs 保存失敗:', error)
-    console.error('❌ 錯誤詳情:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    })
-    return false
-  }
-}
-
 // 從文件系統讀取（主要存儲方案）
 const readFromFileSystem = async () => {
   try {
@@ -223,11 +155,11 @@ const saveToFileSystem = async (templates) => {
   }
 }
 
-// 獲取模板數據（優先級：文件系統 > Blobs > 內存，補充缺失的模板位置）
+// 獲取模板數據（只使用文件系統，補充缺失的模板位置）
 const getTemplates = async () => {
   console.log('🔍 開始獲取模板數據...')
   
-  // 1. 優先從文件系統讀取（主要存儲）
+  // 1. 從文件系統讀取（主要存儲）
   console.log('🔍 嘗試從文件系統讀取...')
   const fileData = await readFromFileSystem()
   if (fileData) {
@@ -235,21 +167,7 @@ const getTemplates = async () => {
     return ensureAllTemplatesExist(fileData)
   }
   
-  // 2. 嘗試從 Blobs 讀取（備用方案）
-  console.log('🔍 嘗試從 Blobs 讀取...')
-  const blobsData = await readFromBlobs()
-  if (blobsData) {
-    console.log('✅ 從 Blobs 讀取成功（備用數據）')
-    return ensureAllTemplatesExist(blobsData)
-  }
-  
-  // 3. 檢查內存存儲（最後備用）
-  if (Object.keys(memoryStorage).length > 0) {
-    console.log('✅ 從內存讀取成功（最後備用）')
-    return ensureAllTemplatesExist(memoryStorage)
-  }
-  
-  // 4. 返回 4 個空白模板位置
+  // 2. 返回 4 個空白模板位置
   console.log('ℹ️ 使用預設空白模板')
   return DEFAULT_TEMPLATES
 }
@@ -290,16 +208,6 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'DELETE') {
     try {
       console.log('🧹 開始強制清理舊數據...')
-      
-      // 清理 Blobs
-      try {
-        const { getStore } = require('@netlify/blobs')
-        const store = getStore('system-templates')
-        await store.delete('templates')
-        console.log('✅ Blobs 數據清理成功')
-      } catch (error) {
-        console.warn('⚠️ Blobs 清理失敗:', error.message)
-      }
       
       // 清理文件系統
       try {
@@ -342,10 +250,13 @@ exports.handler = async (event) => {
         // 異步清理舊數據
         setTimeout(async () => {
           try {
-            const { getStore } = require('@netlify/blobs')
-            const store = getStore('system-templates')
-            await store.delete('templates')
-            console.log('🧹 自動清理舊數據完成')
+            const fs = require('fs')
+            const path = require('path')
+            const filePath = path.join('/tmp', 'system-templates.json')
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath)
+              console.log('🧹 自動清理舊數據完成')
+            }
           } catch (error) {
             console.warn('⚠️ 自動清理失敗:', error.message)
           }
@@ -389,24 +300,17 @@ exports.handler = async (event) => {
       }
       
       // 多層保存策略，確保數據不丟失
-      let blobsSuccess = false
       let fileSuccess = false
       
-      // 1. 嘗試保存到 Blobs
-      blobsSuccess = await saveToBlobs(updatedTemplates)
+      // 1. 嘗試保存到文件系統
+      fileSuccess = await saveToFileSystem(updatedTemplates)
       
-      // 2. 即使 Blobs 失敗，也要保存到文件系統
-      if (!blobsSuccess) {
-        fileSuccess = await saveToFileSystem(updatedTemplates)
-      }
-      
-      // 3. 最後保存到內存（作為最後備用）
+      // 2. 最後保存到內存（作為最後備用）
       memoryStorage = { ...updatedTemplates }
       
       return createResponse(200, {
         success: true,
         message: 'Template updated successfully',
-        blobs: blobsSuccess,
         fileSystem: fileSuccess,
         memory: true,
         template: updatedTemplate
