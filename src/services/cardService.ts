@@ -2,6 +2,46 @@ import type { BaseCard, SystemCard, UserCard, CardGenerationRequest, CardGenerat
 import { defaultSystemCards } from '../data/defaultCards'
 import { GitHubSyncService } from './githubSyncService'
 
+// 立即啟用全局保護機制，防止系統模板被意外清除
+(function enableGlobalProtection() {
+  try {
+    console.log('[CardService] 啟用全局保護機制...')
+    
+    // 保存原始方法
+    const originalRemoveItem = localStorage.removeItem
+    const originalClear = localStorage.clear
+    const originalSetItem = localStorage.setItem
+    
+    // 保護 removeItem
+    localStorage.removeItem = function(key: string) {
+      if (key === 'limiautopost:systemTemplates' || key === 'aigenerator_templates') {
+        console.warn('[CardService] 全局保護：阻止清除系統模板:', key)
+        return
+      }
+      return originalRemoveItem.call(this, key)
+    }
+    
+    // 保護 clear
+    localStorage.clear = function() {
+      console.warn('[CardService] 全局保護：阻止清除所有 localStorage 數據')
+      return
+    }
+    
+    // 保護 setItem
+    localStorage.setItem = function(key: string, value: string) {
+      if (key === 'limiautopost:systemTemplates' && (!value || value === '{}' || value === '[]')) {
+        console.warn('[CardService] 全局保護：阻止將系統模板設置為空值')
+        return
+      }
+      return originalSetItem.call(this, key, value)
+    }
+    
+    console.log('[CardService] 全局保護機制已啟用')
+  } catch (error) {
+    console.error('[CardService] 啟用全局保護機制失敗:', error)
+  }
+})()
+
 // 定義 GitHubTemplate 類型
 interface GitHubTemplate {
   platform: string
@@ -894,6 +934,10 @@ export class CardService {
       // 保存 this 引用
       const self = this
       
+      // 設置保護狀態標記
+      localStorage.setItem('limiautopost:protectionStatus', 'protected')
+      localStorage.setItem('limiautopost:protectionEnabledAt', new Date().toISOString())
+      
       // 監聽 localStorage 的變化，防止系統模板被意外清除
       const originalRemoveItem = localStorage.removeItem
       const originalClear = localStorage.clear
@@ -909,6 +953,11 @@ export class CardService {
         // 如果嘗試清除舊的系統模板鍵，也阻止操作
         if (key === 'aigenerator_templates') {
           console.warn('[CardService] 阻止清除舊的系統模板鍵:', key)
+          return
+        }
+        // 如果嘗試清除保護狀態，阻止操作
+        if (key === 'limiautopost:protectionStatus') {
+          console.warn('[CardService] 阻止清除保護狀態:', key)
           return
         }
         // 其他操作正常執行
@@ -952,6 +1001,11 @@ export class CardService {
         console.log('[CardService] 頁面即將卸載，確保系統模板安全...')
         self.createSystemTemplatesBackup()
       })
+      
+      // 立即檢查一次系統模板狀態
+      setTimeout(() => {
+        this.checkAndRestoreSystemTemplates()
+      }, 100)
       
       console.log('[CardService] 系統模板保護機制已啟用')
     } catch (error) {

@@ -94,6 +94,7 @@
             <button onclick="traceTemplateLifecycle()" class="info">追蹤模板生命週期</button>
             <button onclick="detectHiddenIssues()" class="danger">檢測隱藏問題</button>
             <button onclick="generateSystemReport()" class="success">生成系統報告</button>
+            <button onclick="checkProtectionStatus()" class="danger">檢查保護機制狀態</button>
         </div>
 
         <div class="section">
@@ -851,6 +852,24 @@
                 console.log('完整系統報告:', report);
             } catch (error) {
                 log(`❌ 保存系統報告失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function checkProtectionStatus() {
+            log('檢查保護機制狀態...', 'info');
+            
+            try {
+                const isProtected = localStorage.getItem('limiautopost:protectionStatus') === 'protected';
+                const message = isProtected ? '✅ 保護機制已啟用' : '❌ 保護機制未啟用';
+                log(message, isProtected ? 'success' : 'warning');
+
+                if (!isProtected) {
+                    log('🚨 建議啟用保護機制以防止數據意外丟失！', 'warning');
+                    log('請在 localStorage 中設置 "limiautopost:protectionStatus": "protected"', 'info');
+                }
+
+            } catch (e) {
+                log(`檢查保護機制狀態失敗: ${e.message}`, 'error');
             }
         }
     </script>
