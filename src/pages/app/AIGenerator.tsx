@@ -240,10 +240,11 @@ export default function AIGenerator() {
       // 4. 關閉編輯模式
       setEditingId(null)
       
-      // 5. 重新載入模板以確保同步
-      setTimeout(() => {
-        loadSavedTemplates()
-      }, 100)
+      // 5. 顯示保存成功狀態，不重新載入
+      console.log('[AIGenerator] 模板保存成功，不重新載入避免覆蓋數據')
+      
+      // 注意：刪除了 setTimeout 和 loadSavedTemplates() 調用
+      // 這樣可以避免保存後立即重新載入，覆蓋剛保存的數據
       
     } catch (error) {
       console.error('[AIGenerator] 保存失敗:', error)
