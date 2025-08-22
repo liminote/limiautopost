@@ -56,6 +56,8 @@ export class CardService {
   // 清理舊的存儲鍵，避免數據不一致
   private cleanupOldStorageKeys(): void {
     try {
+      console.log('[CardService] 開始清理舊存儲鍵...')
+      
       // 清理舊的 aigenerator_templates 存儲鍵
       if (localStorage.getItem('aigenerator_templates')) {
         console.log('[CardService] 清理舊的存儲鍵: aigenerator_templates')
@@ -63,13 +65,32 @@ export class CardService {
       }
       
       // 清理其他可能導致衝突的舊存儲鍵
-      const oldKeys = ['removeItem', 'clear']
+      const oldKeys = ['removeItem', 'clear', 'getItem', 'setItem', 'length', 'key']
       oldKeys.forEach(key => {
         if (localStorage.getItem(key)) {
           console.log(`[CardService] 清理可疑的存儲鍵: ${key}`)
           localStorage.removeItem(key)
         }
       })
+      
+      // 檢查並清理任何看起來不像正常數據的鍵
+      const allKeys = Object.keys(localStorage)
+      const suspiciousKeys = allKeys.filter(key => {
+        // 檢查是否包含可疑的方法名
+        const suspiciousMethods = ['removeItem', 'clear', 'getItem', 'setItem', 'length', 'key']
+        return suspiciousMethods.includes(key) || 
+               key.includes('mock') || 
+               key.includes('test') ||
+               key.includes('Mock')
+      })
+      
+      if (suspiciousKeys.length > 0) {
+        console.log('[CardService] 發現可疑的存儲鍵:', suspiciousKeys)
+        suspiciousKeys.forEach(key => {
+          console.log(`[CardService] 清理可疑鍵: ${key}`)
+          localStorage.removeItem(key)
+        })
+      }
       
       console.log('[CardService] 舊存儲鍵清理完成')
     } catch (error) {
