@@ -20,9 +20,10 @@ const DEFAULT_TEMPLATES: Template[] = [
 ]
 
 export default function AIGenerator() {
-  const [templates, setTemplates] = useState<Template[]>(DEFAULT_TEMPLATES)
+  const [templates, setTemplates] = useState<Template[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingData, setEditingData] = useState({ title: '', features: '', prompt: '' })
+  const [isLoading, setIsLoading] = useState(true)
   
   const backendService = BackendTemplateService.getInstance()
 
@@ -34,6 +35,7 @@ export default function AIGenerator() {
   // 簡化的載入邏輯
   const loadTemplates = async () => {
     try {
+      setIsLoading(true)
       const backendTemplates = await backendService.getSystemTemplates()
       
       if (backendTemplates.length > 0) {
@@ -70,6 +72,8 @@ export default function AIGenerator() {
     } catch (error) {
       console.error('載入模板失敗:', error)
       setTemplates(DEFAULT_TEMPLATES)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -123,6 +127,32 @@ export default function AIGenerator() {
   // 處理編輯數據變化
   const handleEditChange = (field: keyof typeof editingData, value: string) => {
     setEditingData(prev => ({ ...prev, [field]: value }))
+  }
+
+  // 載入中顯示骨架屏
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <AdminSubnav />
+        <div className="max-w-6xl mx-auto p-6 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">AI 生成器模板管理</h1>
+            <p className="text-gray-600">管理四個預設模板的設定</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="border rounded-lg p-4 bg-white">
+                <div className="animate-pulse">
+                  <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-10 bg-gray-200 rounded w-20"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
