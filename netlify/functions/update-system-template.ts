@@ -1,8 +1,9 @@
 const { Handler } = require('@netlify/functions')
-const { getStore } = require('@netlify/blobs')
+const fs = require('fs')
+const path = require('path')
 
-// 獲取 Blobs store
-const store = getStore('system-templates')
+// 使用 Netlify Functions 的持久化路徑
+const STORAGE_FILE = '/tmp/system-templates.json'
 
 // 內存緩存（提升性能）
 let memoryCache = null
@@ -27,55 +28,55 @@ const createResponse = (statusCode, body, headers = {}) => ({
   body: JSON.stringify(body)
 })
 
-// 從 Blobs 讀取數據
-const readFromBlobs = async () => {
+// 從文件讀取數據
+const readFromFile = () => {
   try {
-    const data = await store.get('templates')
-    if (data) {
+    if (fs.existsSync(STORAGE_FILE)) {
+      const data = fs.readFileSync(STORAGE_FILE, 'utf8')
       return JSON.parse(data)
     }
   } catch (error) {
-    console.error('從 Blobs 讀取失敗:', error)
+    console.error('讀取文件失敗:', error)
   }
   return null
 }
 
-// 保存數據到 Blobs
-const saveToBlobs = async (data) => {
+// 保存數據到文件
+const saveToFile = (data) => {
   try {
-    await store.set('templates', JSON.stringify(data))
+    fs.writeFileSync(STORAGE_FILE, JSON.stringify(data, null, 2))
     return true
   } catch (error) {
-    console.error('保存到 Blobs 失敗:', error)
+    console.error('保存文件失敗:', error)
     return false
   }
 }
 
-// 獲取模板數據（優先使用緩存，備用 Blobs）
-const getTemplates = async () => {
+// 獲取模板數據（優先使用緩存，備用文件系統）
+const getTemplates = () => {
   // 1. 檢查內存緩存
   if (memoryCache) {
     return memoryCache
   }
   
-  // 2. 從 Blobs 讀取
-  const blobData = await readFromBlobs()
-  if (blobData && Object.keys(blobData).length > 0) {
-    memoryCache = blobData
-    return blobData
+  // 2. 從文件讀取
+  const fileData = readFromFile()
+  if (fileData && Object.keys(fileData).length > 0) {
+    memoryCache = fileData
+    return fileData
   }
   
   // 3. 返回默認模板
   return DEFAULT_TEMPLATES
 }
 
-// 保存模板數據（同時更新緩存和 Blobs）
-const saveTemplates = async (templates) => {
+// 保存模板數據（同時更新緩存和文件）
+const saveTemplates = (templates) => {
   // 更新內存緩存
   memoryCache = { ...templates }
   
-  // 保存到 Blobs
-  return await saveToBlobs(templates)
+  // 保存到文件
+  return saveToFile(templates)
 }
 
 exports.handler = async (event) => {
@@ -90,22 +91,19 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'DELETE') {
     memoryCache = null
     try {
-      await store.delete('templates')
+      if (fs.existsSync(STORAGE_FILE)) {
+        fs.unlinkSync(STORAGE_FILE)
+      }
     } catch (error) {
-      console.error('刪除 Blobs 失敗:', error)
+      console.error('刪除文件失敗:', error)
     }
     return createResponse(200, { success: true, message: '數據清理完成' })
   }
   
   // GET 方法：讀取模板
   if (event.httpMethod === 'GET') {
-    try {
-      const templates = await getTemplates()
-      return createResponse(200, templates)
-    } catch (error) {
-      console.error('讀取模板失敗:', error)
-      return createResponse(500, { error: 'Internal server error' })
-    }
+    const templates = getTemplates()
+    return createResponse(200, templates)
   }
   
   // POST 方法：更新模板
@@ -118,7 +116,7 @@ exports.handler = async (event) => {
       }
       
       // 讀取現有數據
-      const existing = await getTemplates()
+      const existing = getTemplates()
       
       // 更新指定模板
       const updatedTemplates = {
@@ -134,7 +132,7 @@ exports.handler = async (event) => {
       }
       
       // 保存數據
-      const saveSuccess = await saveTemplates(updatedTemplates)
+      const saveSuccess = saveTemplates(updatedTemplates)
       
       return createResponse(200, {
         success: true,
