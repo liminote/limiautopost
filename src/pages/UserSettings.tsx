@@ -72,17 +72,15 @@ export default function UserSettings(){
     loadTemplateManagement()
   }
 
-  // 監聽模板更新事件
+  // 監聽模板更新事件 - 已禁用，避免覆蓋用戶編輯的內容
   useEffect(() => {
-    const handleTemplatesUpdated = () => {
-      console.log('[UserSettings] 收到模板更新事件，重新載入模板')
-      loadTemplateManagement()
-    }
-
-    window.addEventListener('templatesUpdated', handleTemplatesUpdated)
+    // 注意：不再監聽 templatesUpdated 事件，避免覆蓋用戶正在編輯的模板內容
+    // 只有在用戶主動刷新頁面時才重新載入模板
+    console.log('[UserSettings] 模板更新事件監聽已禁用，避免數據覆蓋')
     
+    // 如果需要手動重新載入，用戶可以點擊「重新載入」按鈕
     return () => {
-      window.removeEventListener('templatesUpdated', handleTemplatesUpdated)
+      // 清理函數
     }
   }, [])
 
