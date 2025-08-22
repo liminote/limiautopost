@@ -891,10 +891,15 @@ export class CardService {
   // 保護系統模板不被意外清除
   private protectSystemTemplates(): void {
     try {
+      // 保存 this 引用
+      const self = this
+      
       // 監聽 localStorage 的變化，防止系統模板被意外清除
       const originalRemoveItem = localStorage.removeItem
       const originalClear = localStorage.clear
+      const originalSetItem = localStorage.setItem
       
+      // 保護 removeItem
       localStorage.removeItem = function(key: string) {
         // 如果嘗試清除系統模板，阻止操作
         if (key === 'limiautopost:systemTemplates') {
@@ -910,11 +915,43 @@ export class CardService {
         return originalRemoveItem.call(this, key)
       }
       
+      // 保護 clear
       localStorage.clear = function() {
         console.warn('[CardService] 阻止清除所有 localStorage 數據')
         // 阻止清除所有數據，因為這會影響系統模板
         return
       }
+      
+      // 保護 setItem，防止被覆蓋為空值
+      localStorage.setItem = function(key: string, value: string) {
+        // 如果嘗試將系統模板設置為空值，阻止操作
+        if (key === 'limiautopost:systemTemplates' && (!value || value === '{}' || value === '[]')) {
+          console.warn('[CardService] 阻止將系統模板設置為空值:', value)
+          return
+        }
+        // 其他操作正常執行
+        return originalSetItem.call(this, key, value)
+      }
+      
+      // 監聽 storage 事件，當其他標籤頁或組件修改 localStorage 時
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'limiautopost:systemTemplates') {
+          console.warn('[CardService] 檢測到其他來源修改系統模板:', event.newValue)
+          // 如果新值為空，立即恢復
+          if (!event.newValue || event.newValue === '{}' || event.newValue === '[]') {
+            console.warn('[CardService] 檢測到系統模板被清空，立即恢復...')
+            setTimeout(() => {
+              self.checkAndRestoreSystemTemplates()
+            }, 100)
+          }
+        }
+      })
+      
+      // 監聽 beforeunload 事件，在頁面卸載前確保數據安全
+      window.addEventListener('beforeunload', () => {
+        console.log('[CardService] 頁面即將卸載，確保系統模板安全...')
+        self.createSystemTemplatesBackup()
+      })
       
       console.log('[CardService] 系統模板保護機制已啟用')
     } catch (error) {
@@ -925,10 +962,16 @@ export class CardService {
   // 增強：監控系統模板狀態，自動檢測和恢復
   private monitorSystemTemplates(): void {
     try {
-      // 定期檢查系統模板是否存在
+      // 保存 this 引用
+      const self = this
+      
+      // 立即檢查一次
+      this.checkAndRestoreSystemTemplates()
+      
+      // 定期檢查系統模板是否存在（更頻繁的檢查）
       setInterval(() => {
         this.checkAndRestoreSystemTemplates()
-      }, 5000) // 每5秒檢查一次
+      }, 2000) // 每2秒檢查一次
       
       // 監聽頁面可見性變化，當頁面重新可見時檢查模板
       document.addEventListener('visibilitychange', () => {
@@ -942,6 +985,22 @@ export class CardService {
       window.addEventListener('focus', () => {
         console.log('[CardService] 頁面獲得焦點，檢查系統模板狀態')
         this.checkAndRestoreSystemTemplates()
+      })
+      
+      // 監聽頁面載入完成
+      window.addEventListener('load', () => {
+        console.log('[CardService] 頁面載入完成，檢查系統模板狀態')
+        setTimeout(() => {
+          this.checkAndRestoreSystemTemplates()
+        }, 1000)
+      })
+      
+      // 監聽 DOM 內容載入完成
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('[CardService] DOM 內容載入完成，檢查系統模板狀態')
+        setTimeout(() => {
+          this.checkAndRestoreSystemTemplates()
+        }, 500)
       })
       
       console.log('[CardService] 系統模板監控機制已啟用')
