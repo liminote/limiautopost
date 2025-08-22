@@ -46,6 +46,12 @@ export class CardService {
     // 啟用系統模板保護機制，防止被意外清除
     this.protectSystemTemplates()
     
+    // 啟用系統模板監控機制，自動檢測和恢復
+    this.monitorSystemTemplates()
+    
+    // 創建系統模板備份
+    this.createSystemTemplatesBackup()
+    
     // 強制重新載入系統模板，確保無痕模式也能獲取到模板
     this.forceReloadSystemTemplates()
   }
@@ -911,6 +917,117 @@ export class CardService {
       console.log('[CardService] 系統模板保護機制已啟用')
     } catch (error) {
       console.error('[CardService] 啟用系統模板保護機制失敗:', error)
+    }
+  }
+
+  // 增強：監控系統模板狀態，自動檢測和恢復
+  private monitorSystemTemplates(): void {
+    try {
+      // 定期檢查系統模板是否存在
+      setInterval(() => {
+        this.checkAndRestoreSystemTemplates()
+      }, 5000) // 每5秒檢查一次
+      
+      // 監聽頁面可見性變化，當頁面重新可見時檢查模板
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          console.log('[CardService] 頁面重新可見，檢查系統模板狀態')
+          this.checkAndRestoreSystemTemplates()
+        }
+      })
+      
+      // 監聽頁面焦點變化
+      window.addEventListener('focus', () => {
+        console.log('[CardService] 頁面獲得焦點，檢查系統模板狀態')
+        this.checkAndRestoreSystemTemplates()
+      })
+      
+      console.log('[CardService] 系統模板監控機制已啟用')
+    } catch (error) {
+      console.error('[CardService] 啟用系統模板監控機制失敗:', error)
+    }
+  }
+
+  // 檢查並恢復系統模板
+  private checkAndRestoreSystemTemplates(): void {
+    try {
+      const systemTemplates = localStorage.getItem('limiautopost:systemTemplates')
+      
+      if (!systemTemplates || systemTemplates === '{}') {
+        console.warn('[CardService] 檢測到系統模板丟失，正在自動恢復...')
+        
+        // 嘗試從備份恢復
+        this.restoreSystemTemplatesFromBackup()
+        
+        // 如果備份恢復失敗，重新初始化
+        if (!localStorage.getItem('limiautopost:systemTemplates')) {
+          console.warn('[CardService] 備份恢復失敗，重新初始化系統模板...')
+          this.initializeSystemTemplates()
+        }
+        
+        // 通知所有監聽器
+        this.notifyChanges()
+        
+        console.log('[CardService] 系統模板自動恢復完成')
+      }
+    } catch (error) {
+      console.error('[CardService] 檢查系統模板狀態失敗:', error)
+    }
+  }
+
+  // 從備份恢復系統模板
+  private restoreSystemTemplatesFromBackup(): void {
+    try {
+      // 檢查是否有備份
+      const backup = localStorage.getItem('limiautopost:systemTemplates_backup')
+      if (backup) {
+        localStorage.setItem('limiautopost:systemTemplates', backup)
+        console.log('[CardService] 從備份恢復系統模板成功')
+        return
+      }
+      
+      // 如果沒有備份，嘗試從舊的存儲鍵恢復
+      const oldTemplates = localStorage.getItem('aigenerator_templates')
+      if (oldTemplates) {
+        localStorage.setItem('limiautopost:systemTemplates', oldTemplates)
+        console.log('[CardService] 從舊存儲鍵恢復系統模板成功')
+        return
+      }
+      
+      console.warn('[CardService] 沒有找到可用的備份')
+    } catch (error) {
+      console.error('[CardService] 從備份恢復系統模板失敗:', error)
+    }
+  }
+
+  // 初始化系統模板
+  private initializeSystemTemplates(): void {
+    try {
+      // 重新初始化系統模板
+      this.systemTemplates = JSON.parse(JSON.stringify(defaultSystemCards))
+      
+      // 保存到 localStorage
+      this.saveSystemTemplatesToLocalStorage()
+      
+      // 創建備份
+      this.createSystemTemplatesBackup()
+      
+      console.log('[CardService] 系統模板重新初始化完成')
+    } catch (error) {
+      console.error('[CardService] 重新初始化系統模板失敗:', error)
+    }
+  }
+
+  // 創建系統模板備份
+  private createSystemTemplatesBackup(): void {
+    try {
+      const currentTemplates = localStorage.getItem('limiautopost:systemTemplates')
+      if (currentTemplates) {
+        localStorage.setItem('limiautopost:systemTemplates_backup', currentTemplates)
+        console.log('[CardService] 系統模板備份已創建')
+      }
+    } catch (error) {
+      console.error('[CardService] 創建系統模板備份失敗:', error)
     }
   }
 }

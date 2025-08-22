@@ -73,6 +73,8 @@
             <button onclick="checkLocalStorage()">檢查 localStorage</button>
             <button onclick="checkSystemTemplates()">檢查系統模板</button>
             <button onclick="checkCardService()">檢查 CardService</button>
+            <button onclick="startMonitoring()" class="success">開始實時監控</button>
+            <button onclick="stopMonitoring()" class="warning">停止實時監控</button>
         </div>
 
         <div class="section">
@@ -468,6 +470,94 @@
         window.addEventListener('load', () => {
             log('頁面載入完成，開始自動檢查...', 'info');
             setTimeout(checkAllStatus, 1000);
+        });
+
+        // 實時監控變數
+        let monitoringInterval = null;
+        let lastTemplateState = null;
+
+        function startMonitoring() {
+            if (monitoringInterval) {
+                log('監控已經在運行中', 'warning');
+                return;
+            }
+            
+            log('開始實時監控系統模板狀態...', 'success');
+            
+            // 記錄初始狀態
+            lastTemplateState = localStorage.getItem('limiautopost:systemTemplates');
+            
+            // 每2秒檢查一次
+            monitoringInterval = setInterval(() => {
+                const currentState = localStorage.getItem('limiautopost:systemTemplates');
+                
+                // 檢查狀態變化
+                if (currentState !== lastTemplateState) {
+                    if (!currentState || currentState === '{}') {
+                        log('🚨 檢測到系統模板丟失！', 'error');
+                        log('嘗試自動恢復...', 'info');
+                        restoreSystemTemplates();
+                    } else if (!lastTemplateState) {
+                        log('✅ 系統模板已恢復', 'success');
+                    } else {
+                        log('📝 系統模板內容已更新', 'info');
+                    }
+                    
+                    lastTemplateState = currentState;
+                }
+                
+                // 檢查備份狀態
+                const backupState = localStorage.getItem('limiautopost:systemTemplates_backup');
+                if (!backupState) {
+                    log('⚠️ 系統模板備份不存在，建議創建備份', 'warning');
+                }
+                
+            }, 2000);
+            
+            log('實時監控已啟動，每2秒檢查一次', 'success');
+        }
+
+        function stopMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+                log('實時監控已停止', 'info');
+            } else {
+                log('監控未在運行', 'warning');
+            }
+        }
+
+        // 監聽 localStorage 變化
+        function setupLocalStorageListener() {
+            const originalSetItem = localStorage.setItem;
+            const originalRemoveItem = localStorage.removeItem;
+            const originalClear = localStorage.clear;
+            
+            localStorage.setItem = function(key, value) {
+                if (key === 'limiautopost:systemTemplates') {
+                    log(`📝 系統模板被設置: ${value ? '有內容' : '無內容'}`, 'info');
+                }
+                return originalSetItem.call(this, key, value);
+            };
+            
+            localStorage.removeItem = function(key) {
+                if (key === 'limiautopost:systemTemplates') {
+                    log(`🚨 嘗試清除系統模板: ${key}`, 'error');
+                }
+                return originalRemoveItem.call(this, key);
+            };
+            
+            localStorage.clear = function() {
+                log('🚨 嘗試清除所有 localStorage 數據', 'error');
+                return originalClear.call(this);
+            };
+            
+            log('localStorage 監聽器已設置', 'success');
+        }
+
+        // 頁面載入時設置監聽器
+        window.addEventListener('load', () => {
+            setupLocalStorageListener();
         });
     </script>
 </body>
