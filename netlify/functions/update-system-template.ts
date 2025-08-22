@@ -156,7 +156,7 @@ exports.handler = async (event) => {
   // POST 方法：更新模板
   if (event.httpMethod === 'POST') {
     try {
-      const { cardId, platform, templateTitle, templateFeatures, prompt } = JSON.parse(event.body || '{}')
+      const { cardId, platform, title, features, prompt } = JSON.parse(event.body || '{}')
       
       if (!cardId) {
         return createResponse(400, { error: 'Missing cardId' })
@@ -165,8 +165,8 @@ exports.handler = async (event) => {
       // 構建更新的模板 - 統一使用 title/features/prompt 格式
       const updatedTemplate = {
         id: cardId,
-        title: templateTitle || '',  // 統一使用 title
-        features: templateFeatures || '',  // 統一使用 features
+        title: title || '',           // 使用 title
+        features: features || '',     // 使用 features
         prompt: prompt || '',
         platform: platform || 'threads',
         updatedAt: new Date().toISOString()

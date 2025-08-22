@@ -189,8 +189,8 @@ export default function AIGenerator() {
           body: JSON.stringify({
             cardId: editingTemplate.id,
             platform: editingTemplate.platform || 'threads',
-            templateTitle: editingTemplate.title || '',
-            templateFeatures: editingTemplate.features || '',
+            title: editingTemplate.title || '',           // 使用 title，不是 templateTitle
+            features: editingTemplate.features || '',     // 使用 features，不是 templateFeatures
             prompt: editingTemplate.prompt || '',
             updatedAt: new Date().toISOString()
           })
