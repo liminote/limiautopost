@@ -56,15 +56,14 @@ export default function UserSettings(){
 
   // 強制重新載入模板（清除快取）
   const forceReloadTemplates = () => {
-    if (!session) return
-    
     console.log('[UserSettings] 強制重新載入模板')
     
-    // 清除可能的快取
+    // 只清除用戶選擇的快取，不清除系統模板
     try {
       localStorage.removeItem('limiautopost:userSelections')
-      localStorage.removeItem('aigenerator_templates') // 清除系統模板快取
-      console.log('[UserSettings] 已清除所有模板快取')
+      // 不再清除系統模板快取，因為我們現在使用新的存儲鍵
+      // localStorage.removeItem('aigenerator_templates') // 已移除：會清除系統模板
+      console.log('[UserSettings] 已清除用戶選擇快取，保留系統模板')
     } catch (error) {
       console.warn('[UserSettings] 清除快取失敗:', error)
     }

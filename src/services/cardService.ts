@@ -43,6 +43,9 @@ export class CardService {
     // 確保系統模板被保存到 localStorage（如果還沒有保存的話）
     this.ensureSystemTemplatesSaved()
     
+    // 啟用系統模板保護機制，防止被意外清除
+    this.protectSystemTemplates()
+    
     // 強制重新載入系統模板，確保無痕模式也能獲取到模板
     this.forceReloadSystemTemplates()
   }
@@ -862,12 +865,52 @@ export class CardService {
 
   // 確保系統模板被保存到 localStorage（如果還沒有保存的話）
   private ensureSystemTemplatesSaved(): void {
-    const currentSaved = JSON.parse(localStorage.getItem('limiautopost:systemTemplates') || '{}')
-    if (Object.keys(currentSaved).length === 0) {
+    try {
+      const currentSaved = JSON.parse(localStorage.getItem('limiautopost:systemTemplates') || '{}')
+      if (Object.keys(currentSaved).length === 0) {
+        this.saveSystemTemplatesToLocalStorage()
+        console.log('[CardService] 系統模板已保存到 localStorage（初始化）')
+      } else {
+        console.log('[CardService] 系統模板已經在 localStorage 中，無需重複保存')
+      }
+    } catch (error) {
+      console.error('[CardService] 確保系統模板保存失敗:', error)
+      // 如果讀取失敗，強制保存
       this.saveSystemTemplatesToLocalStorage()
-      console.log('[CardService] 系統模板已保存到 localStorage（初始化）')
-    } else {
-      console.log('[CardService] 系統模板已經在 localStorage 中，無需重複保存')
+    }
+  }
+
+  // 保護系統模板不被意外清除
+  private protectSystemTemplates(): void {
+    try {
+      // 監聽 localStorage 的變化，防止系統模板被意外清除
+      const originalRemoveItem = localStorage.removeItem
+      const originalClear = localStorage.clear
+      
+      localStorage.removeItem = function(key: string) {
+        // 如果嘗試清除系統模板，阻止操作
+        if (key === 'limiautopost:systemTemplates') {
+          console.warn('[CardService] 阻止清除系統模板:', key)
+          return
+        }
+        // 如果嘗試清除舊的系統模板鍵，也阻止操作
+        if (key === 'aigenerator_templates') {
+          console.warn('[CardService] 阻止清除舊的系統模板鍵:', key)
+          return
+        }
+        // 其他操作正常執行
+        return originalRemoveItem.call(this, key)
+      }
+      
+      localStorage.clear = function() {
+        console.warn('[CardService] 阻止清除所有 localStorage 數據')
+        // 阻止清除所有數據，因為這會影響系統模板
+        return
+      }
+      
+      console.log('[CardService] 系統模板保護機制已啟用')
+    } catch (error) {
+      console.error('[CardService] 啟用系統模板保護機制失敗:', error)
     }
   }
 }

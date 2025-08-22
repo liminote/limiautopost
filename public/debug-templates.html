@@ -79,6 +79,8 @@
             <h2>🛠️ 修復操作</h2>
             <button onclick="restoreSystemTemplates()" class="success">恢復系統模板</button>
             <button onclick="testTemplatePersistence()" class="success">測試模板持久化</button>
+            <button onclick="detectTemplateLoss()" class="warning">檢測模板丟失</button>
+            <button onclick="fixTemplateIssues()" class="success">自動修復問題</button>
             <button onclick="clearLocalStorage()" class="danger">清除 localStorage</button>
             <button onclick="resetToDefaults()" class="warning">重置為預設值</button>
         </div>
@@ -342,6 +344,123 @@
                 
             } catch (e) {
                 log(`模板持久化測試失敗: ${e.message}`, 'error');
+            }
+        }
+
+        function detectTemplateLoss() {
+            log('開始檢測系統模板丟失問題...', 'info');
+            
+            try {
+                const issues = [];
+                
+                // 1. 檢查系統模板是否存在
+                const systemTemplates = localStorage.getItem('limiautopost:systemTemplates');
+                if (!systemTemplates) {
+                    issues.push('系統模板完全丟失');
+                } else {
+                    try {
+                        const templates = JSON.parse(systemTemplates);
+                        if (Object.keys(templates).length === 0) {
+                            issues.push('系統模板為空');
+                        } else {
+                            log(`✅ 系統模板存在，包含 ${Object.keys(templates).length} 個模板`, 'success');
+                        }
+                    } catch (e) {
+                        issues.push(`系統模板數據損壞: ${e.message}`);
+                    }
+                }
+                
+                // 2. 檢查舊的存儲鍵
+                const oldTemplates = localStorage.getItem('aigenerator_templates');
+                if (oldTemplates) {
+                    issues.push('發現舊的存儲鍵 aigenerator_templates，可能導致數據不一致');
+                }
+                
+                // 3. 檢查是否有清除操作
+                const allKeys = Object.keys(localStorage);
+                const limiautopostKeys = allKeys.filter(key => key.startsWith('limiautopost:'));
+                if (limiautopostKeys.length === 0) {
+                    issues.push('沒有找到任何 limiautopost 相關的存儲鍵');
+                }
+                
+                // 4. 檢查瀏覽器存儲限制
+                let totalSize = 0;
+                try {
+                    for (let key of allKeys) {
+                        const value = localStorage.getItem(key);
+                        if (value) totalSize += value.length;
+                    }
+                    if (totalSize > 5000000) { // 5MB
+                        issues.push('localStorage 可能已接近容量限制');
+                    }
+                } catch (e) {
+                    issues.push(`無法檢查存儲大小: ${e.message}`);
+                }
+                
+                // 5. 輸出檢測結果
+                if (issues.length === 0) {
+                    log('✅ 未發現系統模板丟失問題', 'success');
+                } else {
+                    log(`❌ 發現 ${issues.length} 個問題:`, 'error');
+                    issues.forEach((issue, index) => {
+                        log(`${index + 1}. ${issue}`, 'error');
+                    });
+                }
+                
+                return issues;
+                
+            } catch (e) {
+                log(`檢測失敗: ${e.message}`, 'error');
+                return ['檢測過程發生錯誤'];
+            }
+        }
+
+        function fixTemplateIssues() {
+            log('開始自動修復系統模板問題...', 'info');
+            
+            try {
+                // 1. 檢測問題
+                const issues = detectTemplateLoss();
+                
+                if (issues.length === 0) {
+                    log('✅ 沒有問題需要修復', 'success');
+                    return;
+                }
+                
+                // 2. 自動修復
+                let fixedCount = 0;
+                
+                // 修復系統模板丟失
+                const systemTemplates = localStorage.getItem('limiautopost:systemTemplates');
+                if (!systemTemplates || systemTemplates === '{}') {
+                    log('修復系統模板丟失...', 'info');
+                    restoreSystemTemplates();
+                    fixedCount++;
+                }
+                
+                // 清理舊的存儲鍵
+                const oldTemplates = localStorage.getItem('aigenerator_templates');
+                if (oldTemplates) {
+                    log('清理舊的存儲鍵...', 'info');
+                    localStorage.removeItem('aigenerator_templates');
+                    fixedCount++;
+                }
+                
+                // 3. 驗證修復結果
+                log('驗證修復結果...', 'info');
+                const remainingIssues = detectTemplateLoss();
+                
+                if (remainingIssues.length === 0) {
+                    log(`✅ 自動修復完成！修復了 ${fixedCount} 個問題`, 'success');
+                } else {
+                    log(`⚠️ 部分修復完成，還有 ${remainingIssues.length} 個問題需要手動處理`, 'warning');
+                    remainingIssues.forEach((issue, index) => {
+                        log(`${index + 1}. ${issue}`, 'warning');
+                    });
+                }
+                
+            } catch (e) {
+                log(`自動修復失敗: ${e.message}`, 'error');
             }
         }
 
