@@ -95,17 +95,12 @@ export class CardService {
   // 監聽 AIGenerator 的模板更新事件
   private setupTemplateUpdateListener() {
     window.addEventListener('templatesUpdated', async () => {
-      console.log('[CardService] 收到模板更新事件，重新載入系統模板並通知所有監聽器')
+      console.log('[CardService] 收到模板更新事件，但不重新載入系統模板以避免覆蓋編輯中的數據')
       
-      // 重新載入最新的系統模板
-      try {
-        await this.loadSystemTemplatesFromBackend()
-        console.log('[CardService] 系統模板重新載入完成')
-      } catch (error) {
-        console.warn('[CardService] 重新載入系統模板失敗:', error)
-      }
+      // 注意：不再自動重新載入系統模板，避免覆蓋用戶正在編輯的內容
+      // 只有在用戶主動刷新頁面時才重新載入
       
-      // 通知所有監聽器
+      // 只通知監聽器有變更，但不重新載入數據
       this.notifyChanges()
     })
   }
