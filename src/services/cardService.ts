@@ -43,17 +43,13 @@ export class CardService {
     // 確保系統模板被保存到 localStorage（如果還沒有保存的話）
     this.ensureSystemTemplatesSaved()
     
-    // 啟用系統模板保護機制，防止被意外清除
-    this.protectSystemTemplates()
-    
-    // 啟用系統模板監控機制，自動檢測和恢復
-    this.monitorSystemTemplates()
-    
     // 創建系統模板備份
     this.createSystemTemplatesBackup()
     
-    // 強制重新載入系統模板，確保無痕模式也能獲取到模板
-    this.forceReloadSystemTemplates()
+    // 移除強制重新載入，因為這可能導致問題
+    // this.forceReloadSystemTemplates()
+    
+    console.log('[CardService] 初始化完成，系統模板數量:', this.systemTemplates.length)
   }
 
   // 監聽 AIGenerator 的模板更新事件
