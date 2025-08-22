@@ -262,12 +262,6 @@ export default function AIGenerator() {
           
           <div className="p-6">
             <div className="space-y-6">
-              {/* 調試信息 */}
-              <div className="bg-gray-100 p-3 rounded text-sm">
-                <p>調試信息：templates 數組長度: {templates.length}</p>
-                <p>templates 內容: {JSON.stringify(templates, null, 2)}</p>
-              </div>
-              
               {templates.map((template) => (
                 <div key={template.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-4">
@@ -283,7 +277,7 @@ export default function AIGenerator() {
                                 console.log(`platform select onChange: "${newValue}"`)
                                 updateTemplateField(template.id, 'platform', newValue)
                               }}
-                              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)] text-sm"
                             >
                               {PLATFORM_OPTIONS.map(option => (
                                 <option key={option.value} value={option.value}>
@@ -292,23 +286,23 @@ export default function AIGenerator() {
                               ))}
                             </select>
                           ) : (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded">
+                            <span className="px-2 py-1 bg-[var(--yinmn-blue)]/10 text-[var(--yinmn-blue)] text-sm font-medium rounded">
                               {PLATFORM_OPTIONS.find(p => p.value === template.platform)?.label || template.platform}
                             </span>
                           )}
                         </div>
                         <h3 className="text-lg font-medium text-gray-900">
                           {editingId === template.id ? (
-                                                      <input
-                            type="text"
-                            value={template.title}
-                            onChange={(e) => {
-                              const newValue = e.target.value
-                              console.log(`title input onChange: "${newValue}"`)
-                              updateTemplateField(template.id, 'title', newValue)
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+                            <input
+                              type="text"
+                              value={template.title}
+                              onChange={(e) => {
+                                const newValue = e.target.value
+                                console.log(`title input onChange: "${newValue}"`)
+                                updateTemplateField(template.id, 'title', newValue)
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)]"
+                            />
                           ) : (
                             template.title
                           )}
@@ -328,7 +322,7 @@ export default function AIGenerator() {
                               console.log(`features input onChange: "${newValue}"`)
                               updateTemplateField(template.id, 'features', newValue)
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)]"
                           />
                         ) : (
                           <p className="text-gray-600">{template.features}</p>
@@ -353,7 +347,7 @@ export default function AIGenerator() {
                               updateTemplateField(template.id, 'prompt', finalValue)
                             }}
                             rows={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)] font-mono text-sm"
                           />
                         ) : (
                           <pre className="text-gray-600 text-sm whitespace-pre-wrap font-mono bg-gray-50 p-3 rounded">
@@ -369,14 +363,14 @@ export default function AIGenerator() {
                       <>
                         <button
                           onClick={cancelEdit}
-                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)]"
                         >
                           取消
                         </button>
                         <button
                           onClick={saveEdit}
                           disabled={isSaving}
-                          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                          className="px-4 py-2 text-sm font-medium text-white bg-[var(--yinmn-blue)] border border-transparent rounded-md hover:bg-[var(--yinmn-blue)]/90 focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)] disabled:opacity-50"
                         >
                           {isSaving ? '保存中...' : '保存'}
                         </button>
@@ -384,7 +378,7 @@ export default function AIGenerator() {
                     ) : (
                       <button
                         onClick={() => startEdit(template.id)}
-                        className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-md hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-4 py-2 text-sm font-medium text-[var(--yinmn-blue)] bg-white border border-[var(--yinmn-blue)] rounded-md hover:bg-[var(--yinmn-blue)]/10 focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)]"
                       >
                         編輯
                       </button>
