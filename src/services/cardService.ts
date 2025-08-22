@@ -7,6 +7,32 @@ import { GitHubSyncService } from './githubSyncService'
   try {
     console.log('[CardService] 啟用全局保護機制...')
     
+    // 立即檢查系統模板狀態
+    const checkSystemTemplates = () => {
+      const systemTemplates = localStorage.getItem('limiautopost:systemTemplates')
+      const oldTemplates = localStorage.getItem('aigenerator_templates')
+      
+      if (!systemTemplates || systemTemplates === '{}' || systemTemplates === '[]') {
+        console.warn('[CardService] 全局保護：檢測到系統模板丟失，嘗試恢復...')
+        
+        // 嘗試從舊的存儲鍵恢復
+        if (oldTemplates && oldTemplates !== '{}' && oldTemplates !== '[]') {
+          localStorage.setItem('limiautopost:systemTemplates', oldTemplates)
+          console.log('[CardService] 全局保護：從舊存儲鍵恢復系統模板')
+        } else {
+          // 如果沒有備份，設置一個標記表示需要重新初始化
+          localStorage.setItem('limiautopost:needsReinit', 'true')
+          console.warn('[CardService] 全局保護：系統模板丟失且無備份，標記需要重新初始化')
+        }
+      }
+    }
+    
+    // 立即檢查一次
+    checkSystemTemplates()
+    
+    // 每1秒檢查一次
+    setInterval(checkSystemTemplates, 1000)
+    
     // 保存原始方法
     const originalRemoveItem = localStorage.removeItem
     const originalClear = localStorage.clear
@@ -18,7 +44,7 @@ import { GitHubSyncService } from './githubSyncService'
         console.warn('[CardService] 全局保護：阻止清除系統模板:', key)
         return
       }
-      return originalRemoveItem.call(this, key)
+      return originalRemoveItem.call(localStorage, key)
     }
     
     // 保護 clear
@@ -33,8 +59,19 @@ import { GitHubSyncService } from './githubSyncService'
         console.warn('[CardService] 全局保護：阻止將系統模板設置為空值')
         return
       }
-      return originalSetItem.call(this, key, value)
+      return originalSetItem.call(localStorage, key, value)
     }
+    
+    // 監聽 storage 事件
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'limiautopost:systemTemplates') {
+        console.warn('[CardService] 全局保護：檢測到其他來源修改系統模板:', event.newValue)
+        if (!event.newValue || event.newValue === '{}' || event.newValue === '[]') {
+          console.warn('[CardService] 全局保護：檢測到系統模板被清空，立即恢復...')
+          setTimeout(checkSystemTemplates, 100)
+        }
+      }
+    })
     
     console.log('[CardService] 全局保護機制已啟用')
   } catch (error) {
