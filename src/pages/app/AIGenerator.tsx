@@ -64,6 +64,7 @@ export default function AIGenerator() {
       // 嘗試從後端 API 獲取
       const templates = await fetchTemplatesFromBackend()
       if (templates.length > 0) {
+        console.log('[AIGenerator] 從後端獲取到模板，設置狀態')
         setTemplates(templates)
         return
       }
@@ -71,6 +72,7 @@ export default function AIGenerator() {
       // 嘗試從 localStorage 獲取
       const localTemplates = getTemplatesFromLocalStorage()
       if (localTemplates.length > 0) {
+        console.log('[AIGenerator] 從 localStorage 獲取到模板，設置狀態')
         setTemplates(localTemplates)
         return
       }
@@ -84,7 +86,7 @@ export default function AIGenerator() {
       // 出錯時也顯示空白預設模板
       setTemplates(TEMPLATES)
     }
-  }, [])
+  }, []) // 空依賴項，確保函數不會重複創建
 
   // 從後端獲取模板
   const fetchTemplatesFromBackend = async (): Promise<Template[]> => {
@@ -145,10 +147,11 @@ export default function AIGenerator() {
     }))
   }
 
-  // 初始化時載入模板
+  // 初始化時載入模板 - 只在組件掛載時執行一次
   useEffect(() => {
+    console.log('[AIGenerator] 組件掛載，開始載入模板')
     loadSavedTemplates()
-  }, [loadSavedTemplates])
+  }, []) // 空依賴項，確保只在掛載時執行一次
 
   // 開始編輯
   const startEdit = (id: string) => {

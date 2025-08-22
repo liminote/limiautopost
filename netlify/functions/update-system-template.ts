@@ -84,29 +84,75 @@ const saveToBlobs = async (templates) => {
     const store = getStore('system-templates')
     await store.set('templates', templates)
     memoryStorage = { ...templates }
+    console.log('✅ Blobs 保存成功')
     return true
   } catch (error) {
-    console.warn('Blobs 保存失敗:', error.message)
+    console.warn('⚠️ Blobs 保存失敗:', error.message)
+    // 即使 Blobs 失敗，也要保存到內存
+    memoryStorage = { ...templates }
     return false
   }
 }
 
-// 獲取模板數據（優先級：Blobs > 內存，補充缺失的模板位置）
+// 從文件系統讀取（備用方案）
+const readFromFileSystem = async () => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const filePath = path.join('/tmp', 'system-templates.json')
+    
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf8')
+      const parsed = JSON.parse(data)
+      console.log('📁 從文件系統讀取成功:', parsed)
+      return parsed
+    }
+  } catch (error) {
+    console.warn('⚠️ 文件系統讀取失敗:', error.message)
+  }
+  return null
+}
+
+// 保存到文件系統（備用方案）
+const saveToFileSystem = async (templates) => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const filePath = path.join('/tmp', 'system-templates.json')
+    
+    fs.writeFileSync(filePath, JSON.stringify(templates, null, 2))
+    console.log('📁 保存到文件系統成功')
+    return true
+  } catch (error) {
+    console.warn('⚠️ 文件系統保存失敗:', error.message)
+    return false
+  }
+}
+
+// 獲取模板數據（優先級：Blobs > 文件系統 > 內存，補充缺失的模板位置）
 const getTemplates = async () => {
   // 1. 嘗試從 Blobs 讀取
   const blobsData = await readFromBlobs()
   if (blobsData) {
-    // 補充缺失的模板位置
+    console.log('✅ 從 Blobs 讀取成功')
     return ensureAllTemplatesExist(blobsData)
   }
   
-  // 2. 檢查內存存儲
+  // 2. 嘗試從文件系統讀取
+  const fileData = await readFromFileSystem()
+  if (fileData) {
+    console.log('✅ 從文件系統讀取成功')
+    return ensureAllTemplatesExist(fileData)
+  }
+  
+  // 3. 檢查內存存儲
   if (Object.keys(memoryStorage).length > 0) {
-    // 補充缺失的模板位置
+    console.log('✅ 從內存讀取成功')
     return ensureAllTemplatesExist(memoryStorage)
   }
   
-  // 3. 返回 4 個空白模板位置
+  // 4. 返回 4 個空白模板位置
+  console.log('ℹ️ 使用預設空白模板')
   return DEFAULT_TEMPLATES
 }
 
@@ -179,16 +225,27 @@ exports.handler = async (event) => {
         [cardId]: updatedTemplate
       }
       
-      // 嘗試保存到 Blobs，失敗則使用內存
-      const blobsSuccess = await saveToBlobs(updatedTemplates)
+      // 多層保存策略，確保數據不丟失
+      let blobsSuccess = false
+      let fileSuccess = false
+      
+      // 1. 嘗試保存到 Blobs
+      blobsSuccess = await saveToBlobs(updatedTemplates)
+      
+      // 2. 即使 Blobs 失敗，也要保存到文件系統
       if (!blobsSuccess) {
-        memoryStorage = { ...updatedTemplates }
+        fileSuccess = await saveToFileSystem(updatedTemplates)
       }
+      
+      // 3. 最後保存到內存（作為最後備用）
+      memoryStorage = { ...updatedTemplates }
       
       return createResponse(200, {
         success: true,
         message: 'Template updated successfully',
         blobs: blobsSuccess,
+        fileSystem: fileSuccess,
+        memory: true,
         template: updatedTemplate
       })
       
