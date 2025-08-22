@@ -40,7 +40,7 @@ export const handler: Handler = async (event) => {
       console.log('Token 數據:', { hasAccessToken: !!data?.access_token, hasUsername: !!data?.username, userId: data?.user_id })
       
       if (data?.access_token) {
-        // 先嘗試 /me
+        // 先嘗試 /me 端點取得 username
         let ok = false
         try {
           console.log('嘗試 /me 端點取得 username...')
@@ -52,13 +52,19 @@ export const handler: Handler = async (event) => {
             console.log('/me 端點成功，username:', username)
           } else {
             console.log('/me 端點失敗，狀態碼:', resp.status)
+            // 如果 /me 失敗，可能是 token 過期
+            if (resp.status === 401 || resp.status === 403) {
+              console.log('Token 可能已過期或無效')
+              status = 'link_failed'
+              reasonCode = 'token_expired'
+            }
           }
         } catch (error) {
           console.log('/me 端點異常:', error)
         }
         
         // 後援：用 user_id 明確查詢
-        if (!ok && data?.user_id) {
+        if (!ok && data?.user_id && status !== 'link_failed') {
           try {
             console.log('嘗試用 user_id 查詢 username...')
             const resp2 = await fetch(`https://graph.threads.net/v1.0/${encodeURIComponent(String(data.user_id))}?fields=username&access_token=${encodeURIComponent(data.access_token)}`)
@@ -69,21 +75,27 @@ export const handler: Handler = async (event) => {
               console.log('user_id 查詢成功，username:', username)
             } else {
               console.log('user_id 查詢失敗，狀態碼:', resp2.status)
+              // 如果 user_id 查詢也失敗，可能是 token 過期
+              if (resp2.status === 401 || resp2.status === 403) {
+                console.log('Token 可能已過期或無效')
+                status = 'link_failed'
+                reasonCode = 'token_expired'
+              }
             }
           } catch (error) {
             console.log('user_id 查詢異常:', error)
           }
         }
         
-        // 再後援：使用回呼時已儲存的 username
-        if (!ok && data?.username) {
+        // 再後援：使用回呼時已儲存的 username（但只在 token 有效時）
+        if (!ok && data?.username && status !== 'link_failed') {
           username = data.username
           status = 'linked'; ok = true
           console.log('使用已儲存的 username:', username)
         }
         
-        // 最後：有 token 但查詢失敗，仍視為 linked（提示原因），避免 UI 阻塞
-        if (!ok) { 
+        // 最後：如果所有查詢都失敗且不是因為 token 過期，才設為 linked
+        if (!ok && status !== 'link_failed') { 
           status = 'linked'; 
           reasonCode = 'me_fetch_failed'
           console.log('所有查詢方式都失敗，設為 linked 但無 username')
