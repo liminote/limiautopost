@@ -64,56 +64,10 @@ export default function AIGenerator() {
     try {
       console.log('[AIGenerator] 開始載入已保存的模板...')
       
-      // 1. 優先從 localStorage 讀取系統模板
-      const systemTemplatesKey = 'limiautopost:systemTemplates'
-      const savedSystemTemplates = localStorage.getItem(systemTemplatesKey)
-      
-      if (savedSystemTemplates) {
-        try {
-          const parsedTemplates = JSON.parse(savedSystemTemplates)
-          console.log('[AIGenerator] 從 localStorage 讀取到系統模板:', parsedTemplates)
-          
-          if (parsedTemplates && typeof parsedTemplates === 'object') {
-            // 轉換為前端格式
-            const convertedTemplates = Object.values(parsedTemplates).map((template: any) => ({
-              id: template.id,
-              title: template.title || template.templateTitle || '',
-              platform: template.platform || 'threads',
-              features: template.features || template.templateFeatures || '',
-              prompt: template.prompt || ''
-            }))
-            
-            // 確保有 4 個模板位置
-            const finalTemplates = [...convertedTemplates]
-            for (let i = 1; i <= 4; i++) {
-              const templateId = `template-${i}`
-              if (!finalTemplates.find(t => t.id === templateId)) {
-                // 補充缺失的模板位置
-                finalTemplates.push({
-                  id: templateId,
-                  title: '',
-                  platform: 'threads',
-                  features: '',
-                  prompt: ''
-                })
-              }
-            }
-            
-            // 按 ID 排序，確保 template-1, template-2, template-3, template-4 的順序
-            finalTemplates.sort((a, b) => a.id.localeCompare(b.id))
-            
-            console.log('[AIGenerator] 設置最終模板，數量:', finalTemplates.length)
-            setTemplates(finalTemplates)
-            return
-          }
-        } catch (parseError) {
-          console.warn('[AIGenerator] 解析 localStorage 系統模板失敗:', parseError)
-        }
-      }
-      
-      // 2. 如果 localStorage 沒有，嘗試從後端服務獲取
-      console.log('[AIGenerator] localStorage 沒有系統模板，嘗試從後端獲取...')
+      // 完全依賴後端 API，不再讀取 localStorage
+      console.log('[AIGenerator] 從後端 API 獲取系統模板...')
       const backendTemplates = await backendService.getSystemTemplates()
+      
       if (backendTemplates.length > 0) {
         console.log('[AIGenerator] 從後端獲取到模板，數量:', backendTemplates.length)
         
@@ -150,7 +104,7 @@ export default function AIGenerator() {
         return
       }
       
-      // 3. 沒有找到任何模板，顯示 4 個可編輯的空白預設模板
+      // 沒有找到任何模板，顯示 4 個可編輯的空白預設模板
       console.log('[AIGenerator] 沒有找到模板數據，顯示空白預設模板供編輯')
       setTemplates(TEMPLATES)
       
