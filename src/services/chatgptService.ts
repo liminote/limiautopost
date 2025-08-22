@@ -14,60 +14,58 @@ export class ChatGPTService {
     }
   }
 
-  // 測試連接
+  // 測試 ChatGPT 連接
   async testConnection(): Promise<{ success: boolean; message: string }> {
-    if (!this.client) {
+    if (!this.isAvailable()) {
       return { success: false, message: 'OpenAI API Key 未設定' }
     }
 
     try {
-      const response = await this.client.chat.completions.create({
-        model: 'gpt-4-turbo',
-        messages: [{ role: 'user', content: 'Hello' }],
+      const response = await this.client!.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: 'Hello, please respond with "OK" only.' }],
         max_tokens: 10
       })
-      
-      if (response.choices[0]?.message?.content) {
+
+      if (response.choices[0]?.message?.content === 'OK') {
         return { success: true, message: 'ChatGPT 連接成功' }
       } else {
         return { success: false, message: 'ChatGPT 回應格式異常' }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('ChatGPT 連接測試失敗:', error)
-      return { 
-        success: false, 
-        message: `ChatGPT 連接失敗: ${error.message || '未知錯誤'}` 
+      return {
+        success: false,
+        message: `ChatGPT 連接失敗: ${error.message || '未知錯誤'}`
       }
     }
   }
 
   // 生成內容
-  async generateContent(prompt: string, maxTokens: number = 1000): Promise<{ success: boolean; content?: string; error?: string }> {
-    if (!this.client) {
+  async generateContent(request: { prompt: string; maxWords?: number }): Promise<{ success: boolean; content?: string; error?: string }> {
+    if (!this.isAvailable()) {
       return { success: false, error: 'OpenAI API Key 未設定' }
     }
 
     try {
-      const response = await this.client.chat.completions.create({
-        model: 'gpt-4-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: maxTokens,
-        temperature: 0.3,
-        presence_penalty: 0.1,
-        frequency_penalty: 0.1
+      const response = await this.client!.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: request.prompt }],
+        max_tokens: request.maxWords ? Math.ceil(request.maxWords * 1.5) : 1000,
+        temperature: 0.7
       })
 
       const content = response.choices[0]?.message?.content
       if (content) {
-        return { success: true, content: content.trim() }
+        return { success: true, content }
       } else {
         return { success: false, error: 'ChatGPT 未生成內容' }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('ChatGPT 內容生成失敗:', error)
-      return { 
-        success: false, 
-        error: `ChatGPT 生成失敗: ${error.message || '未知錯誤'}` 
+      return {
+        success: false,
+        error: `ChatGPT 生成失敗: ${error.message || '未知錯誤'}`
       }
     }
   }
@@ -118,7 +116,7 @@ ${articleContent}
     // 計算 max_tokens
     const maxTokens = Math.max(1000, targetLength * 3)
     
-    return await this.generateContent(prompt, maxTokens)
+    return await this.generateContent({ prompt, maxWords: targetLength })
   }
 
   // 智能截斷內容
@@ -161,7 +159,7 @@ ${articleContent}
 
   // 獲取模型名稱
   getModelName(): string {
-    return 'gpt-4-turbo'
+    return 'gpt-4o'
   }
 }
 
