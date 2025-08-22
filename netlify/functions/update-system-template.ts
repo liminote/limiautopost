@@ -1,7 +1,12 @@
 const { Handler } = require('@netlify/functions')
+const fs = require('fs')
+const path = require('path')
 
-// 簡化的內存存儲
-let memoryStorage = {}
+// 文件路徑
+const STORAGE_FILE = '/tmp/system-templates.json'
+
+// 內存緩存（提升性能）
+let memoryCache = null
 
 // 默認空白模板
 const DEFAULT_TEMPLATES = {
@@ -23,21 +28,55 @@ const createResponse = (statusCode, body, headers = {}) => ({
   body: JSON.stringify(body)
 })
 
-// 獲取模板數據
+// 從文件讀取數據
+const readFromFile = () => {
+  try {
+    if (fs.existsSync(STORAGE_FILE)) {
+      const data = fs.readFileSync(STORAGE_FILE, 'utf8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('讀取文件失敗:', error)
+  }
+  return null
+}
+
+// 保存數據到文件
+const saveToFile = (data) => {
+  try {
+    fs.writeFileSync(STORAGE_FILE, JSON.stringify(data, null, 2))
+    return true
+  } catch (error) {
+    console.error('保存文件失敗:', error)
+    return false
+  }
+}
+
+// 獲取模板數據（優先使用緩存，備用文件系統）
 const getTemplates = () => {
-  // 如果內存中有數據，返回內存數據
-  if (Object.keys(memoryStorage).length > 0) {
-    return memoryStorage
+  // 1. 檢查內存緩存
+  if (memoryCache) {
+    return memoryCache
   }
   
-  // 否則返回默認空白模板
+  // 2. 從文件讀取
+  const fileData = readFromFile()
+  if (fileData && Object.keys(fileData).length > 0) {
+    memoryCache = fileData
+    return fileData
+  }
+  
+  // 3. 返回默認模板
   return DEFAULT_TEMPLATES
 }
 
-// 保存模板數據
+// 保存模板數據（同時更新緩存和文件）
 const saveTemplates = (templates) => {
-  memoryStorage = { ...templates }
-  return true
+  // 更新內存緩存
+  memoryCache = { ...templates }
+  
+  // 保存到文件
+  return saveToFile(templates)
 }
 
 exports.handler = async (event) => {
@@ -50,7 +89,14 @@ exports.handler = async (event) => {
   
   // DELETE 方法：清理數據
   if (event.httpMethod === 'DELETE') {
-    memoryStorage = {}
+    memoryCache = null
+    try {
+      if (fs.existsSync(STORAGE_FILE)) {
+        fs.unlinkSync(STORAGE_FILE)
+      }
+    } catch (error) {
+      console.error('刪除文件失敗:', error)
+    }
     return createResponse(200, { success: true, message: '數據清理完成' })
   }
   
@@ -85,13 +131,14 @@ exports.handler = async (event) => {
         }
       }
       
-      // 保存到內存
-      saveTemplates(updatedTemplates)
+      // 保存數據
+      const saveSuccess = saveTemplates(updatedTemplates)
       
       return createResponse(200, {
         success: true,
         message: 'Template updated successfully',
-        template: updatedTemplates[cardId]
+        template: updatedTemplates[cardId],
+        saved: saveSuccess
       })
       
     } catch (error) {
