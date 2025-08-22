@@ -46,6 +46,12 @@ export class CardService {
     // 創建系統模板備份
     this.createSystemTemplatesBackup()
     
+    // 啟用系統模板保護機制
+    this.protectSystemTemplates()
+    
+    // 啟用系統模板監控機制
+    this.monitorSystemTemplates()
+    
     // 移除強制重新載入，因為這可能導致問題
     // this.forceReloadSystemTemplates()
     
