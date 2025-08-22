@@ -20,6 +20,7 @@
             // 保存原始方法
             const originalRemoveItem = localStorage.removeItem;
             const originalClear = localStorage.clear;
+            const originalSetItem = localStorage.setItem;
             
             // 保護 removeItem
             localStorage.removeItem = function(key) {
@@ -36,6 +37,15 @@
                 return;
             };
             
+            // 保護 setItem，防止被設置為空值
+            localStorage.setItem = function(key, value) {
+                if (key === 'limiautopost:systemTemplates' && (!value || value === '{}' || value === '[]')) {
+                    console.warn('[Protection] 阻止將系統模板設置為空值');
+                    return;
+                }
+                return originalSetItem.call(localStorage, key, value);
+            };
+            
             // 設置保護狀態
             localStorage.setItem('limiautopost:protectionStatus', 'protected');
             localStorage.setItem('limiautopost:protectionLoadedAt', new Date().toISOString());
@@ -43,8 +53,27 @@
             // 立即檢查系統模板狀態
             checkSystemTemplates();
             
-            // 每5秒檢查一次
-            setInterval(checkSystemTemplates, 5000);
+            // 每2秒檢查一次
+            setInterval(checkSystemTemplates, 2000);
+            
+            // 監聽 storage 事件
+            window.addEventListener('storage', (event) => {
+                if (event.key === 'limiautopost:systemTemplates') {
+                    console.warn('[Protection] 檢測到其他來源修改系統模板:', event.newValue);
+                    if (!event.newValue || event.newValue === '{}' || event.newValue === '[]') {
+                        console.warn('[Protection] 檢測到系統模板被清空，立即恢復...');
+                        setTimeout(checkSystemTemplates, 100);
+                    }
+                }
+            });
+            
+            // 監聽頁面可見性變化
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    console.log('[Protection] 頁面重新可見，檢查系統模板狀態');
+                    checkSystemTemplates();
+                }
+            });
             
             console.log('[Protection] 全局保護機制已啟用');
         } catch (error) {
