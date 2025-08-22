@@ -27,11 +27,16 @@ export class BackendTemplateService {
     try {
       console.log('[BackendTemplateService] 從後端獲取系統模板...')
       
-      const response = await fetch(`${this.baseUrl}/get-system-templates`)
+      const response = await fetch(`${this.baseUrl}/update-system-template`, {
+        method: 'GET'
+      })
       
       if (response.ok) {
         const templates = await response.json()
-        const templateArray = Object.values(templates) as BackendSystemTemplate[]
+        const templateArray = Object.values(templates).map(template => ({
+          ...template as any,
+          updatedBy: 'system'
+        })) as BackendSystemTemplate[]
         
         console.log(`[BackendTemplateService] 成功獲取 ${templateArray.length} 個系統模板`)
         return templateArray
@@ -60,16 +65,26 @@ export class BackendTemplateService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id,
-          updates,
-          updatedBy
+          cardId: id,
+          platform: updates.platform || 'threads',
+          title: updates.title || '',
+          features: updates.features || '',
+          prompt: updates.prompt || ''
         })
       })
       
       if (response.ok) {
         const result = await response.json()
         console.log('[BackendTemplateService] 系統模板更新成功')
-        return result.template
+        return {
+          id: result.template.id,
+          platform: result.template.platform,
+          title: result.template.title,
+          features: result.template.features,
+          prompt: result.template.prompt,
+          updatedAt: result.template.updatedAt,
+          updatedBy: updatedBy
+        }
       } else {
         console.warn('[BackendTemplateService] 更新系統模板失敗:', response.status)
         throw new Error(`Update failed: ${response.status}`)
@@ -100,7 +115,9 @@ export class BackendTemplateService {
   // 檢查後端服務是否可用
   public async checkHealth(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/get-system-templates`)
+      const response = await fetch(`${this.baseUrl}/update-system-template`, {
+        method: 'GET'
+      })
       return response.ok
     } catch (error) {
       console.warn('[BackendTemplateService] 後端服務不可用:', error)

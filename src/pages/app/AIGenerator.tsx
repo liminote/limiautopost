@@ -64,9 +64,9 @@ export default function AIGenerator() {
     try {
       console.log('[AIGenerator] 開始載入已保存的模板...')
       
-      // 嘗試從後端 API 獲取
+      // 嘗試從後端服務獲取
       const backendTemplates = await backendService.getSystemTemplates()
-      if (templates.length > 0) {
+      if (backendTemplates.length > 0) {
         console.log('[AIGenerator] 從後端獲取到模板，設置狀態')
         
         // 將後端模板轉換為前端格式
