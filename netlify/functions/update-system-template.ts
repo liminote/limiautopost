@@ -51,6 +51,31 @@ const createResponse = (statusCode, body, headers = {}) => ({
   body: JSON.stringify(body)
 })
 
+// 檢查數據是否為舊的測試數據
+const isOldTestData = (templates) => {
+  if (!templates || typeof templates !== 'object') return false
+  
+  // 檢查是否包含舊的測試數據
+  const testPatterns = ['AA', 'VV', '！！！！！', 'TTT']
+  const hasOldData = Object.values(templates).some(template => {
+    if (template && typeof template === 'object') {
+      return testPatterns.some(pattern => 
+        template.title === pattern || 
+        template.features === pattern || 
+        template.prompt === pattern
+      )
+    }
+    return false
+  })
+  
+  if (hasOldData) {
+    console.log('⚠️ 檢測到舊的測試數據，將清理並重置')
+    return true
+  }
+  
+  return false
+}
+
 // 從 Blobs 讀取模板
 const readFromBlobs = async () => {
   try {
@@ -64,8 +89,21 @@ const readFromBlobs = async () => {
     console.log('🔍 existing 是否為 undefined:', existing === undefined)
     
     if (existing !== null && existing !== undefined) {
+      // 檢查是否為舊的測試數據
+      if (isOldTestData(existing)) {
+        console.log('🧹 清理舊的測試數據')
+        // 清理舊數據，不覆蓋內存
+        await store.delete('templates')
+        return null
+      }
+      
       console.log('✅ Blobs 讀取成功，數據:', existing)
-      memoryStorage = { ...existing }
+      // 只在內存為空時才覆蓋
+      if (Object.keys(memoryStorage).length === 0) {
+        memoryStorage = { ...existing }
+      } else {
+        console.log('ℹ️ 內存已有數據，不覆蓋 Blobs 數據')
+      }
       return existing
     } else {
       console.log('ℹ️ Blobs 中沒有數據')
@@ -104,6 +142,14 @@ const readFromFileSystem = async () => {
     if (fs.existsSync(filePath)) {
       const data = fs.readFileSync(filePath, 'utf8')
       const parsed = JSON.parse(data)
+      
+      // 檢查是否為舊的測試數據
+      if (isOldTestData(parsed)) {
+        console.log('🧹 清理舊的測試數據文件')
+        fs.unlinkSync(filePath)
+        return null
+      }
+      
       console.log('📁 從文件系統讀取成功:', parsed)
       return parsed
     }
@@ -129,26 +175,26 @@ const saveToFileSystem = async (templates) => {
   }
 }
 
-// 獲取模板數據（優先級：Blobs > 文件系統 > 內存，補充缺失的模板位置）
+// 獲取模板數據（優先級：內存 > Blobs > 文件系統，補充缺失的模板位置）
 const getTemplates = async () => {
-  // 1. 嘗試從 Blobs 讀取
+  // 1. 優先檢查內存存儲（最新的數據）
+  if (Object.keys(memoryStorage).length > 0) {
+    console.log('✅ 從內存讀取成功（最新數據）')
+    return ensureAllTemplatesExist(memoryStorage)
+  }
+  
+  // 2. 嘗試從 Blobs 讀取
   const blobsData = await readFromBlobs()
   if (blobsData) {
     console.log('✅ 從 Blobs 讀取成功')
     return ensureAllTemplatesExist(blobsData)
   }
   
-  // 2. 嘗試從文件系統讀取
+  // 3. 嘗試從文件系統讀取
   const fileData = await readFromFileSystem()
   if (fileData) {
     console.log('✅ 從文件系統讀取成功')
     return ensureAllTemplatesExist(fileData)
-  }
-  
-  // 3. 檢查內存存儲
-  if (Object.keys(memoryStorage).length > 0) {
-    console.log('✅ 從內存讀取成功')
-    return ensureAllTemplatesExist(memoryStorage)
   }
   
   // 4. 返回 4 個空白模板位置
