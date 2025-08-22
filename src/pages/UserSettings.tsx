@@ -88,18 +88,30 @@ export default function UserSettings(){
 
   // 統一的授權狀態檢查函數
   const checkAuthStatus = async () => {
-    if (!session) return
+    if (!session) {
+      console.log('[UserSettings] 沒有 session，無法檢查授權狀態')
+      return
+    }
+    
+    console.log('[UserSettings] 開始檢查 Threads 授權狀態...')
     
     try {
       setBusy(true)
+      setStatusMsg('正在檢查授權狀態...')
       
-      const response = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`, { 
+      const url = `/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`
+      console.log('[UserSettings] 調用 API:', url)
+      
+      const response = await fetch(url, { 
         cache: 'no-store', 
         headers: { 'Cache-Control': 'no-store' } 
       })
       
+      console.log('[UserSettings] API 響應狀態:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('[UserSettings] API 響應數據:', data)
         
         const isLinked = data.status === 'linked'
         const hasUsername = !!data.username
@@ -110,12 +122,18 @@ export default function UserSettings(){
         
         if (isLinked) {
           if (hasUsername) {
-            setStatusMsg(`Threads 已連接（${data.username}）`)
+            const statusMsg = `Threads 已連接（${data.username}）`
+            setStatusMsg(statusMsg)
+            console.log('[UserSettings] 設置狀態:', statusMsg)
+            
             // 同步到本地快取
             try {
               localStorage.setItem(`threads:${session.email}:linked`, '1')
               localStorage.setItem(`threads:${session.email}:username`, data.username)
-            } catch {}
+              console.log('[UserSettings] 已更新本地快取')
+            } catch (error) {
+              console.warn('[UserSettings] 更新本地快取失敗:', error)
+            }
           } else {
             setStatusMsg('Threads 已連接，但無法取得帳號資訊')
             try {
@@ -130,14 +148,19 @@ export default function UserSettings(){
             localStorage.removeItem(`threads:${session.email}:username`)
           } catch {}
         }
+        
+        console.log('[UserSettings] 授權狀態檢查完成')
       } else {
-        throw new Error(`HTTP ${response.status}`)
+        const errorText = await response.text()
+        console.error('[UserSettings] API 響應錯誤:', response.status, errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
       }
     } catch (error) {
-      console.error('Threads 狀態檢查失敗:', error)
-      setStatusMsg('狀態檢查失敗，請重新整理頁面')
+      console.error('[UserSettings] Threads 狀態檢查失敗:', error)
+      setStatusMsg(`狀態檢查失敗：${error instanceof Error ? error.message : '未知錯誤'}`)
     } finally {
       setBusy(false)
+      console.log('[UserSettings] 授權狀態檢查結束，busy 狀態已重置')
     }
   }
 
@@ -264,8 +287,9 @@ export default function UserSettings(){
                 className="btn btn-ghost"
                 disabled={busy}
                 onClick={checkAuthStatus}
+                title={busy ? '正在檢查中...' : '點擊重新檢查 Threads 授權狀態'}
               >
-                重新檢查狀態
+                {busy ? '檢查中...' : '重新檢查狀態'}
               </button>
             </div>
           )}
