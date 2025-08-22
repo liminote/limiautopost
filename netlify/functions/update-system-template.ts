@@ -118,30 +118,49 @@ const readFromBlobs = async () => {
 // 保存到 Blobs
 const saveToBlobs = async (templates) => {
   try {
+    console.log('🔍 開始保存到 Blobs...')
+    console.log('🔍 檢查 @netlify/blobs 模組...')
+    
     const { getStore } = require('@netlify/blobs')
+    console.log('✅ @netlify/blobs 模組載入成功')
+    
     const store = getStore('system-templates')
+    console.log('✅ Blobs store 創建成功')
+    
+    console.log('🔍 準備保存數據:', templates)
     await store.set('templates', templates)
-    memoryStorage = { ...templates }
     console.log('✅ Blobs 保存成功')
+    
+    // 不再覆蓋內存，因為內存會丟失
     return true
   } catch (error) {
-    console.warn('⚠️ Blobs 保存失敗:', error.message)
-    // 即使 Blobs 失敗，也要保存到內存
-    memoryStorage = { ...templates }
+    console.error('❌ Blobs 保存失敗:', error)
+    console.error('❌ 錯誤詳情:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     return false
   }
 }
 
-// 從文件系統讀取（備用方案）
+// 從文件系統讀取（主要存儲方案）
 const readFromFileSystem = async () => {
   try {
+    console.log('🔍 從文件系統讀取...')
     const fs = require('fs')
     const path = require('path')
     const filePath = path.join('/tmp', 'system-templates.json')
     
+    console.log('🔍 檢查文件路徑:', filePath)
+    
     if (fs.existsSync(filePath)) {
+      console.log('✅ 文件存在，開始讀取...')
       const data = fs.readFileSync(filePath, 'utf8')
+      console.log('🔍 讀取到的原始數據:', data)
+      
       const parsed = JSON.parse(data)
+      console.log('✅ 文件解析成功:', parsed)
       
       // 檢查是否為舊的測試數據
       if (isOldTestData(parsed)) {
@@ -152,49 +171,82 @@ const readFromFileSystem = async () => {
       
       console.log('📁 從文件系統讀取成功:', parsed)
       return parsed
+    } else {
+      console.log('ℹ️ 文件不存在:', filePath)
+      return null
     }
   } catch (error) {
-    console.warn('⚠️ 文件系統讀取失敗:', error.message)
+    console.error('❌ 文件系統讀取失敗:', error)
+    console.error('❌ 錯誤詳情:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
+    return null
   }
-  return null
 }
 
-// 保存到文件系統（備用方案）
+// 保存到文件系統（主要存儲方案）
 const saveToFileSystem = async (templates) => {
   try {
+    console.log('🔍 保存到文件系統...')
     const fs = require('fs')
     const path = require('path')
     const filePath = path.join('/tmp', 'system-templates.json')
     
-    fs.writeFileSync(filePath, JSON.stringify(templates, null, 2))
-    console.log('📁 保存到文件系統成功')
-    return true
+    console.log('🔍 文件路徑:', filePath)
+    console.log('🔍 準備保存的數據:', templates)
+    
+    const jsonData = JSON.stringify(templates, null, 2)
+    console.log('🔍 JSON 字符串長度:', jsonData.length)
+    
+    fs.writeFileSync(filePath, jsonData)
+    console.log('✅ 文件寫入成功')
+    
+    // 驗證寫入是否成功
+    if (fs.existsSync(filePath)) {
+      const fileSize = fs.statSync(filePath).size
+      console.log('✅ 文件驗證成功，大小:', fileSize, 'bytes')
+      return true
+    } else {
+      console.error('❌ 文件寫入後不存在')
+      return false
+    }
   } catch (error) {
-    console.warn('⚠️ 文件系統保存失敗:', error.message)
+    console.error('❌ 文件系統保存失敗:', error)
+    console.error('❌ 錯誤詳情:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     return false
   }
 }
 
-// 獲取模板數據（優先級：內存 > Blobs > 文件系統，補充缺失的模板位置）
+// 獲取模板數據（優先級：文件系統 > Blobs > 內存，補充缺失的模板位置）
 const getTemplates = async () => {
-  // 1. 優先檢查內存存儲（最新的數據）
-  if (Object.keys(memoryStorage).length > 0) {
-    console.log('✅ 從內存讀取成功（最新數據）')
-    return ensureAllTemplatesExist(memoryStorage)
+  console.log('🔍 開始獲取模板數據...')
+  
+  // 1. 優先從文件系統讀取（主要存儲）
+  console.log('🔍 嘗試從文件系統讀取...')
+  const fileData = await readFromFileSystem()
+  if (fileData) {
+    console.log('✅ 從文件系統讀取成功（主要數據）')
+    return ensureAllTemplatesExist(fileData)
   }
   
-  // 2. 嘗試從 Blobs 讀取
+  // 2. 嘗試從 Blobs 讀取（備用方案）
+  console.log('🔍 嘗試從 Blobs 讀取...')
   const blobsData = await readFromBlobs()
   if (blobsData) {
-    console.log('✅ 從 Blobs 讀取成功')
+    console.log('✅ 從 Blobs 讀取成功（備用數據）')
     return ensureAllTemplatesExist(blobsData)
   }
   
-  // 3. 嘗試從文件系統讀取
-  const fileData = await readFromFileSystem()
-  if (fileData) {
-    console.log('✅ 從文件系統讀取成功')
-    return ensureAllTemplatesExist(fileData)
+  // 3. 檢查內存存儲（最後備用）
+  if (Object.keys(memoryStorage).length > 0) {
+    console.log('✅ 從內存讀取成功（最後備用）')
+    return ensureAllTemplatesExist(memoryStorage)
   }
   
   // 4. 返回 4 個空白模板位置
