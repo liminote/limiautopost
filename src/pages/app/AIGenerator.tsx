@@ -153,6 +153,20 @@ export default function AIGenerator() {
     loadSavedTemplates()
   }, []) // 空依賴項，確保只在掛載時執行一次
 
+  // 監聽模板更新事件，確保當管理者更新模板時能同步
+  useEffect(() => {
+    const handleTemplatesUpdated = () => {
+      console.log('[AIGenerator] 收到模板更新事件，重新載入模板')
+      loadSavedTemplates()
+    }
+
+    window.addEventListener('templatesUpdated', handleTemplatesUpdated)
+    
+    return () => {
+      window.removeEventListener('templatesUpdated', handleTemplatesUpdated)
+    }
+  }, [])
+
   // 開始編輯
   const startEdit = (id: string) => {
     console.log('✏️ 開始編輯模板:', id)
@@ -242,7 +256,11 @@ export default function AIGenerator() {
       // 4. 關閉編輯模式
       setEditingId(null)
       
-      // 5. 顯示保存成功狀態，不重新載入
+      // 5. 觸發模板更新事件，通知其他頁面
+      window.dispatchEvent(new CustomEvent('templatesUpdated'))
+      console.log('[AIGenerator] 已觸發 templatesUpdated 事件')
+      
+      // 6. 顯示保存成功狀態，不重新載入
       console.log('[AIGenerator] 模板保存成功，不重新載入避免覆蓋數據')
       
       // 注意：刪除了 setTimeout 和 loadSavedTemplates() 調用
