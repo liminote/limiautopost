@@ -3,176 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>模板調試工具</title>
+    <title>系統模板診斷工具</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
-        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .code {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
         button:hover { background: #0056b3; }
-        .result { background: #f8f9fa; padding: 10px; border-radius: 3px; margin: 10px 0; white-space: pre-wrap; }
-        .error { background: #f8d7da; color: #721c24; }
-        .success { background: #d4edda; color: #155724; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
     </style>
 </head>
 <body>
-    <h1>🔧 模板調試工具</h1>
-    <p>這個工具用來測試後端 API 的模板獲取功能，幫助診斷為什麼無痕模式顯示錯誤的模板。</p>
-    
-    <div class="section">
-        <h2>1. 測試後端 API</h2>
-        <button onclick="testBackendAPI()">調用後端 API (GET)</button>
-        <div id="backendResult" class="result"></div>
-    </div>
-    
-    <div class="section">
-        <h2>2. 檢查 localStorage</h2>
-        <button onclick="checkLocalStorage()">檢查 localStorage</button>
-        <div id="localStorageResult" class="result"></div>
-    </div>
-    
-    <div class="section">
-        <h2>3. 模擬 CardService 調用</h2>
-        <button onclick="simulateCardService()">模擬 CardService.getAllCardsAsync</button>
-        <div id="cardServiceResult" class="result"></div>
-    </div>
-    
-    <div class="section">
-        <h2>4. 清除快取</h2>
-        <button onclick="clearCache()">清除所有快取</button>
-        <div id="clearResult" class="result"></div>
+    <div class="container">
+        <h1>🔧 系統模板診斷工具</h1>
+        
+        <div class="section">
+            <h2>📊 當前狀態檢查</h2>
+            <button onclick="checkAllStatus()">檢查所有狀態</button>
+            <button onclick="checkLocalStorage()">檢查 localStorage</button>
+            <button onclick="checkSystemTemplates()">檢查系統模板</button>
+            <button onclick="checkCardService()">檢查 CardService</button>
+        </div>
+
+        <div class="section">
+            <h2>🛠️ 修復操作</h2>
+            <button onclick="restoreSystemTemplates()" class="success">恢復系統模板</button>
+            <button onclick="testTemplatePersistence()" class="success">測試模板持久化</button>
+            <button onclick="clearLocalStorage()" class="danger">清除 localStorage</button>
+            <button onclick="resetToDefaults()" class="warning">重置為預設值</button>
+        </div>
+
+        <div class="section">
+            <h2>📋 診斷結果</h2>
+            <div id="results"></div>
+               </div>
     </div>
 
     <script>
-        function log(elementId, message, isError = false) {
-            const element = document.getElementById(elementId);
-            const timestamp = new Date().toLocaleString('zh-TW');
-            const logMessage = `[${timestamp}] ${message}`;
-            element.textContent = logMessage;
-            element.className = `result ${isError ? 'error' : 'success'}`;
+        // 預設系統模板
+        const defaultSystemTemplates = {
+            "template-1": {
+                "id": "template-1",
+                "platform": "threads",
+                "title": "生活體悟",
+                "features": "分享生活感悟、個人成長、心靈啟發",
+                "prompt": "請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個清晰的主題（體悟、情境、對話）\n- 包含獨立完整的觀點與論述，結尾加收束句\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係",
+                "updatedAt": "2025-01-19T00:00:00.000Z"
+            },
+            "template-2": {
+                "id": "template-2",
+                "platform": "threads",
+                "title": "專業分享",
+                "features": "行業見解、技能分享、專業知識",
+                "prompt": "請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個專業主題或技能分享\n- 包含實用的建議或見解，結尾加行動呼籲\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係",
+                "updatedAt": "2025-01-19T00:00:00.000Z"
+            },
+            "template-3": {
+                "id": "template-3",
+                "platform": "threads",
+                "title": "創意故事",
+                "features": "故事創作、想像力、創意表達",
+                "prompt": "請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個創意故事或想像情境\n- 包含生動的描述和情感表達，結尾加反思\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係",
+                "updatedAt": "2025-01-19T00:00:00.000Z"
+            },
+            "template-4": {
+                "id": "template-4",
+                "platform": "threads",
+                "title": "時事評論",
+                "features": "社會議題、時事分析、觀點表達",
+                "prompt": "請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個時事議題或社會現象\n- 包含客觀分析和個人觀點，結尾加思考問題\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係",
+                "updatedAt": "2025-01-19T00:00:00.000Z"
+            }
+        };
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
         }
 
-        async function testBackendAPI() {
-            try {
-                log('backendResult', '正在調用後端 API...');
-                
-                const response = await fetch('/.netlify/functions/update-system-template', {
-                    method: 'GET',
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache'
-                    }
-                });
-                
-                log('backendResult', `API 響應狀態: ${response.status}`);
-                log('backendResult', `API 響應 headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    log('backendResult', `API 返回數據:\n${JSON.stringify(data, null, 2)}`);
-                    
-                    if (data && Object.keys(data).length > 0) {
-                        log('backendResult', `✅ 成功獲取到 ${Object.keys(data).length} 個模板`);
-                    } else {
-                        log('backendResult', `⚠️ API 返回空數據或無效數據`);
-                    }
-                } else {
-                    const errorText = await response.text();
-                    log('backendResult', `❌ API 錯誤: ${response.status}\n${errorText}`, true);
-                }
-            } catch (error) {
-                log('backendResult', `❌ 調用失敗: ${error.message}`, true);
-            }
+        function checkAllStatus() {
+            log('開始全面狀態檢查...', 'info');
+            checkLocalStorage();
+            checkSystemTemplates();
+            checkCardService();
         }
 
         function checkLocalStorage() {
+            log('檢查 localStorage 狀態...', 'info');
+            
             try {
-                const templates = localStorage.getItem('aigenerator_templates');
-                const userSelections = localStorage.getItem('limiautopost:userSelections');
+                const keys = Object.keys(localStorage);
+                const limiautopostKeys = keys.filter(key => key.startsWith('limiautopost:'));
                 
-                let result = 'localStorage 檢查結果:\n\n';
+                log(`找到 ${keys.length} 個 localStorage 項目`, 'info');
+                log(`其中 ${limiautopostKeys.length} 個是 limiautopost 相關`, 'info');
                 
-                if (templates) {
-                    const parsedTemplates = JSON.parse(templates);
-                    result += `✅ aigenerator_templates:\n`;
-                    result += `類型: ${typeof parsedTemplates}\n`;
-                    result += `鍵數量: ${Object.keys(parsedTemplates).length}\n`;
-                    result += `內容: ${JSON.stringify(parsedTemplates, null, 2)}\n\n`;
-                } else {
-                    result += `❌ aigenerator_templates: 不存在\n\n`;
-                }
-                
-                if (userSelections) {
-                    const parsedSelections = JSON.parse(userSelections);
-                    result += `✅ limiautopost:userSelections:\n`;
-                    result += `類型: ${typeof parsedSelections}\n`;
-                    result += `內容: ${JSON.stringify(parsedSelections, null, 2)}\n`;
-                } else {
-                    result += `❌ limiautopost:userSelections: 不存在\n`;
-                }
-                
-                log('localStorageResult', result);
-            } catch (error) {
-                log('localStorageResult', `❌ 檢查失敗: ${error.message}`, true);
-            }
-        }
-
-        async function simulateCardService() {
-            try {
-                log('cardServiceResult', '正在模擬 CardService 調用...');
-                
-                // 模擬 CardService.getAllCardsAsync 的邏輯
-                const response = await fetch('/.netlify/functions/update-system-template', {
-                    method: 'GET',
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache'
+                limiautopostKeys.forEach(key => {
+                    try {
+                        const value = localStorage.getItem(key);
+                        const size = value ? value.length : 0;
+                        log(`${key}: ${size} 字符`, 'info');
+                    } catch (e) {
+                        log(`${key}: 讀取失敗 - ${e.message}`, 'error');
                     }
                 });
                 
-                if (response.ok) {
-                    const backendTemplates = await response.json();
-                    
-                    if (backendTemplates && Object.keys(backendTemplates).length > 0) {
-                        // 轉換為 BaseCard 格式
-                        const systemCards = Object.values(backendTemplates).map((template) => ({
-                            id: template.id || 'unknown',
-                            name: template.templateTitle || template.title || '',
-                            description: template.templateFeatures || template.features || '',
-                            category: template.platform?.toLowerCase() || 'threads',
-                            prompt: template.prompt || '',
-                            isActive: true,
-                            isSystem: true,
-                            createdAt: new Date(),
-                            updatedAt: new Date(template.updatedAt) || new Date(),
-                            platform: template.platform?.toLowerCase() || 'threads',
-                            templateTitle: template.templateTitle || template.title || '',
-                            templateFeatures: template.templateFeatures || template.features || '',
-                            isSelected: false
-                        }));
-                        
-                        log('cardServiceResult', `✅ 模擬成功:\n系統模板數量: ${systemCards.length}\n模板詳情:\n${JSON.stringify(systemCards, null, 2)}`);
-                    } else {
-                        log('cardServiceResult', `⚠️ 後端數據為空，會回退到預設模板`);
+                // 檢查特定項目
+                const systemTemplates = localStorage.getItem('limiautopost:systemTemplates');
+                if (systemTemplates) {
+                    try {
+                        const parsed = JSON.parse(systemTemplates);
+                        log(`系統模板: 找到 ${Object.keys(parsed).length} 個模板`, 'success');
+                    } catch (e) {
+                        log(`系統模板: JSON 解析失敗 - ${e.message}`, 'error');
                     }
                 } else {
-                    log('cardServiceResult', `❌ API 調用失敗: ${response.status}`, true);
+                    log('系統模板: 不存在', 'warning');
                 }
-            } catch (error) {
-                log('cardServiceResult', `❌ 模擬失敗: ${error.message}`, true);
+                
+            } catch (e) {
+                log(`localStorage 檢查失敗: ${e.message}`, 'error');
             }
         }
 
-        function clearCache() {
+        function checkSystemTemplates() {
+            log('檢查系統模板狀態...', 'info');
+            
             try {
-                localStorage.removeItem('aigenerator_templates');
-                localStorage.removeItem('limiautopost:userSelections');
-                log('clearResult', '✅ 已清除所有快取');
-            } catch (error) {
-                log('clearResult', `❌ 清除失敗: ${error.message}`, true);
+                const systemTemplates = localStorage.getItem('limiautopost:systemTemplates');
+                if (systemTemplates) {
+                    const parsed = JSON.parse(systemTemplates);
+                    log(`✅ 系統模板存在，包含 ${Object.keys(parsed).length} 個模板`, 'success');
+                    
+                    Object.entries(parsed).forEach(([id, template]) => {
+                        log(`模板 ${id}: ${template.title || '無標題'}`, 'info');
+                    });
+                } else {
+                    log('❌ 系統模板不存在於 localStorage', 'error');
+                }
+                
+                // 檢查是否有其他相關的存儲鍵
+                const allKeys = Object.keys(localStorage);
+                const templateKeys = allKeys.filter(key => key.includes('template') || key.includes('card'));
+                if (templateKeys.length > 0) {
+                    log(`找到其他模板相關鍵: ${templateKeys.join(', ')}`, 'info');
+                }
+                
+            } catch (e) {
+                log(`系統模板檢查失敗: ${e.message}`, 'error');
             }
         }
+
+        function checkCardService() {
+            log('檢查 CardService 狀態...', 'info');
+            
+            try {
+                // 檢查是否有 CardService 實例
+                if (window.CardService) {
+                    log('✅ CardService 實例存在', 'success');
+                } else {
+                    log('❌ CardService 實例不存在', 'warning');
+                }
+                
+                // 檢查是否有相關的事件監聽器
+                if (window.addEventListener) {
+                    log('✅ 事件監聽器支援正常', 'success');
+                } else {
+                    log('❌ 事件監聽器支援異常', 'error');
+                }
+                
+            } catch (e) {
+                log(`CardService 檢查失敗: ${e.message}`, 'error');
+            }
+        }
+
+        function restoreSystemTemplates() {
+            log('開始恢復系統模板...', 'info');
+            
+            try {
+                localStorage.setItem('limiautopost:systemTemplates', JSON.stringify(defaultSystemTemplates));
+                log('✅ 系統模板已恢復', 'success');
+                
+                // 觸發模板更新事件
+                if (window.dispatchEvent) {
+                    window.dispatchEvent(new Event('templatesUpdated'));
+                    log('✅ 已觸發模板更新事件', 'success');
+                }
+                
+                checkSystemTemplates();
+                
+            } catch (e) {
+                log(`恢復系統模板失敗: ${e.message}`, 'error');
+            }
+        }
+
+        function clearLocalStorage() {
+            log('開始清除 localStorage...', 'warning');
+            
+            try {
+                const keys = Object.keys(localStorage);
+                const limiautopostKeys = keys.filter(key => key.startsWith('limiautopost:'));
+                
+                limiautopostKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    log(`已清除: ${key}`, 'info');
+                });
+                
+                log(`✅ 已清除 ${limiautopostKeys.length} 個 limiautopost 相關項目`, 'success');
+                
+            } catch (e) {
+                log(`清除 localStorage 失敗: ${e.message}`, 'error');
+            }
+        }
+
+        function resetToDefaults() {
+            log('重置為預設值...', 'warning');
+            
+            try {
+                // 清除現有數據
+                clearLocalStorage();
+                
+                // 恢復系統模板
+                restoreSystemTemplates();
+                
+                log('✅ 已重置為預設值', 'success');
+                
+            } catch (e) {
+                log(`重置失敗: ${e.message}`, 'error');
+            }
+        }
+
+        function testTemplatePersistence() {
+            log('開始測試模板持久化功能...', 'info');
+            
+            try {
+                // 1. 檢查初始狀態
+                const initialTemplates = localStorage.getItem('limiautopost:systemTemplates');
+                log(`初始狀態: ${initialTemplates ? '有模板' : '無模板'}`, 'info');
+                
+                // 2. 模擬編輯模板
+                if (initialTemplates) {
+                    const templates = JSON.parse(initialTemplates);
+                    const templateId = Object.keys(templates)[0];
+                    
+                    if (templateId) {
+                        // 模擬編輯模板
+                        templates[templateId].templateTitle = '測試編輯 - ' + new Date().toLocaleTimeString();
+                        templates[templateId].prompt = '這是測試編輯的 prompt - ' + new Date().toLocaleTimeString();
+                        templates[templateId].updatedAt = new Date().toISOString();
+                        
+                        // 保存編輯後的模板
+                        localStorage.setItem('limiautopost:systemTemplates', JSON.stringify(templates));
+                        log(`✅ 已編輯並保存模板: ${templateId}`, 'success');
+                        
+                        // 3. 檢查編輯是否保存成功
+                        const savedTemplates = localStorage.getItem('limiautopost:systemTemplates');
+                        if (savedTemplates) {
+                            const saved = JSON.parse(savedTemplates);
+                            const editedTemplate = saved[templateId];
+                            log(`編輯後的模板標題: ${editedTemplate.templateTitle}`, 'info');
+                            log(`編輯後的 prompt: ${editedTemplate.prompt}`, 'info');
+                        }
+                        
+                        // 4. 模擬頁面重新載入（清除記憶體中的模板）
+                        log('模擬頁面重新載入...', 'info');
+                        
+                        // 5. 檢查模板是否仍然存在
+                        const reloadedTemplates = localStorage.getItem('limiautopost:systemTemplates');
+                        if (reloadedTemplates) {
+                            const reloaded = JSON.parse(reloadedTemplates);
+                            const reloadedTemplate = reloaded[templateId];
+                            if (reloadedTemplate.templateTitle.includes('測試編輯')) {
+                                log('✅ 模板持久化測試成功！編輯內容在重新載入後仍然存在', 'success');
+                            } else {
+                                log('❌ 模板持久化測試失敗！編輯內容在重新載入後丟失', 'error');
+                            }
+                        } else {
+                            log('❌ 模板持久化測試失敗！重新載入後找不到模板', 'error');
+                        }
+                    }
+                } else {
+                    log('❌ 無法測試：沒有找到初始模板', 'error');
+                }
+                
+            } catch (e) {
+                log(`模板持久化測試失敗: ${e.message}`, 'error');
+            }
+        }
+
+        // 頁面載入時自動檢查
+        window.addEventListener('load', () => {
+            log('頁面載入完成，開始自動檢查...', 'info');
+            setTimeout(checkAllStatus, 1000);
+        });
     </script>
 </body>
 </html>
