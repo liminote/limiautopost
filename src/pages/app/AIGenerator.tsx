@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { CardService } from '../../services/cardService'
 import { BackendTemplateService } from '../../services/backendTemplateService'
 import { defaultSystemCards } from '../../data/defaultCards'
-import { ChatGPTService } from '../../services/chatgptService'
 import AdminSubnav from '../../components/AdminSubnav'
 
 // 創建模板數據結構
@@ -20,12 +19,9 @@ export default function AIGenerator() {
   const [editingTitle, setEditingTitle] = useState('')
   const [editingFeatures, setEditingFeatures] = useState('')
   const [editingPrompt, setEditingPrompt] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedContent, setGeneratedContent] = useState('')
   
   const cardService = CardService.getInstance()
   const backendService = BackendTemplateService.getInstance()
-  const chatgptService = new ChatGPTService()
 
   // 載入已保存的模板
   const loadSavedTemplates = useCallback(async () => {
@@ -153,31 +149,6 @@ export default function AIGenerator() {
     }
   }, [editingId, editingTitle, editingFeatures, editingPrompt, templates, backendService])
 
-  // 生成內容
-  const generateContent = useCallback(async (prompt: string) => {
-    if (!prompt.trim()) return
-    
-    setIsGenerating(true)
-    setGeneratedContent('')
-    
-    try {
-      const result = await chatgptService.generateContent({ prompt })
-      
-      if (result.success && result.content) {
-        setGeneratedContent(result.content)
-      } else {
-        console.error('生成失敗:', result.error)
-        setGeneratedContent(`生成失敗: ${result.error}`)
-      }
-    } catch (error) {
-      console.error('生成內容失敗:', error)
-      const errorMessage = error instanceof Error ? error.message : '未知錯誤'
-      setGeneratedContent(`生成失敗: ${errorMessage}`)
-    } finally {
-      setIsGenerating(false)
-    }
-  }, [chatgptService])
-
   return (
     <div className="space-y-4">
       {/* Admin sub header */}
@@ -219,13 +190,13 @@ export default function AIGenerator() {
                   <div className="flex space-x-2">
                     <button
                       onClick={saveEdit}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      className="px-4 py-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-colors"
                     >
                       保存
                     </button>
                     <button
                       onClick={cancelEdit}
-                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      className="px-4 py-2 border border-gray-500 text-gray-500 rounded-lg hover:bg-gray-500 hover:text-white transition-colors"
                     >
                       取消
                     </button>
@@ -247,16 +218,9 @@ export default function AIGenerator() {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => startEdit(template)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
                     >
                       編輯
-                    </button>
-                    <button
-                      onClick={() => generateContent(template.prompt)}
-                      disabled={!template.prompt.trim()}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      生成內容
                     </button>
                   </div>
                 </div>
@@ -264,22 +228,6 @@ export default function AIGenerator() {
             </div>
           ))}
         </div>
-
-        {/* 生成的內容 */}
-        {generatedContent && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">生成的內容</h3>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-700 whitespace-pre-wrap">{generatedContent}</p>
-            </div>
-            {isGenerating && (
-              <div className="mt-4 text-center text-gray-600">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2">正在生成內容...</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )
