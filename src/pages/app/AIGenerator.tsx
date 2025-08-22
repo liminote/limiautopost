@@ -1,75 +1,80 @@
-import { useState, useEffect, useCallback } from 'react'
-import AdminSubnav from '../../components/AdminSubnav'
-import type { BackendSystemTemplate } from '../../services/backendTemplateService'
+import React, { useState, useCallback, useEffect } from 'react'
+import { CardService } from '../../services/cardService'
 import { BackendTemplateService } from '../../services/backendTemplateService'
+import { defaultSystemCards } from '../../data/defaultCards'
+import { ChatGPTService } from '../../services/chatgptService'
 
-// 簡化的模板資料結構
-type Template = {
-  id: string
-  title: string
-  platform: string
-  features: string
-  prompt: string
+// 診斷日誌系統
+class TemplateDiagnostics {
+  private logs: Array<{ timestamp: string; action: string; details: any }> = []
+  
+  log(action: string, details?: any) {
+    const logEntry = {
+      timestamp: new Date().toLocaleString('zh-TW'),
+      action,
+      details
+    }
+    this.logs.push(logEntry)
+    console.log(`[TemplateDiagnostics] ${action}:`, details)
+    
+    // 保持最多 50 條日誌
+    if (this.logs.length > 50) {
+      this.logs.shift()
+    }
+  }
+  
+  getLogs() {
+    return this.logs
+  }
+  
+  exportLogs() {
+    return JSON.stringify(this.logs, null, 2)
+  }
 }
 
-// 平台選項
-const PLATFORM_OPTIONS = [
-  { value: 'threads', label: 'Threads' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'facebook', label: 'Facebook' },
-  { value: 'general', label: '通用' }
-]
+const diagnostics = new TemplateDiagnostics()
 
-// 固定的四個模板 - 清空內容
-const TEMPLATES: Template[] = [
-  {
-    id: 'template-1',
-    title: '',
-    platform: 'threads',
-    features: '',
-    prompt: ''
-  },
-  {
-    id: 'template-2',
-    title: '',
-    platform: 'threads',
-    features: '',
-    prompt: ''
-  },
-  {
-    id: 'template-3',
-    title: '',
-    platform: 'threads',
-    features: '',
-    prompt: ''
-  },
-  {
-    id: 'template-4',
-    title: '',
-    platform: 'threads',
-    features: '',
-    prompt: ''
-  }
-]
+// 創建模板數據結構
+const TEMPLATES = defaultSystemCards.map(card => ({
+  id: card.id,
+  title: card.templateTitle || '',
+  platform: card.platform,
+  features: card.templateFeatures || '',
+  prompt: card.prompt || ''
+}))
 
 export default function AIGenerator() {
-  // 直接使用 useState，簡化邏輯
-  const [templates, setTemplates] = useState<Template[]>([])
+  const [templates, setTemplates] = useState(TEMPLATES)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [backendService] = useState(() => BackendTemplateService.getInstance())
+  const [editingTitle, setEditingTitle] = useState('')
+  const [editingFeatures, setEditingFeatures] = useState('')
+  const [editingPrompt, setEditingPrompt] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedContent, setGeneratedContent] = useState('')
+  const [showDiagnostics, setShowDiagnostics] = useState(false)
+  
+  const cardService = CardService.getInstance()
+  const backendService = BackendTemplateService.getInstance()
+  const chatgptService = new ChatGPTService()
 
   // 載入已保存的模板
   const loadSavedTemplates = useCallback(async () => {
+    diagnostics.log('loadSavedTemplates 開始執行')
+    
     try {
-      console.log('[AIGenerator] 開始載入已保存的模板...')
-      
       // 完全依賴後端 API，不再讀取 localStorage
       console.log('[AIGenerator] 從後端 API 獲取系統模板...')
+      diagnostics.log('從後端 API 獲取系統模板')
+      
       const backendTemplates = await backendService.getSystemTemplates()
+      diagnostics.log('後端 API 回應', { 
+        count: backendTemplates.length, 
+        templates: backendTemplates 
+      })
       
       if (backendTemplates.length > 0) {
         console.log('[AIGenerator] 從後端獲取到模板，數量:', backendTemplates.length)
+        diagnostics.log('從後端獲取到模板', { count: backendTemplates.length })
         
         // 將後端模板轉換為前端格式
         const convertedTemplates = backendTemplates.map(template => ({
@@ -100,40 +105,158 @@ export default function AIGenerator() {
         finalTemplates.sort((a, b) => a.id.localeCompare(b.id))
         
         console.log('[AIGenerator] 設置最終模板，數量:', finalTemplates.length)
+        diagnostics.log('設置最終模板', { 
+          count: finalTemplates.length, 
+          templates: finalTemplates 
+        })
+        
         setTemplates(finalTemplates)
         return
       }
       
       // 沒有找到任何模板，顯示 4 個可編輯的空白預設模板
       console.log('[AIGenerator] 沒有找到模板數據，顯示空白預設模板供編輯')
+      diagnostics.log('沒有找到模板數據，顯示空白預設模板')
       setTemplates(TEMPLATES)
       
     } catch (error) {
       console.error('[AIGenerator] 載入模板失敗:', error)
-      // 出錯時也顯示空白預設模板
+      const errorMessage = error instanceof Error ? error.message : '未知錯誤'
+      diagnostics.log('載入模板失敗', { error: errorMessage })
+      
+      // 如果後端失敗，顯示預設模板
       setTemplates(TEMPLATES)
     }
-  }, [backendService]) // 依賴 backendService
+  }, [backendService])
 
+  // 保存編輯
+  const saveEdit = useCallback(async () => {
+    if (!editingId) return
+    
+    diagnostics.log('saveEdit 開始執行', { 
+      editingId, 
+      title: editingTitle, 
+      features: editingFeatures, 
+      prompt: editingPrompt 
+    })
+    
+    try {
+      const updatedTemplates = templates.map(template =>
+        template.id === editingId
+          ? {
+              ...template,
+              title: editingTitle,
+              features: editingFeatures,
+              prompt: editingPrompt
+            }
+          : template
+      )
+      
+      // 保存到後端
+      const saveResult = await backendService.updateSystemTemplate(editingId, {
+        title: editingTitle,
+        features: editingFeatures,
+        prompt: editingPrompt
+      })
+      
+      diagnostics.log('後端保存結果', saveResult)
+      
+      if (saveResult) {
+        console.log('[AIGenerator] 模板保存成功')
+        diagnostics.log('模板保存成功')
+        
+        // 更新本地狀態
+        setTemplates(updatedTemplates)
+        setEditingId(null)
+        setEditingTitle('')
+        setEditingFeatures('')
+        setEditingPrompt('')
+        
+        // 通知其他組件
+        window.dispatchEvent(new CustomEvent('templatesUpdated'))
+      } else {
+        console.error('[AIGenerator] 模板保存失敗')
+        diagnostics.log('模板保存失敗', { error: '保存結果為空' })
+        alert('保存失敗: 後端回應異常')
+      }
+    } catch (error) {
+      console.error('[AIGenerator] 保存模板時發生錯誤:', error)
+      const errorMessage = error instanceof Error ? error.message : '未知錯誤'
+      diagnostics.log('保存模板時發生錯誤', { error: errorMessage })
+      alert(`保存失敗: ${errorMessage}`)
+    }
+  }, [editingId, editingTitle, editingFeatures, editingPrompt, templates, backendService, cardService])
 
+  // 開始編輯
+  const startEdit = useCallback((template: { id: string; title: string; features: string; prompt: string }) => {
+    diagnostics.log('開始編輯模板', { 
+      id: template.id, 
+      title: template.title, 
+      features: template.features, 
+      prompt: template.prompt 
+    })
+    
+    setEditingId(template.id)
+    setEditingTitle(template.title)
+    setEditingFeatures(template.features)
+    setEditingPrompt(template.prompt)
+  }, [])
 
+  // 取消編輯
+  const cancelEdit = useCallback(() => {
+    diagnostics.log('取消編輯')
+    setEditingId(null)
+    setEditingTitle('')
+    setEditingFeatures('')
+    setEditingPrompt('')
+  }, [])
 
+  // 生成內容
+  const generateContent = useCallback(async (prompt: string) => {
+    if (!prompt.trim()) return
+    
+    diagnostics.log('開始生成內容', { prompt })
+    setIsGenerating(true)
+    
+    try {
+      const result = await chatgptService.generateContent({ prompt })
+      
+      if (result.success && result.content) {
+        setGeneratedContent(result.content)
+        diagnostics.log('內容生成成功', { contentLength: result.content.length })
+      } else {
+        console.error('生成失敗:', result.error)
+        diagnostics.log('內容生成失敗', { error: result.error })
+        setGeneratedContent(`生成失敗: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('生成內容時發生錯誤:', error)
+      const errorMessage = error instanceof Error ? error.message : '未知錯誤'
+      diagnostics.log('生成內容時發生錯誤', { error: errorMessage })
+      setGeneratedContent(`生成錯誤: ${errorMessage}`)
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [chatgptService])
 
-
-
-  // 初始化時載入模板 - 只在組件掛載時執行一次
+  // 組件掛載時載入模板
   useEffect(() => {
-    console.log('[AIGenerator] 組件掛載，開始載入模板')
+    diagnostics.log('AIGenerator 組件掛載')
     loadSavedTemplates()
-  }, []) // 空依賴項，確保只在掛載時執行一次
+    
+    // 清理函數
+    return () => {
+      diagnostics.log('AIGenerator 組件卸載')
+    }
+  }, [loadSavedTemplates])
 
-  // 監聽模板更新事件，確保當管理者更新模板時能同步
+  // 監聽模板更新事件
   useEffect(() => {
     const handleTemplatesUpdated = () => {
-      console.log('[AIGenerator] 收到模板更新事件，重新載入模板')
-      loadSavedTemplates()
+      diagnostics.log('收到 templatesUpdated 事件')
+      // 注意：不再自動重新載入，避免覆蓋用戶編輯
     }
-
+    
     window.addEventListener('templatesUpdated', handleTemplatesUpdated)
     
     return () => {
@@ -141,254 +264,206 @@ export default function AIGenerator() {
     }
   }, [])
 
-  // 開始編輯
-  const startEdit = (id: string) => {
-    console.log('✏️ 開始編輯模板:', id)
-    setEditingId(id)
-  }
-
-  // 取消編輯
-  const cancelEdit = () => {
-    console.log('❌ 取消編輯')
-    setEditingId(null)
-    // 不重新載入，避免覆蓋正在編輯的數據
-    console.log('🔄 取消編輯，保持當前狀態')
-  }
-
-  // 保存編輯
-  const saveEdit = async () => {
-    if (!editingId) return
-    
-    setIsSaving(true)
-    try {
-      console.log('[AIGenerator] 開始保存模板:', editingId)
-      
-      // 找到正在編輯的模板
-      const editingTemplate = templates.find(t => t.id === editingId)
-      if (!editingTemplate) {
-        console.error('[AIGenerator] 找不到正在編輯的模板')
-        return
+  // 監聽頁面可見性變化
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        diagnostics.log('頁面變為可見')
+      } else {
+        diagnostics.log('頁面變為隱藏')
       }
-      
-      // 1. 保存到後端服務
-      try {
-        console.log('[AIGenerator] 準備發送數據到後端:', {
-          id: editingTemplate.id,
-          title: editingTemplate.title,
-          features: editingTemplate.features,
-          prompt: editingTemplate.prompt,
-          platform: editingTemplate.platform
-        })
-        
-        const result = await backendService.updateSystemTemplate(
-          editingTemplate.id,
-          {
-            title: editingTemplate.title || '',
-            features: editingTemplate.features || '',
-            prompt: editingTemplate.prompt || '',
-            platform: (editingTemplate.platform as 'threads' | 'instagram' | 'facebook' | 'general') || 'threads'
-          },
-          'admin' // 假設是管理員更新
-        )
-        
-        console.log('[AIGenerator] 後端保存成功，響應:', result)
-      } catch (error) {
-        console.error('[AIGenerator] 後端服務調用失敗:', error)
-        // 如果後端失敗，顯示錯誤提示
-        alert(`保存失敗：${error instanceof Error ? error.message : '未知錯誤'}`)
-        return // 後端失敗時不繼續執行
-      }
-      
-      // 2. 更新本地狀態
-      const updatedTemplates = templates.map(template =>
-        template.id === editingId
-          ? {
-              ...template,
-              title: editingTemplate.title || '',
-              features: editingTemplate.features || '',
-              prompt: editingTemplate.prompt || ''
-            }
-          : template
-      )
-      
-      setTemplates(updatedTemplates)
-      
-      console.log('[AIGenerator] 本地狀態已更新')
-      
-      // 注意：不再保存到 localStorage，完全依賴後端 API
-      // 如果後端 API 失敗，用戶會看到錯誤提示
-      
-      // 4. 關閉編輯模式
-      setEditingId(null)
-      
-      // 5. 觸發模板更新事件，通知其他頁面
-      window.dispatchEvent(new CustomEvent('templatesUpdated'))
-      console.log('[AIGenerator] 已觸發 templatesUpdated 事件')
-      
-      // 6. 顯示保存成功狀態，不重新載入
-      console.log('[AIGenerator] 模板保存成功，不重新載入避免覆蓋數據')
-      
-      // 注意：刪除了 setTimeout 和 loadSavedTemplates() 調用
-      // 這樣可以避免保存後立即重新載入，覆蓋剛保存的數據
-      
-    } catch (error) {
-      console.error('[AIGenerator] 保存失敗:', error)
-    } finally {
-      setIsSaving(false)
     }
-  }
-
-  // 更新模板欄位 - 直接更新狀態
-  const updateTemplateField = (id: string, field: keyof Template, value: string) => {
-    console.log(`🔄 更新模板 ${id} 的 ${field} 欄位為:`, value)
     
-    setTemplates(prev => 
-      prev.map(template =>
-        template.id === id ? { ...template, [field]: value } : template
-      )
-    )
-  }
+    const handleFocus = () => {
+      diagnostics.log('頁面獲得焦點')
+    }
+    
+    const handleBlur = () => {
+      diagnostics.log('頁面失去焦點')
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    window.addEventListener('blur', handleBlur)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('blur', handleBlur)
+    }
+  }, [])
+
+  // 監聽 localStorage 變化
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && e.key.includes('template')) {
+        diagnostics.log('localStorage 變化', { 
+          key: e.key, 
+          oldValue: e.oldValue, 
+          newValue: e.newValue 
+        })
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminSubnav />
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-semibold text-gray-900">AI 生成器模板管理</h1>
-            <p className="text-gray-600 mt-1">管理系統預設的 AI 生成模板</p>
-          </div>
-          
-          <div className="p-6">
-            <div className="space-y-6">
-              {templates.map((template) => (
-                <div key={template.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <div className="flex items-center space-x-2">
-                          <label className="text-sm font-medium text-gray-700">平台:</label>
-                          {editingId === template.id ? (
-                            <select
-                              value={template.platform}
-                              onChange={(e) => {
-                                const newValue = e.target.value
-                                console.log(`platform select onChange: "${newValue}"`)
-                                updateTemplateField(template.id, 'platform', newValue)
-                              }}
-                              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)] text-sm"
-                            >
-                              {PLATFORM_OPTIONS.map(option => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="px-2 py-1 bg-[var(--yinmn-blue)]/10 text-[var(--yinmn-blue)] text-sm font-medium rounded">
-                              {PLATFORM_OPTIONS.find(p => p.value === template.platform)?.label || template.platform}
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {editingId === template.id ? (
-                            <input
-                              type="text"
-                              value={template.title}
-                              onChange={(e) => {
-                                const newValue = e.target.value
-                                console.log(`title input onChange: "${newValue}"`)
-                                updateTemplateField(template.id, 'title', newValue)
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)]"
-                            />
-                          ) : (
-                            template.title
-                          )}
-                        </h3>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          功能描述
-                        </label>
-                        {editingId === template.id ? (
-                          <input
-                            type="text"
-                            value={template.features}
-                            onChange={(e) => {
-                              const newValue = e.target.value
-                              console.log(`features input onChange: "${newValue}"`)
-                              updateTemplateField(template.id, 'features', newValue)
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)]"
-                          />
-                        ) : (
-                          <p className="text-gray-600">{template.features}</p>
-                        )}
-                      </div>
-                      
-                      <div className="mb-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          AI 提示詞
-                        </label>
-                        {editingId === template.id ? (
-                          <textarea
-                            value={template.prompt}
-                            onChange={(e) => {
-                              const newValue = e.target.value
-                              console.log(`textarea onChange: ${newValue.length} 字元`)
-                              updateTemplateField(template.id, 'prompt', newValue)
-                            }}
-                            onBlur={(e) => {
-                              const finalValue = e.target.value
-                              console.log(`textarea onBlur: ${finalValue.length} 字元`)
-                              updateTemplateField(template.id, 'prompt', finalValue)
-                            }}
-                            rows={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)] font-mono text-sm"
-                          />
-                        ) : (
-                          <pre className="text-gray-600 text-sm whitespace-pre-wrap font-mono bg-gray-50 p-3 rounded">
-                            {template.prompt}
-                          </pre>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-2">
-                    {editingId === template.id ? (
-                      <>
-                        <button
-                          onClick={cancelEdit}
-                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)]"
-                        >
-                          取消
-                        </button>
-                        <button
-                          onClick={saveEdit}
-                          disabled={isSaving}
-                          className="px-4 py-2 text-sm font-medium text-white bg-[var(--yinmn-blue)] border border-transparent rounded-md hover:bg-[var(--yinmn-blue)]/90 focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)] disabled:opacity-50"
-                        >
-                          {isSaving ? '保存中...' : '保存'}
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => startEdit(template.id)}
-                        className="px-4 py-2 text-sm font-medium text-[var(--yinmn-blue)] bg-white border border-[var(--yinmn-blue)] rounded-md hover:bg-[var(--yinmn-blue)]/10 focus:outline-none focus:ring-2 focus:ring-[var(--yinmn-blue)]"
-                      >
-                        編輯
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI 生成器</h1>
+          <p className="text-gray-600">管理您的 AI 生成模板</p>
+        </div>
+
+        {/* 診斷控制面板 */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-blue-900">診斷工具</h3>
+            <div className="space-x-2">
+              <button
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                {showDiagnostics ? '隱藏診斷' : '顯示診斷'}
+              </button>
+              <button
+                onClick={() => {
+                  const logs = diagnostics.exportLogs()
+                  navigator.clipboard.writeText(logs)
+                  alert('診斷日誌已複製到剪貼板')
+                }}
+                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                複製日誌
+              </button>
+              <button
+                onClick={() => {
+                  diagnostics.log('手動觸發 loadSavedTemplates')
+                  loadSavedTemplates()
+                }}
+                className="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700"
+              >
+                手動重新載入
+              </button>
             </div>
           </div>
+          
+          {showDiagnostics && (
+            <div className="mt-4 p-3 bg-white rounded border">
+              <div className="text-sm text-gray-700 mb-2">
+                <strong>當前狀態：</strong>
+                - 模板數量: {templates.length}
+                - 編輯中: {editingId || '無'}
+                - 最後更新: {new Date().toLocaleString('zh-TW')}
+              </div>
+              <div className="text-xs text-gray-600 max-h-40 overflow-y-auto">
+                {diagnostics.getLogs().slice(-10).map((log, index) => (
+                  <div key={index} className="mb-1">
+                    <span className="text-blue-600">{log.timestamp}</span>
+                    <span className="text-gray-800">: {log.action}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* 模板列表 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {templates.map((template) => (
+            <div key={template.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              {editingId === template.id ? (
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    placeholder="模板標題"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <textarea
+                    value={editingFeatures}
+                    onChange={(e) => setEditingFeatures(e.target.value)}
+                    placeholder="模板特色"
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <textarea
+                    value={editingPrompt}
+                    onChange={(e) => setEditingPrompt(e.target.value)}
+                    placeholder="AI 提示詞"
+                    rows={4}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={saveEdit}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      保存
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {template.title || '未命名模板'}
+                  </h3>
+                  <p className="text-gray-600 mb-3">
+                    {template.features || '無特色描述'}
+                  </p>
+                  <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                    <p className="text-sm text-gray-700">
+                      {template.prompt || '無提示詞'}
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => startEdit(template)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      編輯
+                    </button>
+                    <button
+                      onClick={() => generateContent(template.prompt)}
+                      disabled={!template.prompt.trim()}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      生成內容
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* 生成的內容 */}
+        {generatedContent && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">生成的內容</h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-gray-700 whitespace-pre-wrap">{generatedContent}</p>
+            </div>
+            {isGenerating && (
+              <div className="mt-4 text-center text-gray-600">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2">正在生成內容...</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
