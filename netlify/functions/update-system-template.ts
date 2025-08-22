@@ -230,14 +230,79 @@ exports.handler = async (event) => {
   // 處理 OPTIONS 請求
   if (event.httpMethod === 'OPTIONS') {
     return createResponse(200, '', {
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, DELETE'
     })
+  }
+  
+  // DELETE 方法：強制清理舊數據
+  if (event.httpMethod === 'DELETE') {
+    try {
+      console.log('🧹 開始強制清理舊數據...')
+      
+      // 清理 Blobs
+      try {
+        const { getStore } = require('@netlify/blobs')
+        const store = getStore('system-templates')
+        await store.delete('templates')
+        console.log('✅ Blobs 數據清理成功')
+      } catch (error) {
+        console.warn('⚠️ Blobs 清理失敗:', error.message)
+      }
+      
+      // 清理文件系統
+      try {
+        const fs = require('fs')
+        const path = require('path')
+        const filePath = path.join('/tmp', 'system-templates.json')
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+          console.log('✅ 文件系統數據清理成功')
+        }
+      } catch (error) {
+        console.warn('⚠️ 文件系統清理失敗:', error.message)
+      }
+      
+      // 清理內存
+      memoryStorage = {}
+      console.log('✅ 內存數據清理成功')
+      
+      return createResponse(200, {
+        success: true,
+        message: '舊數據清理完成',
+        timestamp: new Date().toISOString()
+      })
+      
+    } catch (error) {
+      console.error('清理舊數據失敗:', error)
+      return createResponse(500, { error: '清理失敗' })
+    }
   }
   
   // GET 方法：讀取模板
   if (event.httpMethod === 'GET') {
     try {
       const templates = await getTemplates()
+      
+      // 檢查是否為舊的測試數據
+      if (isOldTestData(templates)) {
+        console.log('⚠️ 檢測到舊的測試數據，自動觸發清理')
+        
+        // 異步清理舊數據
+        setTimeout(async () => {
+          try {
+            const { getStore } = require('@netlify/blobs')
+            const store = getStore('system-templates')
+            await store.delete('templates')
+            console.log('🧹 自動清理舊數據完成')
+          } catch (error) {
+            console.warn('⚠️ 自動清理失敗:', error.message)
+          }
+        }, 1000)
+        
+        // 返回空白模板
+        return createResponse(200, DEFAULT_TEMPLATES)
+      }
+      
       return createResponse(200, templates)
     } catch (error) {
       console.error('讀取模板失敗:', error)
