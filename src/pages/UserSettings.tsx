@@ -215,15 +215,17 @@ export default function UserSettings(){
     }
   }, [session?.email, location.search])
 
-  // 定期檢查授權狀態（每 30 分鐘）
+  // 定期檢查授權狀態 - 已禁用，避免間接影響模板數據
   useEffect(() => {
     if (!session) return
     
-    const interval = setInterval(() => {
-      checkAuthStatus()
-    }, 30 * 60 * 1000) // 30 分鐘
+    // 注意：不再定期檢查授權狀態，避免間接影響模板數據
+    // 用戶可以手動點擊「重新檢查狀態」按鈕來檢查授權
+    console.log('[UserSettings] 定期授權檢查已禁用，避免影響模板數據')
     
-    return () => clearInterval(interval)
+    return () => {
+      // 清理函數
+    }
   }, [session?.email])
 
   // 載入模板管理資訊
