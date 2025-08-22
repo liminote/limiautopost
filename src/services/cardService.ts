@@ -2,83 +2,6 @@ import type { BaseCard, SystemCard, UserCard, CardGenerationRequest, CardGenerat
 import { defaultSystemCards } from '../data/defaultCards'
 import { GitHubSyncService } from './githubSyncService'
 
-// 立即啟用全局保護機制，防止系統模板被意外清除
-(function enableGlobalProtection() {
-  try {
-    console.log('[CardService] 啟用全局保護機制...')
-    
-    // 立即檢查系統模板狀態
-    const checkSystemTemplates = () => {
-      const systemTemplates = localStorage.getItem('limiautopost:systemTemplates')
-      const oldTemplates = localStorage.getItem('aigenerator_templates')
-      
-      if (!systemTemplates || systemTemplates === '{}' || systemTemplates === '[]') {
-        console.warn('[CardService] 全局保護：檢測到系統模板丟失，嘗試恢復...')
-        
-        // 嘗試從舊的存儲鍵恢復
-        if (oldTemplates && oldTemplates !== '{}' && oldTemplates !== '[]') {
-          localStorage.setItem('limiautopost:systemTemplates', oldTemplates)
-          console.log('[CardService] 全局保護：從舊存儲鍵恢復系統模板')
-        } else {
-          // 如果沒有備份，設置一個標記表示需要重新初始化
-          localStorage.setItem('limiautopost:needsReinit', 'true')
-          console.warn('[CardService] 全局保護：系統模板丟失且無備份，標記需要重新初始化')
-        }
-      }
-    }
-    
-    // 立即檢查一次
-    checkSystemTemplates()
-    
-    // 每1秒檢查一次
-    setInterval(checkSystemTemplates, 1000)
-    
-    // 保存原始方法
-    const originalRemoveItem = localStorage.removeItem
-    const originalClear = localStorage.clear
-    const originalSetItem = localStorage.setItem
-    
-    // 保護 removeItem
-    localStorage.removeItem = function(key: string) {
-      if (key === 'limiautopost:systemTemplates' || key === 'aigenerator_templates') {
-        console.warn('[CardService] 全局保護：阻止清除系統模板:', key)
-        return
-      }
-      return originalRemoveItem.call(localStorage, key)
-    }
-    
-    // 保護 clear
-    localStorage.clear = function() {
-      console.warn('[CardService] 全局保護：阻止清除所有 localStorage 數據')
-      return
-    }
-    
-    // 保護 setItem
-    localStorage.setItem = function(key: string, value: string) {
-      if (key === 'limiautopost:systemTemplates' && (!value || value === '{}' || value === '[]')) {
-        console.warn('[CardService] 全局保護：阻止將系統模板設置為空值')
-        return
-      }
-      return originalSetItem.call(localStorage, key, value)
-    }
-    
-    // 監聽 storage 事件
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'limiautopost:systemTemplates') {
-        console.warn('[CardService] 全局保護：檢測到其他來源修改系統模板:', event.newValue)
-        if (!event.newValue || event.newValue === '{}' || event.newValue === '[]') {
-          console.warn('[CardService] 全局保護：檢測到系統模板被清空，立即恢復...')
-          setTimeout(checkSystemTemplates, 100)
-        }
-      }
-    })
-    
-    console.log('[CardService] 全局保護機制已啟用')
-  } catch (error) {
-    console.error('[CardService] 啟用全局保護機制失敗:', error)
-  }
-})()
-
 // 定義 GitHubTemplate 類型
 interface GitHubTemplate {
   platform: string
@@ -123,11 +46,8 @@ export class CardService {
     // 創建系統模板備份
     this.createSystemTemplatesBackup()
     
-    // 啟用系統模板監控機制（保護機制已在模塊載入時全局啟用）
-    this.monitorSystemTemplates()
-    
-    // 移除強制重新載入，因為這可能導致問題
-    // this.forceReloadSystemTemplates()
+    // 啟用簡單的監控機制
+    this.enableSimpleMonitoring()
     
     console.log('[CardService] 初始化完成，系統模板數量:', this.systemTemplates.length)
   }
@@ -786,6 +706,17 @@ export class CardService {
   // 載入保存的系統模板修改（從 GitHub）
   public async loadSavedSystemTemplates(): Promise<void> {
     try {
+      // 首先檢查本地是否有用戶編輯的模板
+      const localTemplates = localStorage.getItem('limiautopost:systemTemplates')
+      const hasLocalEdits = localTemplates && localTemplates !== '{}' && localTemplates !== '[]'
+      
+      if (hasLocalEdits) {
+        console.log('[CardService] 檢測到本地有用戶編輯，優先使用本地版本')
+        this.loadSavedSystemTemplatesFromLocal()
+        return
+      }
+      
+      // 只有在沒有本地編輯時才從 GitHub 載入
       const savedTemplates = await this.githubSyncService.getSystemTemplatesFromGitHub()
       
       if (Object.keys(savedTemplates).length > 0) {
@@ -803,14 +734,12 @@ export class CardService {
           }
         })
         
-        console.log('已從 GitHub 載入保存的系統模板修改')
+        console.log('[CardService] 已從 GitHub 載入系統模板（無本地編輯時）')
       } else {
-        console.warn('無法從 GitHub 載入模板修改，使用本地版本')
-        // 如果 GitHub 載入失敗，嘗試從 localStorage 載入（向後相容）
-        this.loadSavedSystemTemplatesFromLocal()
+        console.warn('[CardService] 無法從 GitHub 載入模板，使用預設版本')
       }
     } catch (error) {
-      console.error('從 GitHub 載入系統模板失敗:', error)
+      console.error('[CardService] 從 GitHub 載入系統模板失敗:', error)
       // 如果 GitHub 載入失敗，嘗試從 localStorage 載入（向後相容）
       this.loadSavedSystemTemplatesFromLocal()
     }
@@ -962,22 +891,9 @@ export class CardService {
     }
   }
 
-  // 保護機制已在模塊載入時全局啟用，此處不再重複設置
-
-  // 增強：監控系統模板狀態，自動檢測和恢復
-  private monitorSystemTemplates(): void {
+  // 啟用簡單的監控機制
+  private enableSimpleMonitoring(): void {
     try {
-      // 保存 this 引用
-      const self = this
-      
-      // 立即檢查一次
-      this.checkAndRestoreSystemTemplates()
-      
-      // 定期檢查系統模板是否存在（更頻繁的檢查）
-      setInterval(() => {
-        this.checkAndRestoreSystemTemplates()
-      }, 2000) // 每2秒檢查一次
-      
       // 監聽頁面可見性變化，當頁面重新可見時檢查模板
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
@@ -986,31 +902,9 @@ export class CardService {
         }
       })
       
-      // 監聽頁面焦點變化
-      window.addEventListener('focus', () => {
-        console.log('[CardService] 頁面獲得焦點，檢查系統模板狀態')
-        this.checkAndRestoreSystemTemplates()
-      })
-      
-      // 監聽頁面載入完成
-      window.addEventListener('load', () => {
-        console.log('[CardService] 頁面載入完成，檢查系統模板狀態')
-        setTimeout(() => {
-          this.checkAndRestoreSystemTemplates()
-        }, 1000)
-      })
-      
-      // 監聽 DOM 內容載入完成
-      document.addEventListener('DOMContentLoaded', () => {
-        console.log('[CardService] DOM 內容載入完成，檢查系統模板狀態')
-        setTimeout(() => {
-          this.checkAndRestoreSystemTemplates()
-        }, 500)
-      })
-      
-      console.log('[CardService] 系統模板監控機制已啟用')
+      console.log('[CardService] 簡單監控機制已啟用')
     } catch (error) {
-      console.error('[CardService] 啟用系統模板監控機制失敗:', error)
+      console.error('[CardService] 啟用簡單監控機制失敗:', error)
     }
   }
 
