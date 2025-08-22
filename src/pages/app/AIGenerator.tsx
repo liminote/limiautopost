@@ -154,14 +154,14 @@ export default function AIGenerator() {
       {/* Admin sub header */}
       <AdminSubnav />
       
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold mb-2">AI 生成器模板管理</h1>
           <p className="text-gray-600">管理四個預設模板的設定</p>
         </div>
 
-        {/* 模板列表 */}
-        <div className="space-y-4">
+        {/* 模板列表 - 一排兩個 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {templates.map((template) => (
             <div key={template.id} className="border rounded-lg p-4 bg-white">
               {editingId === template.id ? (
@@ -204,21 +204,23 @@ export default function AIGenerator() {
                 </div>
               ) : (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 
+                    className="text-lg font-semibold mb-2"
+                    style={{ color: 'var(--yinmn-blue)' }}
+                  >
                     {template.title || '未命名模板'}
                   </h3>
                   <p className="text-gray-600 mb-3">
                     {template.features || '無特色描述'}
                   </p>
-                  <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                    <p className="text-sm text-gray-700">
-                      {template.prompt || '無提示詞'}
-                    </p>
-                  </div>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => startEdit(template)}
-                      className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
+                      className="px-4 py-2 border rounded-lg transition-colors"
+                      style={{ 
+                        borderColor: 'var(--yinmn-blue)', 
+                        color: 'var(--yinmn-blue)' 
+                      }}
                     >
                       編輯
                     </button>
