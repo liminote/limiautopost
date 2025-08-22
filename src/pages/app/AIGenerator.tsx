@@ -161,7 +161,8 @@ export default function AIGenerator() {
       
       diagnostics.log('後端保存結果', saveResult)
       
-      if (saveResult) {
+      // 檢查保存結果 - 後端返回的是完整的模板對象，不是布爾值
+      if (saveResult && saveResult.id) {
         console.log('[AIGenerator] 模板保存成功')
         diagnostics.log('模板保存成功')
         
@@ -176,7 +177,7 @@ export default function AIGenerator() {
         window.dispatchEvent(new CustomEvent('templatesUpdated'))
       } else {
         console.error('[AIGenerator] 模板保存失敗')
-        diagnostics.log('模板保存失敗', { error: '保存結果為空' })
+        diagnostics.log('模板保存失敗', { error: '保存結果為空或無效' })
         alert('保存失敗: 後端回應異常')
       }
     } catch (error) {
@@ -185,7 +186,7 @@ export default function AIGenerator() {
       diagnostics.log('保存模板時發生錯誤', { error: errorMessage })
       alert(`保存失敗: ${errorMessage}`)
     }
-  }, [editingId, editingTitle, editingFeatures, editingPrompt, templates, backendService, cardService])
+  }, [editingId, editingTitle, editingFeatures, editingPrompt, templates, backendService])
 
   // 開始編輯
   const startEdit = useCallback((template: { id: string; title: string; features: string; prompt: string }) => {
