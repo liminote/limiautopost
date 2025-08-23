@@ -5,15 +5,15 @@
     "title": "RRRR",
     "features": "RRR",
     "prompt": "RRRR",
-    "updatedAt": "2025-08-23T17:49:03.257Z"
+    "updatedAt": "2025-08-23T17:49:13.936Z"
   },
   "template-2": {
     "id": "template-2",
     "platform": "threads",
-    "title": "B",
-    "features": "B",
-    "prompt": "B",
-    "updatedAt": "2025-08-23T17:49:03.257Z"
+    "title": "TTTT",
+    "features": "TTTT",
+    "prompt": "TTTT",
+    "updatedAt": "2025-08-23T17:49:13.936Z"
   },
   "template-3": {
     "id": "template-3",
@@ -21,7 +21,7 @@
     "title": "C",
     "features": "C",
     "prompt": "C",
-    "updatedAt": "2025-08-23T17:49:03.257Z"
+    "updatedAt": "2025-08-23T17:49:13.936Z"
   },
   "template-4": {
     "id": "template-4",
@@ -29,6 +29,6 @@
     "title": "D",
     "features": "D",
     "prompt": "D",
-    "updatedAt": "2025-08-23T17:49:03.257Z"
+    "updatedAt": "2025-08-23T17:49:13.936Z"
   }
 }
