@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import CardManager from '../components/CardManager'
 import { CardService } from '../services/cardService'
+import { GitHubSyncService } from '../services/githubSyncService'
 import type { BaseCard } from '../types/cards'
 import { useSession } from '../auth/auth'
 
@@ -18,33 +19,67 @@ export default function UserSettings(){
   const [maxSelections, setMaxSelections] = useState(5)
 
   const cardService = CardService.getInstance()
+  const githubService = GitHubSyncService.getInstance()
 
   // 載入模板管理資訊
   const loadTemplateManagement = async () => {
     if (!session) return
     
     try {
-      console.log('[UserSettings] 開始載入最新模板...')
+      console.log('[UserSettings] 開始從 GitHub 載入最新模板...')
       
-      // 使用 CardService 的非同步方法獲取最新模板
-      const allTemplates = await cardService.getAllCardsAsync(session.email)
+      // 直接從 GitHub 讀取系統模板
+      const githubTemplates = await githubService.getSystemTemplatesFromGitHub()
       
-      // 正確過濾已選擇的模板
-      const selectedTemplates = allTemplates.filter(template => template.isSelected)
-      
-      console.log('[UserSettings] 載入模板完成:', {
-        total: allTemplates.length,
-        selected: selectedTemplates.length,
-        maxSelections,
-        templates: allTemplates.map(t => ({ id: t.id, title: t.templateTitle, isSystem: t.isSystem }))
-      })
-      
-      setAvailableTemplates(allTemplates)
-      setSelectedTemplates(selectedTemplates)
-      setMaxSelections(5) // 固定最大選擇數量
+      if (Object.keys(githubTemplates).length > 0) {
+        console.log('[UserSettings] 從 GitHub 成功載入模板，數量:', Object.keys(githubTemplates).length)
+        
+        // 將 GitHub 模板轉換為 BaseCard 格式
+        const systemTemplates: BaseCard[] = Object.values(githubTemplates).map((template: any) => ({
+          id: template.id,
+          name: template.title || '',
+          description: template.features || '',
+          category: template.platform.toLowerCase() as any,
+          prompt: template.prompt || '',
+          isActive: true,
+          isSystem: true,
+          createdAt: new Date(),
+          updatedAt: new Date(template.updatedAt),
+          platform: template.platform.toLowerCase() as any,
+          templateTitle: template.title || '',
+          templateFeatures: template.features || '',
+          isSelected: false
+        }))
+        
+        // 獲取用戶個人模板
+        const userTemplates = cardService.getUserCards(session.email)
+        
+        // 合併系統模板和用戶模板
+        const allTemplates = [...systemTemplates, ...userTemplates]
+        
+        // 獲取用戶選擇狀態
+        const userSelections = cardService.getUserSelections(session.email)
+        const selectedTemplates = allTemplates.filter(template => userSelections.has(template.id))
+        
+        console.log('[UserSettings] 載入模板完成:', {
+          total: allTemplates.length,
+          system: systemTemplates.length,
+          user: userTemplates.length,
+          selected: selectedTemplates.length,
+          maxSelections
+        })
+        
+        setAvailableTemplates(allTemplates)
+        setSelectedTemplates(selectedTemplates)
+        setMaxSelections(5)
+      } else {
+        throw new Error('GitHub 上沒有找到模板數據')
+      }
     } catch (error) {
-      console.warn('[UserSettings] 載入模板失敗，使用同步方法:', error)
-      // 回退到同步方法
+      console.error('[UserSettings] 從 GitHub 載入模板失敗:', error)
+      console.warn('[UserSettings] 使用 CardService 作為備用方案')
+      
+      // 備用方案：使用 CardService
       const allTemplates = cardService.getAllCards(session.email)
       const selectedTemplates = allTemplates.filter(template => template.isSelected)
       
