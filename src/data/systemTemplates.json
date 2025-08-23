@@ -5,7 +5,7 @@
     "title": "RRRR",
     "features": "RRR",
     "prompt": "RRRR",
-    "updatedAt": "2025-08-23T17:49:23.059Z"
+    "updatedAt": "2025-08-23T17:49:33.033Z"
   },
   "template-2": {
     "id": "template-2",
@@ -13,7 +13,7 @@
     "title": "TTTT",
     "features": "TTTT",
     "prompt": "TTTT",
-    "updatedAt": "2025-08-23T17:49:23.059Z"
+    "updatedAt": "2025-08-23T17:49:33.033Z"
   },
   "template-3": {
     "id": "template-3",
@@ -21,14 +21,14 @@
     "title": "HHH",
     "features": "HHH",
     "prompt": "HHH",
-    "updatedAt": "2025-08-23T17:49:23.060Z"
+    "updatedAt": "2025-08-23T17:49:33.033Z"
   },
   "template-4": {
     "id": "template-4",
     "platform": "threads",
-    "title": "D",
-    "features": "D",
-    "prompt": "D",
-    "updatedAt": "2025-08-23T17:49:23.060Z"
+    "title": "WWWW",
+    "features": "WWWW",
+    "prompt": "WWWW",
+    "updatedAt": "2025-08-23T17:49:33.033Z"
   }
 }
