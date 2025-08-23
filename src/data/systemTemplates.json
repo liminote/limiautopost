@@ -2,33 +2,33 @@
   "template-1": {
     "id": "template-1",
     "platform": "threads",
-    "title": "A",
-    "features": "A",
-    "prompt": "A",
-    "updatedAt": "2025-08-23T15:20:14.365Z"
+    "title": "RRRR",
+    "features": "RRR",
+    "prompt": "RRRR",
+    "updatedAt": "2025-08-23T17:49:33.033Z"
   },
   "template-2": {
     "id": "template-2",
     "platform": "threads",
-    "title": "B",
-    "features": "B",
-    "prompt": "B",
-    "updatedAt": "2025-08-23T15:20:14.365Z"
+    "title": "TTTT",
+    "features": "TTTT",
+    "prompt": "TTTT",
+    "updatedAt": "2025-08-23T17:49:33.033Z"
   },
   "template-3": {
     "id": "template-3",
     "platform": "threads",
-    "title": "C",
-    "features": "C",
-    "prompt": "C",
-    "updatedAt": "2025-08-23T15:20:14.365Z"
+    "title": "HHH",
+    "features": "HHH",
+    "prompt": "HHH",
+    "updatedAt": "2025-08-23T17:49:33.033Z"
   },
   "template-4": {
     "id": "template-4",
     "platform": "threads",
-    "title": "D",
-    "features": "D",
-    "prompt": "D",
-    "updatedAt": "2025-08-23T15:20:14.365Z"
+    "title": "WWWW",
+    "features": "WWWW",
+    "prompt": "WWWW",
+    "updatedAt": "2025-08-23T17:49:33.033Z"
   }
 }
