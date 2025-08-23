@@ -5,7 +5,7 @@
     "title": "A",
     "features": "A",
     "prompt": "A",
-    "updatedAt": "2025-08-23T15:19:45.048Z"
+    "updatedAt": "2025-08-23T15:19:57.309Z"
   },
   "template-2": {
     "id": "template-2",
@@ -13,15 +13,15 @@
     "title": "B",
     "features": "B",
     "prompt": "B",
-    "updatedAt": "2025-08-23T15:19:45.048Z"
+    "updatedAt": "2025-08-23T15:19:57.309Z"
   },
   "template-3": {
     "id": "template-3",
     "platform": "threads",
-    "title": "創意故事",
-    "features": "故事創作、想像力、創意表達",
-    "prompt": "請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個創意故事或想像情境\n- 包含生動的描述和情感表達，結尾加反思\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係",
-    "updatedAt": "2025-08-23T15:19:45.048Z"
+    "title": "C",
+    "features": "C",
+    "prompt": "C",
+    "updatedAt": "2025-08-23T15:19:57.309Z"
   },
   "template-4": {
     "id": "template-4",
@@ -29,6 +29,6 @@
     "title": "時事評論",
     "features": "社會議題、時事分析、觀點表達",
     "prompt": "請嚴格遵守以下規則生成 Threads 第一則貼文：\n- 聚焦於一個時事議題或社會現象\n- 包含客觀分析和個人觀點，結尾加思考問題\n- 加入一個相關 hashtag（限一個）\n- 字數限制：480～500 字\n- 不能與其他貼文有上下文延續關係",
-    "updatedAt": "2025-08-23T15:19:45.048Z"
+    "updatedAt": "2025-08-23T15:19:57.309Z"
   }
 }
