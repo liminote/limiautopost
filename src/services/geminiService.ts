@@ -257,7 +257,7 @@ ${content}
 原文內容：
 ${originalContent}
 
-請根據上述模板要求生成貼文內容。`
+請根據上述模板要求生成貼文內容，直接輸出貼文內容，不要包含「文章內容：」等前綴。`
 
     const result = await this.generateContent({
       prompt: fullPrompt,

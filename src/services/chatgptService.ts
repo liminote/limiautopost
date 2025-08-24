@@ -111,7 +111,7 @@ export class ChatGPTService {
 文章內容：
 ${articleContent}
 
-要求：嚴格遵守模板規則，字數控制在 ${targetLength} 字以內。`
+要求：嚴格遵守模板規則，字數控制在 ${targetLength} 字以內。直接輸出貼文內容，不要包含「文章內容：」等前綴。`
 
     // 計算 max_tokens
     const maxTokens = Math.max(1000, targetLength * 3)
