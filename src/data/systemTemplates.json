@@ -2,10 +2,10 @@
   "template-1": {
     "id": "template-1",
     "platform": "threads",
-    "title": "RRRR",
-    "features": "RRR",
-    "prompt": "RRRR",
-    "updatedAt": "2025-08-23T17:49:33.033Z"
+    "title": "資深社群文案",
+    "features": "資深社群文案",
+    "prompt": "# 角色\n你是一位資深的社群文案專家與SEO高手，擅長以精煉及充滿創意的文字吸引讀者。\n\n# 任務\n根據我提供的原始文章，生成一篇符合以下所有規則的社群貼文。\n\n# 規則\n1.  **單一SEO主題**：從文章中提取一個最核心、最吸引人的觀點作為唯一主題，不要試圖總結全文。\n2.  **內容獨立完整**：貼文需包含完整的起承轉合，論點清晰，並以一個強力的收束句結尾。\n3.  **精準Hashtag**：只使用一個與核心主題高度相關的 Hashtag。\n4.  **字數限制**：嚴格控制在 300～500 個字元（含標點符號與Hashtag）之間。\n5.  **上下文獨立**：這是一篇獨立貼文，不能有「上集回顧」或「下集待續」的感覺。\n6.  **提升吸引力**：開頭要有引人注目的勾子，內文要能引發讀者共鳴或提供價值。\n7.  **保持個人風格**：請保留原文語氣，以第一人稱的方式描述，維持溫暖專業的前輩語氣。",
+    "updatedAt": "2025-08-24T05:02:22.494Z"
   },
   "template-2": {
     "id": "template-2",
@@ -13,7 +13,7 @@
     "title": "TTTT",
     "features": "TTTT",
     "prompt": "TTTT",
-    "updatedAt": "2025-08-23T17:49:33.033Z"
+    "updatedAt": "2025-08-24T05:02:22.494Z"
   },
   "template-3": {
     "id": "template-3",
@@ -21,7 +21,7 @@
     "title": "HHH",
     "features": "HHH",
     "prompt": "HHH",
-    "updatedAt": "2025-08-23T17:49:33.033Z"
+    "updatedAt": "2025-08-24T05:02:22.494Z"
   },
   "template-4": {
     "id": "template-4",
@@ -29,6 +29,6 @@
     "title": "WWWW",
     "features": "WWWW",
     "prompt": "WWWW",
-    "updatedAt": "2025-08-23T17:49:33.033Z"
+    "updatedAt": "2025-08-24T05:02:22.494Z"
   }
 }
