@@ -4,7 +4,6 @@ import type { TrackedPost } from '../../tracking/tracking'
 import GeneratedCard, { type GeneratedCardData } from '../../components/GeneratedCard'
 import { CardService } from '../../services/cardService'
 import type { BaseCard } from '../../types/cards'
-import { GeminiService } from '../../services/geminiService'
 import { aiServiceManager, type AIModel } from '../../services/aiServiceManager'
 import { useSession } from '../../auth/auth'
 
@@ -35,7 +34,7 @@ export default function Generator() {
   const [, setTracked] = useState<TrackedPost[]>([])
   
   const cardService = CardService.getInstance()
-  const geminiService = GeminiService.getInstance()
+  // 移除未使用的 geminiService
 
   // 使用 useCallback 來避免無限循環
   const refreshTracked = useCallback(() => {
@@ -518,7 +517,7 @@ export default function Generator() {
                 onToggleChecked={(id, checked)=> setCards(prev => prev.map(x => x.id===id? { ...x, checked }: x))}
                 onPlatformChange={(id, platform)=> setCards(prev => prev.map(x => x.id===id? { ...x, platform: platform as Platform }: x))}
                 onContentChange={(id, content)=> setCards(prev => prev.map(x => x.id===id? { ...x, content }: x))}
-                onCopy={(content)=> onCopy(c.content)}
+                onCopy={()=> onCopy(c.content)}
               />
             ))}
           </div>
@@ -560,16 +559,6 @@ function mapPlatform(platform: PlatformType): Platform {
     general: 'Threads' // 預設為 Threads
   }
   return platformMap[platform] as Platform
-}
-
-function getPlatformLabel(platform: PlatformType): string {
-  const platformMap = {
-    threads: 'Threads',
-    instagram: 'Instagram',
-    facebook: 'Facebook',
-    general: 'General'
-  }
-  return platformMap[platform]
 }
 
 // 備用內容生成函數（當 AI 生成失敗時使用）
