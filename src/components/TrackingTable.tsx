@@ -59,6 +59,12 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
     const text = (r.content || '').trim()
     if (!text) { alert('內容為空，無法發佈'); return }
     
+    // 檢查 Threads 平台的字符限制
+    if (r.platform === 'Threads' && text.length > 500) {
+      alert(`Threads 發佈失敗：內容超過 500 字符限制（當前：${text.length} 字符）\n\n請縮短內容後再發佈。`)
+      return
+    }
+    
     // 檢查用戶是否已登入
     if (!userEmail) {
       alert('請先登入後再發佈貼文')

@@ -94,7 +94,12 @@ export default function GeneratedCard({
         <textarea ref={textareaRef} className="textarea text-xs resize-none" value={card.content} onChange={handleChange} rows={1} />
         {/* 字元計數 */}
         <div className="text-right">
-          <span className="text-xs text-gray-500">{card.content.length} 字元</span>
+          <span className={`text-xs ${card.platform === 'Threads' && card.content.length > 500 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
+            {card.content.length} 字元
+            {card.platform === 'Threads' && card.content.length > 500 && (
+              <span className="ml-1">⚠️ 超過 Threads 500 字符限制</span>
+            )}
+          </span>
         </div>
       </div>
     </div>
