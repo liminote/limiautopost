@@ -270,6 +270,40 @@ export default function Generator() {
       return
     }
     
+    // 檢查 Threads 平台的字符限制
+    const invalidThreads = selected.filter(c => 
+      c.platform === 'Threads' && c.content.length > 500
+    )
+    
+    if (invalidThreads.length > 0) {
+      const invalidCount = invalidThreads.length
+      const totalCount = selected.length
+      const validCount = totalCount - invalidCount
+      
+      const message = `發現 ${invalidCount} 個 Threads 貼文超過 500 字符限制：\n\n` +
+        invalidThreads.map(c => `• ${c.label}: ${c.content.length} 字符`).join('\n') +
+        `\n\n${validCount} 個貼文符合要求。\n\n是否只添加符合要求的貼文？`
+      
+      if (confirm(message)) {
+        // 只添加符合要求的卡片
+        const validCards = selected.filter(c => 
+          !(c.platform === 'Threads' && c.content.length > 500)
+        )
+        
+        if (validCards.length === 0) {
+          alert('沒有符合要求的貼文可以添加')
+          return
+        }
+        
+        // 繼續處理有效的卡片
+        selected.length = 0
+        selected.push(...validCards)
+      } else {
+        // 用戶取消操作
+        return
+      }
+    }
+    
     // 從第一張卡片的 label 取出 Axxx（若沒有，臨時給一個）
     const articleId = /A\d{3}/.exec(selected[0]?.label || '')?.[0] || nextArticleId()
     
