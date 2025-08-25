@@ -120,19 +120,19 @@ export default function UserSettings(){
   }, [])
 
   // 統一的授權狀態檢查函數
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = async (deepVerify: boolean = false) => {
     if (!session) {
       console.log('[UserSettings] 沒有 session，無法檢查授權狀態')
       return
     }
     
-    console.log('[UserSettings] 開始檢查 Threads 授權狀態...')
+    console.log(`[UserSettings] 開始檢查 Threads 授權狀態... ${deepVerify ? '(深度驗證模式)' : '(標準模式)'}`)
     
     try {
       setBusy(true)
-      setStatusMsg('正在檢查授權狀態...')
+      setStatusMsg(deepVerify ? '正在深度檢查授權狀態...' : '正在檢查授權狀態...')
       
-      const url = `/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`
+      const url = `/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}${deepVerify ? '&deep=true' : ''}`
       console.log('[UserSettings] 調用 API:', url)
       
       const response = await fetch(url, { 
@@ -321,10 +321,10 @@ export default function UserSettings(){
               <button
                 className="btn btn-ghost"
                 disabled={busy}
-                onClick={checkAuthStatus}
-                title={busy ? '正在檢查中...' : '點擊重新檢查 Threads 授權狀態'}
+                onClick={() => checkAuthStatus(true)} // 使用深度驗證模式
+                title={busy ? '正在深度檢查中...' : '點擊深度檢查 Threads 授權狀態，驗證 token 實際可用性'}
               >
-                {busy ? '檢查中...' : '重新檢查狀態'}
+                {busy ? '深度檢查中...' : '重新檢查狀態'}
               </button>
             </div>
           )}

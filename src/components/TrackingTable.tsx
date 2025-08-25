@@ -71,21 +71,55 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
       return
     }
     
-    // 發佈前預檢查 token 狀態
+    // 發佈前預檢查 token 狀態（使用深度驗證）
     try {
-      const statusCheck = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(userEmail)}`)
+      console.log('[TrackingTable] 發佈前深度檢查 Threads 授權狀態...')
+      const statusCheck = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(userEmail)}&deep=true`)
       if (statusCheck.ok) {
         const statusData = await statusCheck.json()
+        console.log('[TrackingTable] 授權狀態檢查結果:', statusData)
+        
         if (statusData.status !== 'linked') {
-          if (confirm('Threads 未連結或授權已過期，是否現在重新連結？')) {
+          let errorMessage = 'Threads 未連結或授權已過期'
+          if (statusData.reasonCode) {
+            switch (statusData.reasonCode) {
+              case 'token_expired':
+                errorMessage = 'Threads 授權已過期，請重新連結'
+                break
+              case 'deep_verify_failed':
+                errorMessage = 'Threads 授權狀態異常，請重新連結'
+                break
+              case 'deep_verify_error':
+                errorMessage = 'Threads 授權檢查失敗，請重新連結'
+                break
+              default:
+                errorMessage = `Threads 授權問題 (${statusData.reasonCode})，請重新連結`
+            }
+          }
+          
+          if (confirm(`${errorMessage}，是否現在重新連結？`)) {
             window.location.href = '/api/threads/oauth/start'
             return
           }
           return
         }
+        
+        console.log('[TrackingTable] Threads 授權狀態檢查通過，可以發佈')
+      } else {
+        console.warn('[TrackingTable] 授權狀態檢查失敗，狀態碼:', statusCheck.status)
+        if (confirm('無法檢查 Threads 授權狀態，是否繼續嘗試發佈？')) {
+          console.log('[TrackingTable] 用戶選擇繼續發佈')
+        } else {
+          return
+        }
       }
     } catch (statusError) {
-      console.warn('無法檢查 Threads 狀態，繼續嘗試發佈', statusError)
+      console.warn('[TrackingTable] 無法檢查 Threads 狀態，繼續嘗試發佈', statusError)
+      if (confirm('無法檢查 Threads 授權狀態，是否繼續嘗試發佈？')) {
+        console.log('[TrackingTable] 用戶選擇繼續發佈')
+      } else {
+        return
+      }
     }
     
     try {

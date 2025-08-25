@@ -9,6 +9,7 @@ export const handler: Handler = async (event) => {
   
   // 從 query 參數或 cookie 取得使用者資訊
   const userEmail = event.queryStringParameters?.user || ''
+  const deepVerify = event.queryStringParameters?.deep === 'true' // 新增：深度驗證模式
   const cookieLinked = userEmail 
     ? (event.headers?.cookie || '').includes(`threads_linked_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}=1`)
     : (event.headers?.cookie || '').includes('threads_linked=1')
@@ -61,6 +62,28 @@ export const handler: Handler = async (event) => {
           }
         } catch (error) {
           console.log('/me 端點異常:', error)
+        }
+        
+        // 深度驗證模式：額外檢查 token 的有效性
+        if (deepVerify && ok) {
+          try {
+            console.log('深度驗證：檢查 token 實際可用性...')
+            // 嘗試發送一個輕量級的 API 請求來驗證 token 確實可用
+            const testResp = await fetch(`https://graph.threads.net/v1.0/me?fields=id&access_token=${encodeURIComponent(data.access_token)}`)
+            if (!testResp.ok) {
+              console.log('深度驗證失敗，狀態碼:', testResp.status)
+              status = 'link_failed'
+              reasonCode = 'deep_verify_failed'
+              ok = false
+            } else {
+              console.log('深度驗證成功')
+            }
+          } catch (error) {
+            console.log('深度驗證異常:', error)
+            status = 'link_failed'
+            reasonCode = 'deep_verify_error'
+            ok = false
+          }
         }
         
         // 後援：用 user_id 明確查詢
