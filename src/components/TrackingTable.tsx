@@ -97,6 +97,41 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
       return
     }
     
+    // 發佈前檢查 Threads 授權狀態（恢復原本可以工作的邏輯）
+    try {
+      console.log('[TrackingTable] 發佈前檢查 Threads 授權狀態...')
+      const statusCheck = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(userEmail)}`)
+      
+      if (statusCheck.ok) {
+        const statusData = await statusCheck.json()
+        console.log('[TrackingTable] 授權狀態檢查結果:', statusData)
+        
+        if (statusData.status !== 'linked') {
+          if (confirm('Threads 未連結或授權已過期，是否現在重新連結？')) {
+            window.location.href = `/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(userEmail || '')}`
+            return
+          }
+          return
+        }
+        
+        console.log('[TrackingTable] Threads 授權狀態檢查通過，可以發佈')
+      } else {
+        console.warn('[TrackingTable] 授權狀態檢查失敗，狀態碼:', statusCheck.status)
+        if (confirm('無法檢查 Threads 授權狀態，是否繼續嘗試發佈？')) {
+          console.log('[TrackingTable] 用戶選擇繼續發佈')
+        } else {
+          return
+        }
+      }
+    } catch (statusError) {
+      console.warn('[TrackingTable] 無法檢查 Threads 狀態，繼續嘗試發佈', statusError)
+      if (confirm('無法檢查 Threads 授權狀態，是否繼續嘗試發佈？')) {
+        console.log('[TrackingTable] 用戶選擇繼續發佈')
+      } else {
+        return
+      }
+    }
+    
     // 直接嘗試發佈，如果授權失敗會自動處理
     console.log('[TrackingTable] 開始發佈貼文')
     

@@ -106,10 +106,10 @@ export const handler: Handler = async (event) => {
       : 'threads_linked=1'
     const cookie = `${cookieValue}; Path=/; Max-Age=${7*24*60*60}; SameSite=Lax; Secure; HttpOnly`
     
-    // 導回追蹤列表頁面，讓用戶可以直接發佈貼文
+    // 導回設定頁面顯示成功（恢復原本可以工作的路徑）
     const redirectUrl = appUserEmail 
-      ? `/tracking?threads=linked&user=${encodeURIComponent(appUserEmail)}`
-      : '/tracking?threads=linked'
+      ? `/settings?threads=linked&user=${encodeURIComponent(appUserEmail)}`
+      : '/settings?threads=linked'
     
     console.log('[OAuth Callback] 準備重定向到:', redirectUrl)
       
