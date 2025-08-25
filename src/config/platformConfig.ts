@@ -32,11 +32,10 @@ export const PLATFORM_CONFIG = {
 
 export type PlatformType = keyof typeof PLATFORM_CONFIG
 
-// 平台顯示名稱映射
-export const PLATFORM_DISPLAY_MAP = {
+// 平台顯示名稱映射 - 只包含 TrackedPost 中實際使用的平台
+export const PLATFORM_DISPLAY_MAP: Record<'Threads' | 'Instagram' | 'Facebook', string> = {
   Threads: 'TD',
   Instagram: 'IG',
-  General: 'GE',
   Facebook: 'FB'
 } as const
 
@@ -60,4 +59,28 @@ export const mapPlatform = (platform: PlatformType): 'Threads' | 'Instagram' | '
 // 平台標籤函數
 export const getPlatformLabel = (platform: PlatformType): string => {
   return PLATFORM_CONFIG[platform].label
+}
+
+// 類型安全的平台處理函數 - 專門用於 TrackedPost
+export const getTrackedPostPlatformConfig = (platform: 'Threads' | 'Instagram' | 'Facebook') => {
+  switch (platform) {
+    case 'Threads':
+      return {
+        display: PLATFORM_DISPLAY_MAP.Threads,
+        color: PLATFORM_CONFIG.threads.color,
+        codePrefix: PLATFORM_CONFIG.threads.codePrefix
+      }
+    case 'Instagram':
+      return {
+        display: PLATFORM_DISPLAY_MAP.Instagram,
+        color: PLATFORM_CONFIG.instagram.color,
+        codePrefix: PLATFORM_CONFIG.instagram.codePrefix
+      }
+    case 'Facebook':
+      return {
+        display: PLATFORM_DISPLAY_MAP.Facebook,
+        color: PLATFORM_CONFIG.facebook.color,
+        codePrefix: PLATFORM_CONFIG.facebook.codePrefix
+      }
+  }
 }
