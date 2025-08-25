@@ -7,12 +7,10 @@ import { useSession } from '../auth/auth'
 
 export default function UserSettings(){
   const session = useSession()
-  // 移除授權相關狀態
-  // const [linked, setLinked] = useState(false)
-  // const [username, setUsername] = useState<string | null>(null)
-  // const [statusMsg, setStatusMsg] = useState<string | null>(null)
-  // const [busy, setBusy] = useState(false)
-  // const [lastChecked, setLastChecked] = useState<Date | null>(null)
+  // 簡化的授權狀態，只用於顯示 OAuth 回調結果
+  const [linked, setLinked] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
+  const [statusMsg, setStatusMsg] = useState<string | null>(null)
 
   // 模板管理相關狀態
   const [availableTemplates, setAvailableTemplates] = useState<BaseCard[]>([])
@@ -126,8 +124,32 @@ export default function UserSettings(){
   // 移除頁面載入時檢查授權狀態
   // useEffect(() => { ... }, [session?.email])
 
-  // 移除處理 OAuth 回調
-  // useEffect(() => { ... }, [session?.email, location.search])
+  // 處理 OAuth 回調 - 恢復此功能以處理授權成功
+  useEffect(() => {
+    if (!session) return
+    
+    try {
+      const qs = new URLSearchParams(location.search)
+      if (qs.get('threads') === 'linked') {
+        // OAuth 成功回調
+        setLinked(true)
+        setStatusMsg('Threads 連接成功！')
+        
+        // 清除 query 參數
+        const url = new URL(location.href)
+        url.searchParams.delete('threads')
+        url.searchParams.delete('user')
+        history.replaceState({}, '', url.toString())
+        
+        // 顯示成功狀態 3 秒後自動隱藏
+        setTimeout(() => {
+          setStatusMsg(null)
+        }, 3000)
+      }
+    } catch (error) {
+      console.warn('OAuth 回調處理失敗:', error)
+    }
+  }, [session?.email, location.search])
 
   // 移除定期檢查授權狀態
   // useEffect(() => { ... }, [session?.email])
@@ -182,9 +204,19 @@ export default function UserSettings(){
         <div className="space-y-3">
           <div className="flex gap-2">
             <a className="btn btn-primary" href={`/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(session?.email || '')}`}>
-              連結 Threads（OAuth）
+              {linked ? '重新連結 Threads（OAuth）' : '連結 Threads（OAuth）'}
             </a>
           </div>
+          
+          {/* 授權狀態顯示 */}
+          {statusMsg && (
+            <div className="text-sm">
+              <span className="font-medium">狀態：</span>
+              <span className={linked ? 'text-green-600' : 'text-red-600'}>
+                {statusMsg}
+              </span>
+            </div>
+          )}
           
           <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
             <p className="font-medium">授權說明：</p>
@@ -192,6 +224,9 @@ export default function UserSettings(){
               <li>• 每次發佈貼文時都會要求重新授權</li>
               <li>• 這樣可以確保授權狀態始終是最新的</li>
               <li>• 避免授權過期導致的發佈失敗</li>
+              {linked && (
+                <li>• 您已完成授權，可以嘗試發佈貼文</li>
+              )}
             </ul>
           </div>
         </div>

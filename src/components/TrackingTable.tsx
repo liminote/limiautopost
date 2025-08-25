@@ -71,12 +71,8 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
       return
     }
     
-    // 每次發佈時都要求重新授權，不進行預檢查
-    if (confirm('每次發佈都會要求重新授權 Threads，確保授權狀態最新。是否繼續？')) {
-      console.log('[TrackingTable] 用戶確認發佈，將要求重新授權')
-    } else {
-      return
-    }
+    // 直接嘗試發佈，如果授權失敗會自動處理
+    console.log('[TrackingTable] 開始發佈貼文')
     
     try {
       setPublishingId(r.id)
