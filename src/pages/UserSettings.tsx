@@ -121,9 +121,6 @@ export default function UserSettings(){
   // 移除授權狀態檢查相關函數
   // const checkAuthStatus = async (deepVerify: boolean = false) => { ... }
 
-  // 移除頁面載入時檢查授權狀態
-  // useEffect(() => { ... }, [session?.email])
-
   // 處理 OAuth 回調 - 恢復此功能以處理授權成功
   useEffect(() => {
     if (!session) return
@@ -157,8 +154,49 @@ export default function UserSettings(){
     }
   }, [session?.email, location.search])
 
-  // 移除定期檢查授權狀態
-  // useEffect(() => { ... }, [session?.email])
+  // 檢查 Threads 授權狀態
+  const checkThreadsAuthStatus = async () => {
+    if (!session) return
+    
+    try {
+      console.log('[UserSettings] 檢查 Threads 授權狀態...')
+      const response = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[UserSettings] 授權狀態檢查結果:', data)
+        
+        if (data.status === 'linked') {
+          setLinked(true)
+          if (data.username) {
+            setUsername(data.username)
+            setStatusMsg(`Threads 已連接（${data.username}）`)
+          } else {
+            setStatusMsg('Threads 已連接')
+          }
+        } else {
+          setLinked(false)
+          setUsername(null)
+          setStatusMsg('Threads 未連接')
+        }
+      } else {
+        console.warn('[UserSettings] 授權狀態檢查失敗:', response.status)
+        setLinked(false)
+        setStatusMsg('無法檢查授權狀態')
+      }
+    } catch (error) {
+      console.error('[UserSettings] 授權狀態檢查出錯:', error)
+      setLinked(false)
+      setStatusMsg('授權狀態檢查失敗')
+    }
+  }
+
+  // 頁面載入時檢查授權狀態
+  useEffect(() => {
+    if (session) {
+      checkThreadsAuthStatus()
+    }
+  }, [session?.email])
 
   // 載入模板管理資訊
   useEffect(() => {
@@ -212,6 +250,13 @@ export default function UserSettings(){
             <a className="btn btn-primary" href={`/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(session?.email || '')}`}>
               {linked ? '重新連結 Threads（OAuth）' : '連結 Threads（OAuth）'}
             </a>
+            <button
+              onClick={checkThreadsAuthStatus}
+              className="btn btn-outline"
+              title="檢查 Threads 授權狀態"
+            >
+              檢查狀態
+            </button>
           </div>
           
           {/* 授權狀態顯示 */}
