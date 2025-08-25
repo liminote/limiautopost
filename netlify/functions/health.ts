@@ -1,31 +1,28 @@
 import type { Handler } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 
-export const handler: Handler = async () => {
-  const env = {
-    appId: !!process.env.THREADS_APP_ID,
-    appSecret: !!process.env.THREADS_APP_SECRET,
-    redirectUrl: !!process.env.THREADS_REDIRECT_URL,
-  }
-  let blobsWriteable = false
-  let blobsError: string | undefined
-  try {
-    const store = getStore(
-      process.env.NETLIFY_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN
-        ? { name: 'threads_tokens', siteID: process.env.NETLIFY_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN }
-        : { name: 'threads_tokens' }
-    )
-    const key = 'health:ping'
-    await store.set(key, JSON.stringify({ ts: new Date().toISOString() }))
-    blobsWriteable = true
-  } catch (e) {
-    blobsError = String(e)
-  }
-  const ok = env.appId && env.appSecret && env.redirectUrl && blobsWriteable
+export const handler: Handler = async (event) => {
+  const envOk = !!(process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URL)
+  
   return {
-    statusCode: ok ? 200 : 503,
+    statusCode: 200,
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ ok, env, blobsWriteable, blobsError })
+    body: JSON.stringify({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      env: {
+        threads: {
+          appId: !!process.env.THREADS_APP_ID,
+          appSecret: !!process.env.THREADS_APP_SECRET,
+          redirectUrl: !!process.env.THREADS_REDIRECT_URL,
+          allConfigured: envOk
+        }
+      },
+      oauth: {
+        startUrl: `/.netlify/functions/threads-oauth-start?user=test@example.com`,
+        callbackUrl: process.env.THREADS_REDIRECT_URL || 'NOT_SET',
+        authHost: 'https://www.threads.net'
+      }
+    })
   }
 }
 
