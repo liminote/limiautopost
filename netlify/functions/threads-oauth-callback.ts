@@ -83,10 +83,10 @@ export const handler: Handler = async (event) => {
       : 'threads_linked=1'
     const cookie = `${cookieValue}; Path=/; Max-Age=${7*24*60*60}; SameSite=Lax; Secure; HttpOnly`
     
-    // 導回「使用者設定」頁顯示成功（避免導去管理者設定）
+    // 導回追蹤列表頁面，讓用戶可以直接發佈貼文
     const redirectUrl = appUserEmail 
-      ? `/settings?threads=linked&user=${encodeURIComponent(appUserEmail)}`
-      : '/settings?threads=linked'
+      ? `/tracking?threads=linked&user=${encodeURIComponent(appUserEmail)}`
+      : '/tracking?threads=linked'
       
     return { statusCode: 302, headers: { Location: redirectUrl, 'Set-Cookie': cookie }, body: '' }
   } catch (e) {

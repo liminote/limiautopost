@@ -121,7 +121,7 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
         // 檢查是否為 token 過期錯誤
         if (t.includes('TOKEN_EXPIRED') || t.includes('401') || t.includes('Session has expired')) {
           if (confirm('Threads 授權已過期，是否現在重新連結？')) {
-            window.location.href = '/api/threads/oauth/start'
+            window.location.href = `/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(userEmail || '')}`
             return
           }
         }

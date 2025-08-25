@@ -10,8 +10,40 @@ export default function TrackingPage() {
   const [rows, setRows] = useState<TrackedPost[]>([])
   const [allRows, setAllRows] = useState<TrackedPost[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // OAuth 回調狀態
+  const [oauthSuccess, setOauthSuccess] = useState(false)
+  const [oauthMessage, setOauthMessage] = useState('')
+  
   const refresh = () => { const data = getTracked(); setRows(data); setAllRows(data); setLoading(false) }
   useEffect(() => { const id = setTimeout(refresh, 300); return () => clearTimeout(id) }, [])
+  
+  // 處理 OAuth 回調
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(location.search)
+      if (qs.get('threads') === 'linked') {
+        console.log('[TrackingPage] 檢測到 OAuth 成功回調')
+        setOauthSuccess(true)
+        setOauthMessage('Threads 連接成功！現在可以發佈貼文了。')
+        
+        // 清除 query 參數
+        const url = new URL(location.href)
+        url.searchParams.delete('threads')
+        url.searchParams.delete('user')
+        history.replaceState({}, '', url.toString())
+        
+        // 5 秒後自動隱藏成功消息
+        setTimeout(() => {
+          setOauthSuccess(false)
+          setOauthMessage('')
+        }, 5000)
+      }
+    } catch (error) {
+      console.warn('OAuth 回調處理失敗:', error)
+    }
+  }, [location.search])
+  
   useEffect(() => {
     const onVisibility = () => { if (!document.hidden) refresh() }
     document.addEventListener('visibilitychange', onVisibility)
@@ -69,6 +101,16 @@ export default function TrackingPage() {
 
   return (
     <div className="space-y-4 ui-12">
+      {/* OAuth 成功消息 */}
+      {oauthSuccess && (
+        <div className="card card-body bg-green-50 border-green-200">
+          <div className="flex items-center gap-2">
+            <span className="text-green-600">✅</span>
+            <span className="text-green-800 font-medium">{oauthMessage}</span>
+          </div>
+        </div>
+      )}
+      
       <div className="flex items-center justify-between">
         <h1 className="text-base font-bold" style={{ fontFamily: 'Noto Serif TC, serif', color: 'var(--yinmn-blue)' }}>追蹤列表</h1>
         <div className="flex items-center gap-2">
