@@ -7,11 +7,12 @@ import { useSession } from '../auth/auth'
 
 export default function UserSettings(){
   const session = useSession()
-  const [linked, setLinked] = useState(false)
-  const [username, setUsername] = useState<string | null>(null)
-  const [statusMsg, setStatusMsg] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [lastChecked, setLastChecked] = useState<Date | null>(null)
+  // 移除授權相關狀態
+  // const [linked, setLinked] = useState(false)
+  // const [username, setUsername] = useState<string | null>(null)
+  // const [statusMsg, setStatusMsg] = useState<string | null>(null)
+  // const [busy, setBusy] = useState(false)
+  // const [lastChecked, setLastChecked] = useState<Date | null>(null)
 
   // 模板管理相關狀態
   const [availableTemplates, setAvailableTemplates] = useState<BaseCard[]>([])
@@ -119,149 +120,17 @@ export default function UserSettings(){
     }
   }, [])
 
-  // 統一的授權狀態檢查函數
-  const checkAuthStatus = async (deepVerify: boolean = false) => {
-    if (!session) {
-      console.log('[UserSettings] 沒有 session，無法檢查授權狀態')
-      return
-    }
-    
-    console.log(`[UserSettings] 開始檢查 Threads 授權狀態... ${deepVerify ? '(深度驗證模式)' : '(標準模式)'}`)
-    
-    try {
-      setBusy(true)
-      setStatusMsg(deepVerify ? '正在深度檢查授權狀態...' : '正在檢查授權狀態...')
-      
-      const url = `/.netlify/functions/threads-status?user=${encodeURIComponent(session.email)}${deepVerify ? '&deep=true' : ''}`
-      console.log('[UserSettings] 調用 API:', url)
-      
-      const response = await fetch(url, { 
-        cache: 'no-store', 
-        headers: { 'Cache-Control': 'no-store' } 
-      })
-      
-      console.log('[UserSettings] API 響應狀態:', response.status)
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('[UserSettings] API 響應數據:', data)
-        
-        const isLinked = data.status === 'linked'
-        const hasUsername = !!data.username
-        
-        setLinked(isLinked)
-        setUsername(data.username || null)
-        setLastChecked(new Date())
-        
-        if (isLinked) {
-          if (hasUsername) {
-            const statusMsg = `Threads 已連接（${data.username}）`
-            setStatusMsg(statusMsg)
-            console.log('[UserSettings] 設置狀態:', statusMsg)
-            
-            // 同步到本地快取
-            try {
-              localStorage.setItem(`threads:${session.email}:linked`, '1')
-              localStorage.setItem(`threads:${session.email}:username`, data.username)
-              console.log('[UserSettings] 已更新本地快取')
-            } catch (error) {
-              console.warn('[UserSettings] 更新本地快取失敗:', error)
-            }
-          } else {
-            setStatusMsg('Threads 已連接，但無法取得帳號資訊')
-            try {
-              localStorage.setItem(`threads:${session.email}:linked`, '1')
-              localStorage.removeItem(`threads:${session.email}:username`)
-            } catch {}
-          }
-        } else {
-          setStatusMsg('Threads 未連接')
-          try {
-            localStorage.setItem(`threads:${session.email}:linked`, '0')
-            localStorage.removeItem(`threads:${session.email}:username`)
-          } catch {}
-        }
-        
-        console.log('[UserSettings] 授權狀態檢查完成')
-      } else {
-        const errorText = await response.text()
-        console.error('[UserSettings] API 響應錯誤:', response.status, errorText)
-        throw new Error(`HTTP ${response.status}: ${errorText}`)
-      }
-    } catch (error) {
-      console.error('[UserSettings] Threads 狀態檢查失敗:', error)
-      setStatusMsg(`狀態檢查失敗：${error instanceof Error ? error.message : '未知錯誤'}`)
-    } finally {
-      setBusy(false)
-      console.log('[UserSettings] 授權狀態檢查結束，busy 狀態已重置')
-    }
-  }
+  // 移除授權狀態檢查相關函數
+  // const checkAuthStatus = async (deepVerify: boolean = false) => { ... }
 
-  // 頁面載入時檢查授權狀態
-  useEffect(() => {
-    if (!session) return
-    
-    // 先從本地快取恢復狀態
-    const localLinked = localStorage.getItem(`threads:${session.email}:linked`) === '1'
-    const localUsername = localStorage.getItem(`threads:${session.email}:username`)
-    
-    if (localLinked) {
-      setLinked(true)
-      if (localUsername) {
-        setUsername(localUsername)
-        setStatusMsg(`Threads 已連接（${localUsername}）`)
-      } else {
-        setStatusMsg('Threads 已連接，但缺少帳號資訊')
-      }
-    }
-    
-    // 從伺服器檢查最新狀態
-    checkAuthStatus()
-  }, [session?.email])
+  // 移除頁面載入時檢查授權狀態
+  // useEffect(() => { ... }, [session?.email])
 
-  // 處理 OAuth 回調
-  useEffect(() => {
-    if (!session) return
-    
-    try {
-      const qs = new URLSearchParams(location.search)
-      if (qs.get('threads') === 'linked') {
-        // OAuth 成功回調
-        setLinked(true)
-        setStatusMsg('Threads 連接成功！正在取得帳號資訊...')
-        
-        // 立即保存到本地快取
-        try {
-          localStorage.setItem(`threads:${session.email}:linked`, '1')
-        } catch {}
-        
-        // 清除 query 參數
-        const url = new URL(location.href)
-        url.searchParams.delete('threads')
-        history.replaceState({}, '', url.toString())
-        
-        // 延遲檢查狀態，確保 username 被設定
-        setTimeout(async () => {
-          await checkAuthStatus()
-        }, 1000)
-      }
-    } catch (error) {
-      console.warn('OAuth 回調處理失敗:', error)
-    }
-  }, [session?.email, location.search])
+  // 移除處理 OAuth 回調
+  // useEffect(() => { ... }, [session?.email, location.search])
 
-  // 定期檢查授權狀態 - 已禁用，避免間接影響模板數據
-  useEffect(() => {
-    if (!session) return
-    
-    // 注意：不再定期檢查授權狀態，避免間接影響模板數據
-    // 用戶可以手動點擊「重新檢查狀態」按鈕來檢查授權
-    console.log('[UserSettings] 定期授權檢查已禁用，避免影響模板數據')
-    
-    return () => {
-      // 清理函數
-    }
-  }, [session?.email])
+  // 移除定期檢查授權狀態
+  // useEffect(() => { ... }, [session?.email])
 
   // 載入模板管理資訊
   useEffect(() => {
@@ -306,60 +175,26 @@ export default function UserSettings(){
     <div className="space-y-4">
       <h1 className="text-base font-bold" style={{ color: 'var(--yinmn-blue)', fontFamily: 'Noto Serif TC, serif' }}>個人設定</h1>
       
-      {/* Threads 連結設定 */}
+      {/* Threads 連結設定 - 簡化為直接連結按鈕 */}
       <div className="card card-body text-sm text-gray-600 space-y-2">
         <h2 className="font-semibold">Threads 連結</h2>
 
-        {/* 允許管理者也能連結 Threads（單帳號同時具 admin/user 的情境） */}
-        {true ? (
-        <div className="flex gap-2">
-          <a className="btn btn-primary" href={`/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(session?.email || '')}`}>
-            {linked ? '已連結 Threads（OAuth）' : '連結 Threads（OAuth）'}
-          </a>
-          {linked && (
-            <div>
-              <button
-                className="btn btn-ghost"
-                disabled={busy}
-                onClick={() => checkAuthStatus(true)} // 使用深度驗證模式
-                title={busy ? '正在深度檢查中...' : '點擊深度檢查 Threads 授權狀態，驗證 token 實際可用性'}
-              >
-                {busy ? '深度檢查中...' : '重新檢查狀態'}
-              </button>
-            </div>
-          )}
-        </div>
-        ) : null}
-
-        {/* 狀態顯示 */}
-        {statusMsg && (
-          <div className="text-sm">
-            <span className="font-medium">狀態：</span>
-            <span className={linked ? 'text-green-600' : 'text-red-600'}>
-              {statusMsg}
-            </span>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <a className="btn btn-primary" href={`/.netlify/functions/threads-oauth-start?user=${encodeURIComponent(session?.email || '')}`}>
+              連結 Threads（OAuth）
+            </a>
           </div>
-        )}
-        
-        {/* 最後檢查時間 */}
-        {lastChecked && (
-          <div className="text-xs text-gray-500">
-            最後檢查：{lastChecked.toLocaleString('zh-TW')}
-          </div>
-        )}
-
-        {/* 授權狀態說明 */}
-        {linked && (
+          
           <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-            <p className="font-medium">授權狀態說明：</p>
+            <p className="font-medium">授權說明：</p>
             <ul className="mt-1 space-y-1">
-              <li>• 系統會自動監控授權狀態</li>
-              <li>• 如果授權即將過期，會自動嘗試刷新</li>
-              <li>• 貼文會自動檢查授權狀態</li>
-              <li>• 授權失效時會通知您重新連結</li>
+              <li>• 每次發佈貼文時都會要求重新授權</li>
+              <li>• 這樣可以確保授權狀態始終是最新的</li>
+              <li>• 避免授權過期導致的發佈失敗</li>
             </ul>
           </div>
-        )}
+        </div>
       </div>
 
 

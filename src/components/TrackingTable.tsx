@@ -71,55 +71,11 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
       return
     }
     
-    // 發佈前預檢查 token 狀態（使用深度驗證）
-    try {
-      console.log('[TrackingTable] 發佈前深度檢查 Threads 授權狀態...')
-      const statusCheck = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(userEmail)}&deep=true`)
-      if (statusCheck.ok) {
-        const statusData = await statusCheck.json()
-        console.log('[TrackingTable] 授權狀態檢查結果:', statusData)
-        
-        if (statusData.status !== 'linked') {
-          let errorMessage = 'Threads 未連結或授權已過期'
-          if (statusData.reasonCode) {
-            switch (statusData.reasonCode) {
-              case 'token_expired':
-                errorMessage = 'Threads 授權已過期，請重新連結'
-                break
-              case 'deep_verify_failed':
-                errorMessage = 'Threads 授權狀態異常，請重新連結'
-                break
-              case 'deep_verify_error':
-                errorMessage = 'Threads 授權檢查失敗，請重新連結'
-                break
-              default:
-                errorMessage = `Threads 授權問題 (${statusData.reasonCode})，請重新連結`
-            }
-          }
-          
-          if (confirm(`${errorMessage}，是否現在重新連結？`)) {
-            window.location.href = '/api/threads/oauth/start'
-            return
-          }
-          return
-        }
-        
-        console.log('[TrackingTable] Threads 授權狀態檢查通過，可以發佈')
-      } else {
-        console.warn('[TrackingTable] 授權狀態檢查失敗，狀態碼:', statusCheck.status)
-        if (confirm('無法檢查 Threads 授權狀態，是否繼續嘗試發佈？')) {
-          console.log('[TrackingTable] 用戶選擇繼續發佈')
-        } else {
-          return
-        }
-      }
-    } catch (statusError) {
-      console.warn('[TrackingTable] 無法檢查 Threads 狀態，繼續嘗試發佈', statusError)
-      if (confirm('無法檢查 Threads 授權狀態，是否繼續嘗試發佈？')) {
-        console.log('[TrackingTable] 用戶選擇繼續發佈')
-      } else {
-        return
-      }
+    // 每次發佈時都要求重新授權，不進行預檢查
+    if (confirm('每次發佈都會要求重新授權 Threads，確保授權狀態最新。是否繼續？')) {
+      console.log('[TrackingTable] 用戶確認發佈，將要求重新授權')
+    } else {
+      return
     }
     
     try {
@@ -307,6 +263,7 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
       return { ok: false, errorText: 'User not logged in' }
     }
     
+    // 每次發佈時都要求重新授權，不進行預檢查
     // 先打 Functions 直連，較少遇到部署切換時的 404/HTML 回應
     const ts = Date.now()
     const endpoints = [
@@ -342,16 +299,8 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
         }
       }
     }
-    // 最後嘗試：狀態檢查
-    try {
-      const st = await fetch(`/.netlify/functions/threads-status?user=${encodeURIComponent(userEmail)}`).then(r=> r.ok ? r.json() : null).catch(()=>null) as any
-      if (st && st.status !== 'linked') {
-        const reason = st.reasonCode ? ` (${st.reasonCode})` : ''
-        return { ok: false, errorText: `Threads 未連結${reason}` }
-      }
-    } catch {}
     
-    // 移除有問題的 threads-latest 回退邏輯，直接返回錯誤
+    // 移除授權狀態檢查，直接返回錯誤
     return { ok: false, errorText: lastError ? `Service temporarily unavailable: ${lastError}` : 'Service temporarily unavailable, please retry.' }
   }
 
@@ -424,7 +373,6 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
                   const code = PLATFORM_DISPLAY_MAP[r.platform] || 'TD'
                   const color = r.platform === 'Instagram' ? PLATFORM_CONFIG.instagram.color :
                                r.platform === 'Facebook' ? PLATFORM_CONFIG.facebook.color :
-                               r.platform === 'General' ? PLATFORM_CONFIG.general.color :
                                PLATFORM_CONFIG.threads.color
                   return (
                     <span className="ui-chip" style={{ padding: '0 6px', color }}>
