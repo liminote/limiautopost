@@ -130,7 +130,10 @@ export default function UserSettings(){
     
     try {
       const qs = new URLSearchParams(location.search)
+      console.log('[UserSettings] 檢查 OAuth 回調參數:', location.search)
+      
       if (qs.get('threads') === 'linked') {
+        console.log('[UserSettings] 檢測到 OAuth 成功回調')
         // OAuth 成功回調
         setLinked(true)
         setStatusMsg('Threads 連接成功！')
@@ -141,13 +144,16 @@ export default function UserSettings(){
         url.searchParams.delete('user')
         history.replaceState({}, '', url.toString())
         
-        // 顯示成功狀態 3 秒後自動隱藏
+        // 顯示成功狀態 5 秒後自動隱藏
         setTimeout(() => {
           setStatusMsg(null)
-        }, 3000)
+        }, 5000)
+        
+        console.log('[UserSettings] OAuth 回調處理完成')
       }
     } catch (error) {
-      console.warn('OAuth 回調處理失敗:', error)
+      console.error('OAuth 回調處理失敗:', error)
+      setStatusMsg('OAuth 回調處理失敗，請重試')
     }
   }, [session?.email, location.search])
 

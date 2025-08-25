@@ -38,6 +38,32 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
     }
   }, [rows, setRows])
 
+  // 檢查卡住的「發佈中」狀態（無 publishDate 的情況）
+  useEffect(() => {
+    const stuckPostsWithoutDate = rows.filter(r => 
+      r.status === 'publishing' && 
+      !r.publishDate
+    )
+
+    if (stuckPostsWithoutDate.length > 0) {
+      console.log(`發現 ${stuckPostsWithoutDate.length} 個無日期的卡住發佈中狀態`)
+      stuckPostsWithoutDate.forEach(post => {
+        // 檢查是否超過 2 分鐘
+        const postRow = rows.find(x => x.id === post.id)
+        if (postRow && publishingId === post.id) {
+          // 如果正在發佈中且超過 2 分鐘，重置狀態
+          const timeSinceStart = Date.now() - (postRow as any)._publishStartTime || 0
+          if (timeSinceStart > 2 * 60 * 1000) { // 2分鐘
+            console.log(`重置卡住的發佈狀態: ${post.id}`)
+            updateTracked(post.id, { status: 'failed', publishError: '發佈超時，已重置為失敗' })
+            setRows(rows.map(x => x.id === post.id ? { ...x, status: 'failed', publishError: '發佈超時，已重置為失敗' }: x))
+            setPublishingId(null)
+          }
+        }
+      })
+    }
+  }, [rows, setRows, publishingId])
+
   // 移除排程相關函數
   // const openScheduleDialog = (row: TrackedPost) => { ... } - 已移除
   // const handleScheduleSubmit = async () => { ... } - 已移除
@@ -76,10 +102,19 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
     
     try {
       setPublishingId(r.id)
+      // 記錄發佈開始時間
+      const publishStartTime = Date.now()
       updateTracked(r.id, { status: 'publishing' })
-      setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing' }: x))
+      setRows(rows.map(x=> x.id===r.id? { ...x, status: 'publishing', _publishStartTime: publishStartTime }: x))
       
-      const j = await publishWithRetry(text)
+      // 添加超時保護
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('發佈超時')), 2 * 60 * 1000) // 2分鐘超時
+      })
+      
+      const publishPromise = publishWithRetry(text)
+      const j = await Promise.race([publishPromise, timeoutPromise])
+      
       if (!j.ok) {
         const t = j.errorText || 'unknown'
         
@@ -115,8 +150,12 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
         publishDate: publishedAt 
       }: x))
       alert(`發佈成功！ID: ${j.id}`)
-    } catch { 
-      alert('發佈失敗：網路錯誤') 
+    } catch (error) { 
+      console.error('發佈失敗:', error)
+      const errorMessage = error instanceof Error ? error.message : '網路錯誤'
+      updateTracked(r.id, { status: 'failed', publishError: errorMessage })
+      setRows(rows.map(x=> x.id===r.id? { ...x, status: 'failed', publishError: errorMessage }: x))
+      alert('發佈失敗：' + errorMessage)
     } finally { 
       setPublishingId(null) 
     }
@@ -300,12 +339,36 @@ export default function TrackingTable({ rows, setRows, loading, userEmail }: { r
     return { ok: false, errorText: lastError ? `Service temporarily unavailable: ${lastError}` : 'Service temporarily unavailable, please retry.' }
   }
 
+  // 手動重置卡住的發佈狀態
+  const resetStuckPublishingStatus = () => {
+    const stuckPosts = rows.filter(r => r.status === 'publishing')
+    if (stuckPosts.length === 0) {
+      alert('沒有卡住的發佈中狀態')
+      return
+    }
+    
+    if (confirm(`發現 ${stuckPosts.length} 個卡住的發佈中狀態，是否重置為失敗狀態？`)) {
+      stuckPosts.forEach(post => {
+        updateTracked(post.id, { status: 'failed', publishError: '手動重置卡住的發佈狀態' })
+        setRows(rows.map(x => x.id === post.id ? { ...x, status: 'failed', publishError: '手動重置卡住的發佈狀態' }: x))
+      })
+      setPublishingId(null)
+      alert('已重置所有卡住的發佈狀態')
+    }
+  }
+
   return (
     <div className="card">
       <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
-        {/* 移除手動檢查排程按鈕 */}
-        <div className="flex items-center gap-2">
-          {/* 移除排程檢查功能 */}
+        {/* 添加手動重置按鈕 */}
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={resetStuckPublishingStatus}
+            className="px-3 py-1 text-xs bg-orange-100 text-orange-600 rounded hover:bg-orange-200"
+            title="重置卡住的發佈狀態"
+          >
+            重置卡住狀態
+          </button>
         </div>
       
 
