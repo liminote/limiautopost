@@ -13,7 +13,7 @@ const ADMIN_EMAILS: string[] = [
 ]
 
 // 開發期：確保管理者帳號存在（預設密碼可稍後修改）
-import { ensureUser, findUserByEmail, updateUser, getUsers, isUserValid, type AppUser } from './users'
+import { ensureUser, findUserByEmail, updateUser, getUsers, isUserValid, fixUserTimeRanges, type AppUser } from './users'
 
 // 改進的用戶初始化函數
 function initializeTestUsers() {
@@ -52,6 +52,9 @@ function initializeTestUsers() {
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     try {
+      // 先修復現有用戶的時間範圍問題
+      fixUserTimeRanges()
+      // 然後初始化測試用戶
       initializeTestUsers()
     } catch (error) {
       console.error('用戶初始化失敗:', error)

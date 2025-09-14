@@ -103,7 +103,22 @@ export function findUserByEmail(email: string): AppUser | undefined {
 export function ensureUser(email: string, password: string, expiresAt?: string) {
   const existing = findUserByEmail(email)
   if (existing) return existing
-  return createUser({ email, password, expiresAt, mustChangePassword: false, enabled: true })
+  
+  // 設定合理的預設時間範圍（從今天開始，到明年年底）
+  const today = new Date()
+  const nextYear = new Date(today.getFullYear() + 1, 11, 31) // 明年12月31日
+  
+  const validFrom = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+  const validTo = `${nextYear.getFullYear()}-${String(nextYear.getMonth()+1).padStart(2,'0')}-${String(nextYear.getDate()).padStart(2,'0')}`
+  
+  return createUser({ 
+    email, 
+    password, 
+    validFrom,
+    validTo: expiresAt || validTo,
+    mustChangePassword: false, 
+    enabled: true 
+  })
 }
 
 export function isUserValid(user: AppUser): { valid: boolean; reason?: string } {
@@ -135,6 +150,34 @@ export function isUserValid(user: AppUser): { valid: boolean; reason?: string } 
   }
   
   return { valid: true }
+}
+
+// 修復現有用戶的時間範圍問題
+export function fixUserTimeRanges(): void {
+  try {
+    const users = getUsers()
+    const today = new Date()
+    const nextYear = new Date(today.getFullYear() + 1, 11, 31)
+    
+    const validFrom = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+    const validTo = `${nextYear.getFullYear()}-${String(nextYear.getMonth()+1).padStart(2,'0')}-${String(nextYear.getDate()).padStart(2,'0')}`
+    
+    let updated = false
+    for (const user of users) {
+      // 如果 validTo 是過去的日期，或者沒有設定，就修復它
+      if (!user.validTo || (user.validTo && user.validTo < validFrom)) {
+        updateUser(user.id, { validFrom, validTo })
+        console.log(`[fixUserTimeRanges] 修復用戶 ${user.email} 的時間範圍: ${validFrom} ~ ${validTo}`)
+        updated = true
+      }
+    }
+    
+    if (updated) {
+      console.log('[fixUserTimeRanges] 用戶時間範圍修復完成')
+    }
+  } catch (error) {
+    console.error('[fixUserTimeRanges] 修復失敗:', error)
+  }
 }
 
 
