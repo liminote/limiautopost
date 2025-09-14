@@ -38,6 +38,13 @@ function initializeTestUsers() {
     } catch (error) {
       console.warn('創建測試用戶帳號失敗:', error)
     }
+    
+    try { 
+      ensureUser('guest@gmail.com', 'guest123') 
+      console.log('✅ 測試用戶帳號已創建: guest@gmail.com')
+    } catch (error) {
+      console.warn('創建測試用戶帳號失敗:', error)
+    }
   }
 }
 
