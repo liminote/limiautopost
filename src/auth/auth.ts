@@ -41,26 +41,34 @@ function initializeTestUsers() {
   }
 }
 
-// 在頁面加載時初始化用戶
+// 在頁面加載時初始化用戶（延遲執行避免循環依賴）
 if (typeof window !== 'undefined') {
-  initializeTestUsers()
+  setTimeout(() => {
+    try {
+      initializeTestUsers()
+    } catch (error) {
+      console.error('用戶初始化失敗:', error)
+    }
+  }, 50)
 }
 
 // 部署環境：若提供 Vite 環境變數，建立正式管理者帳號（注意：純前端原型，僅供內部測試）
 // 使用方式：在 Netlify 設定環境變數 VITE_SEED_ADMIN_EMAIL / VITE_SEED_ADMIN_PASSWORD 後重新部署
 if (typeof window !== 'undefined') {
-  const seedEmail = (import.meta as any).env?.VITE_SEED_ADMIN_EMAIL as string | undefined
-  const seedPassword = (import.meta as any).env?.VITE_SEED_ADMIN_PASSWORD as string | undefined
-  if (seedEmail && seedPassword) {
+  setTimeout(() => {
     try {
-      ensureUser(seedEmail, seedPassword)
-      const e = seedEmail.toLowerCase().trim()
-      if (!ADMIN_EMAILS.includes(e)) ADMIN_EMAILS.push(e)
-      console.log('✅ 正式管理員帳號已創建:', seedEmail)
+      const seedEmail = (import.meta as any).env?.VITE_SEED_ADMIN_EMAIL as string | undefined
+      const seedPassword = (import.meta as any).env?.VITE_SEED_ADMIN_PASSWORD as string | undefined
+      if (seedEmail && seedPassword) {
+        ensureUser(seedEmail, seedPassword)
+        const e = seedEmail.toLowerCase().trim()
+        if (!ADMIN_EMAILS.includes(e)) ADMIN_EMAILS.push(e)
+        console.log('✅ 正式管理員帳號已創建:', seedEmail)
+      }
     } catch (error) {
       console.warn('創建正式管理員帳號失敗:', error)
     }
-  }
+  }, 75)
 }
 
 // 緊急修復：確保管理者帳號存在
