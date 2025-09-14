@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入調試工具</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>登入調試工具</h1>
+    
+    <div class="section">
+        <h2>測試登入</h2>
+        <input type="email" id="email" placeholder="Email" value="guest@gmail.com">
+        <input type="password" id="password" placeholder="密碼" value="guest123">
+        <button onclick="testLogin()">測試登入</button>
+        <div id="loginResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>用戶詳細檢查</h2>
+        <div id="userDetails"></div>
+    </div>
+
+    <div class="section">
+        <h2>時間檢查</h2>
+        <div id="timeCheck"></div>
+    </div>
+
+    <div class="section">
+        <h2>操作</h2>
+        <button onclick="refreshAll()">重新整理</button>
+        <button onclick="clearSession()">清除 Session</button>
+        <button onclick="fixUserRanges()">修復用戶時間範圍</button>
+    </div>
+
+    <script>
+        // 模擬 isUserValid 函數
+        function isUserValid(user) {
+            console.log('檢查用戶:', user.email);
+            
+            // 檢查是否啟用
+            if (user.enabled === false) {
+                console.log('用戶未啟用');
+                return { valid: false, reason: '帳號已被停用' };
+            }
+            
+            // 檢查時間範圍
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth()+1).padStart(2,'0');
+            const dd = String(today.getDate()).padStart(2,'0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+            
+            console.log('今天日期:', todayStr);
+            console.log('用戶 validFrom:', user.validFrom);
+            console.log('用戶 validTo:', user.validTo);
+            console.log('用戶 expiresAt:', user.expiresAt);
+            
+            // 檢查 validFrom（開始日期）
+            if (user.validFrom && todayStr < user.validFrom) {
+                console.log('帳號尚未生效');
+                return { valid: false, reason: `帳號尚未生效，生效日期：${user.validFrom}` };
+            }
+            
+            // 檢查 validTo（結束日期）
+            if (user.validTo && todayStr > user.validTo) {
+                console.log('帳號已到期');
+                return { valid: false, reason: `帳號已到期，到期日期：${user.validTo}` };
+            }
+            
+            // 檢查舊版 expiresAt（向後相容）
+            if (user.expiresAt && todayStr > user.expiresAt) {
+                console.log('帳號已到期（舊版）');
+                return { valid: false, reason: `帳號已到期，到期日期：${user.expiresAt}` };
+            }
+            
+            console.log('用戶驗證通過');
+            return { valid: true };
+        }
+
+        function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                // 獲取用戶資料
+                const usersData = localStorage.getItem('limiautopost:users');
+                if (!usersData) {
+                    document.getElementById('loginResult').innerHTML = '<p class="error">沒有找到用戶資料</p>';
+                    return;
+                }
+                
+                const users = JSON.parse(usersData);
+                const user = users.find(u => u.email === email);
+                
+                if (!user) {
+                    document.getElementById('loginResult').innerHTML = `<p class="error">找不到用戶：${email}</p>`;
+                    return;
+                }
+                
+                // 檢查密碼
+                if (user.password !== password) {
+                    document.getElementById('loginResult').innerHTML = '<p class="error">密碼錯誤</p>';
+                    return;
+                }
+                
+                // 檢查用戶有效性
+                const validation = isUserValid(user);
+                if (!validation.valid) {
+                    document.getElementById('loginResult').innerHTML = `<p class="error">${validation.reason}</p>`;
+                    return;
+                }
+                
+                document.getElementById('loginResult').innerHTML = '<p class="success">登入成功！</p>';
+                
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `<p class="error">登入失敗: ${error.message}</p>`;
+            }
+        }
+
+        function refreshAll() {
+            // 用戶詳細檢查
+            try {
+                const usersData = localStorage.getItem('limiautopost:users');
+                if (usersData) {
+                    const users = JSON.parse(usersData);
+                    let html = '<h3>所有用戶:</h3><ul>';
+                    users.forEach(user => {
+                        const validation = isUserValid(user);
+                        html += `<li>
+                            <strong>${user.email}</strong> 
+                            (啟用: ${user.enabled !== false ? '是' : '否'})
+                            <br>創建時間: ${user.createdAt}
+                            <br>有效起訖: ${user.validFrom || 'N/A'} ~ ${user.validTo || 'N/A'}
+                            <br>舊版到期: ${user.expiresAt || 'N/A'}
+                            <br>驗證結果: <span class="${validation.valid ? 'success' : 'error'}">${validation.valid ? '有效' : validation.reason}</span>
+                        </li>`;
+                    });
+                    html += '</ul>';
+                    document.getElementById('userDetails').innerHTML = html;
+                } else {
+                    document.getElementById('userDetails').innerHTML = '<p class="error">沒有找到用戶資料</p>';
+                }
+            } catch (e) {
+                document.getElementById('userDetails').innerHTML = `<p class="error">解析用戶資料失敗: ${e.message}</p>`;
+            }
+
+            // 時間檢查
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth()+1).padStart(2,'0');
+            const dd = String(today.getDate()).padStart(2,'0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+            
+            document.getElementById('timeCheck').innerHTML = `
+                <p>今天日期: ${todayStr}</p>
+                <p>年份: ${yyyy}</p>
+                <p>月份: ${mm}</p>
+                <p>日期: ${dd}</p>
+            `;
+        }
+
+        function clearSession() {
+            localStorage.removeItem('limiautopost:session');
+            alert('Session 已清除');
+        }
+
+        function fixUserRanges() {
+            try {
+                const usersData = localStorage.getItem('limiautopost:users');
+                if (!usersData) {
+                    alert('沒有找到用戶資料');
+                    return;
+                }
+                
+                const users = JSON.parse(usersData);
+                const today = new Date();
+                const nextYear = new Date(today.getFullYear() + 1, 11, 31);
+                
+                const validFrom = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                const validTo = `${nextYear.getFullYear()}-${String(nextYear.getMonth()+1).padStart(2,'0')}-${String(nextYear.getDate()).padStart(2,'0')}`;
+                
+                let updated = false;
+                for (const user of users) {
+                    if (!user.validTo || (user.validTo && user.validTo < validFrom)) {
+                        user.validFrom = validFrom;
+                        user.validTo = validTo;
+                        updated = true;
+                        console.log(`修復用戶 ${user.email} 的時間範圍: ${validFrom} ~ ${validTo}`);
+                    }
+                }
+                
+                if (updated) {
+                    localStorage.setItem('limiautopost:users', JSON.stringify(users));
+                    alert('用戶時間範圍已修復');
+                    refreshAll();
+                } else {
+                    alert('沒有需要修復的用戶');
+                }
+            } catch (error) {
+                alert('修復失敗: ' + error.message);
+            }
+        }
+
+        // 頁面載入時自動刷新
+        refreshAll();
+    </script>
+</body>
+</html>
