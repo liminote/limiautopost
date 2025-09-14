@@ -87,7 +87,7 @@ export default function Login() {
         <div className="flex items-center justify-center mb-2">
           <BrandLogo />
         </div>
-        <h1 className="text-lg font-semibold text-center" style={{ fontFamily: 'Noto Serif TC, serif' }}>隙音自動貼文生成器</h1>
+        <h1 className="text-lg font-semibold text-center" style={{ fontFamily: 'Noto Serif TC, serif' }}>自動貼文生成器</h1>
         <div>
           <label className="block text-sm text-gray-600">Email</label>
           <input className="mt-1 w-full rounded border px-3 py-2" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" />
