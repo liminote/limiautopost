@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>localStorage 診斷工具</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .danger { background: #dc3545; }
+        .danger:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+    <h1>localStorage 診斷工具</h1>
+    
+    <div class="section">
+        <h2>基本資訊</h2>
+        <p>localStorage 支援: <span id="support" class="success">✓ 支援</span></p>
+        <p>總鍵數: <span id="keyCount">0</span></p>
+        <p>總大小: <span id="totalSize">0 bytes</span></p>
+    </div>
+
+    <div class="section">
+        <h2>limiautopost 相關鍵值</h2>
+        <div id="limiautopostKeys"></div>
+    </div>
+
+    <div class="section">
+        <h2>用戶資料檢查</h2>
+        <div id="userData"></div>
+    </div>
+
+    <div class="section">
+        <h2>可疑鍵值檢查</h2>
+        <div id="suspiciousKeys"></div>
+    </div>
+
+    <div class="section">
+        <h2>操作</h2>
+        <button onclick="refreshData()">重新整理</button>
+        <button onclick="clearAllData()" class="danger">清除所有資料</button>
+        <button onclick="clearLimiautopostData()" class="danger">清除 limiautopost 資料</button>
+        <button onclick="createTestUsers()">創建測試用戶</button>
+    </div>
+
+    <div class="section">
+        <h2>完整 localStorage 內容</h2>
+        <pre id="fullContent"></pre>
+    </div>
+
+    <script>
+        function refreshData() {
+            // 基本資訊
+            document.getElementById('support').textContent = typeof localStorage !== 'undefined' ? '✓ 支援' : '✗ 不支援';
+            
+            const keys = Object.keys(localStorage);
+            document.getElementById('keyCount').textContent = keys.length;
+            
+            let totalSize = 0;
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) totalSize += key.length + value.length;
+            });
+            document.getElementById('totalSize').textContent = totalSize + ' bytes';
+
+            // limiautopost 相關鍵值
+            const limiautopostKeys = keys.filter(key => key.includes('limiautopost'));
+            let html = '<ul>';
+            limiautopostKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                html += `<li><strong>${key}</strong>: ${value ? value.substring(0, 100) + (value.length > 100 ? '...' : '') : 'null'}</li>`;
+            });
+            html += '</ul>';
+            document.getElementById('limiautopostKeys').innerHTML = html;
+
+            // 用戶資料檢查
+            try {
+                const usersData = localStorage.getItem('limiautopost:users');
+                if (usersData) {
+                    const users = JSON.parse(usersData);
+                    let userHtml = '<h3>用戶列表:</h3><ul>';
+                    users.forEach(user => {
+                        userHtml += `<li>
+                            <strong>${user.email}</strong> 
+                            (啟用: ${user.enabled !== false ? '是' : '否'})
+                            <br>創建時間: ${user.createdAt}
+                            <br>有效起訖: ${user.validFrom || 'N/A'} ~ ${user.validTo || 'N/A'}
+                            <br>舊版到期: ${user.expiresAt || 'N/A'}
+                        </li>`;
+                    });
+                    userHtml += '</ul>';
+                    document.getElementById('userData').innerHTML = userHtml;
+                } else {
+                    document.getElementById('userData').innerHTML = '<p class="error">沒有找到用戶資料</p>';
+                }
+            } catch (e) {
+                document.getElementById('userData').innerHTML = `<p class="error">解析用戶資料失敗: ${e.message}</p>`;
+            }
+
+            // 可疑鍵值檢查
+            const suspiciousKeys = keys.filter(key => {
+                const suspiciousMethods = ['removeItem', 'clear', 'getItem', 'setItem', 'length', 'key'];
+                return suspiciousMethods.includes(key) || 
+                       key.includes('mock') || 
+                       key.includes('test') ||
+                       key.includes('Mock');
+            });
+            
+            if (suspiciousKeys.length > 0) {
+                let suspiciousHtml = '<p class="warning">發現可疑鍵值:</p><ul>';
+                suspiciousKeys.forEach(key => {
+                    suspiciousHtml += `<li><strong>${key}</strong>: ${localStorage.getItem(key)}</li>`;
+                });
+                suspiciousHtml += '</ul>';
+                document.getElementById('suspiciousKeys').innerHTML = suspiciousHtml;
+            } else {
+                document.getElementById('suspiciousKeys').innerHTML = '<p class="success">沒有發現可疑鍵值</p>';
+            }
+
+            // 完整內容
+            const fullContent = {};
+            keys.forEach(key => {
+                fullContent[key] = localStorage.getItem(key);
+            });
+            document.getElementById('fullContent').textContent = JSON.stringify(fullContent, null, 2);
+        }
+
+        function clearAllData() {
+            if (confirm('確定要清除所有 localStorage 資料嗎？這將清除所有網站的資料！')) {
+                localStorage.clear();
+                refreshData();
+                alert('已清除所有資料');
+            }
+        }
+
+        function clearLimiautopostData() {
+            if (confirm('確定要清除 limiautopost 相關資料嗎？')) {
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.includes('limiautopost')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                refreshData();
+                alert('已清除 limiautopost 資料');
+            }
+        }
+
+        function createTestUsers() {
+            try {
+                const testUsers = [
+                    {
+                        id: crypto.randomUUID(),
+                        email: 'vannyma@gmail.com',
+                        password: 'admin123',
+                        createdAt: new Date().toISOString().split('T')[0],
+                        validFrom: new Date().toISOString().split('T')[0],
+                        validTo: '2025-12-31',
+                        enabled: true,
+                        mustChangePassword: false
+                    },
+                    {
+                        id: crypto.randomUUID(),
+                        email: 'operatic@gmail.com',
+                        password: 'operatic123',
+                        createdAt: new Date().toISOString().split('T')[0],
+                        validFrom: new Date().toISOString().split('T')[0],
+                        validTo: '2025-12-31',
+                        enabled: true,
+                        mustChangePassword: false
+                    },
+                    {
+                        id: crypto.randomUUID(),
+                        email: 'guest@gmail.com',
+                        password: 'guest123',
+                        createdAt: new Date().toISOString().split('T')[0],
+                        validFrom: new Date().toISOString().split('T')[0],
+                        validTo: '2025-12-31',
+                        enabled: true,
+                        mustChangePassword: false
+                    }
+                ];
+                
+                localStorage.setItem('limiautopost:users', JSON.stringify(testUsers));
+                refreshData();
+                alert('已創建測試用戶');
+            } catch (e) {
+                alert('創建測試用戶失敗: ' + e.message);
+            }
+        }
+
+        // 頁面載入時自動刷新
+        refreshData();
+    </script>
+</body>
+</html>
