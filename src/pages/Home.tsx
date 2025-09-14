@@ -7,7 +7,7 @@ export default function Home(){
   return (
     <div className="mx-auto max-w-3xl">
       <div className="card card-body">
-        <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Noto Serif TC, serif', color: 'var(--yinmn-blue)' }}>隙音貼文生成器</h1>
+        <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Noto Serif TC, serif', color: 'var(--yinmn-blue)' }}>貼文生成器</h1>
         <p className="text-gray-600 mb-4">將長文快速轉為 Threads/IG 風格貼文，並可集中管理追蹤成效。</p>
         <div className="flex flex-wrap gap-2">
           {session ? (

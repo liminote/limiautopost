@@ -72,7 +72,7 @@ function TopNav() {
           className="flex items-center gap-3"
           style={{ cursor: 'pointer', background: 'none', border: 'none', padding: '0' }}
         >
-          <span className="text-2xl font-bold" style={{ fontFamily: 'Noto Serif TC, serif', color: 'var(--yinmn-blue)' }}>隙音貼文生成器</span>
+          <span className="text-2xl font-bold" style={{ fontFamily: 'Noto Serif TC, serif', color: 'var(--yinmn-blue)' }}>貼文生成器</span>
         </button>
         <nav className="text-sm flex items-center gap-4">
           {hasRole('admin', session) && (
