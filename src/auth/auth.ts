@@ -92,9 +92,16 @@ function emergencyFixAdminAccount() {
   }
 }
 
-// 在頁面加載時執行緊急修復
+// 在頁面加載時執行緊急修復（延遲執行避免循環依賴）
 if (typeof window !== 'undefined') {
-  emergencyFixAdminAccount()
+  // 使用 setTimeout 確保所有模組都已載入
+  setTimeout(() => {
+    try {
+      emergencyFixAdminAccount()
+    } catch (error) {
+      console.error('緊急修復執行失敗:', error)
+    }
+  }, 100)
 }
 
 export function signIn(email: string): Session {
