@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ensureUser, getUsers, findUserByEmail } from '../auth/users'
+import { ensureUser, getUsers, findUserByEmail, isUserValid } from '../auth/users'
 import { getSession, signIn } from '../auth/auth'
 
 export default function LoginDebugger() {
@@ -28,6 +28,15 @@ export default function LoginDebugger() {
       const vannyma = findUserByEmail('vannyma@gmail.com')
       const operatic = findUserByEmail('operatic')
       const operaticEmail = findUserByEmail('operatic@gmail.com')
+      const guest = findUserByEmail('guest@gmail.com')
+      
+      // 檢查用戶有效性
+      const userValidations = {
+        vannyma: vannyma ? isUserValid(vannyma) : { valid: false, reason: '用戶不存在' },
+        operatic: operatic ? isUserValid(operatic) : { valid: false, reason: '用戶不存在' },
+        operaticEmail: operaticEmail ? isUserValid(operaticEmail) : { valid: false, reason: '用戶不存在' },
+        guest: guest ? isUserValid(guest) : { valid: false, reason: '用戶不存在' }
+      }
       
       // 檢查 localStorage 容量
       let localStorageSize = 0
@@ -59,8 +68,10 @@ export default function LoginDebugger() {
         defaultAccounts: {
           vannyma: vannyma ? '存在' : '不存在',
           operatic: operatic ? '存在' : '不存在',
-          operaticEmail: operaticEmail ? '存在' : '不存在'
+          operaticEmail: operaticEmail ? '存在' : '不存在',
+          guest: guest ? '存在' : '不存在'
         },
+        userValidations,
         environment: {
           dev: import.meta.env.DEV,
           hasSeedEmail: !!(import.meta as any).env?.VITE_SEED_ADMIN_EMAIL,

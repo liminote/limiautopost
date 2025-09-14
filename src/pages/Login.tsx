@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
 import { signIn, getSession } from '../auth/auth'
-import { findUserByEmail, ensureUser } from '../auth/users'
+import { findUserByEmail, ensureUser, isUserValid } from '../auth/users'
 import { useNavigate } from 'react-router-dom'
 import LoginDebugger from '../components/LoginDebugger'
 
@@ -36,8 +36,10 @@ export default function Login() {
       return 
     }
     
-    if (!u.enabled) {
-      setError('帳號已被停用，請聯繫管理員'); 
+    // 使用新的驗證函數檢查用戶有效性
+    const validation = isUserValid(u)
+    if (!validation.valid) {
+      setError(validation.reason || '帳號無效'); 
       return 
     }
     

@@ -13,7 +13,7 @@ const ADMIN_EMAILS: string[] = [
 ]
 
 // 開發期：確保管理者帳號存在（預設密碼可稍後修改）
-import { ensureUser, findUserByEmail, updateUser, getUsers, type AppUser } from './users'
+import { ensureUser, findUserByEmail, updateUser, getUsers, isUserValid, type AppUser } from './users'
 
 // 改進的用戶初始化函數
 function initializeTestUsers() {
@@ -98,22 +98,13 @@ if (typeof window !== 'undefined') {
 }
 
 export function signIn(email: string): Session {
-  // 登入前檢查啟用與到期
+  // 登入前檢查用戶有效性
   try {
     const u = findUserByEmail(email)
     if (u) {
-      if (u.enabled === false) {
-        throw new Error('帳號未啟用')
-      }
-      if (u.expiresAt) {
-        const today = new Date()
-        const yyyy = today.getFullYear()
-        const mm = String(today.getMonth()+1).padStart(2,'0')
-        const dd = String(today.getDate()).padStart(2,'0')
-        const ymd = `${yyyy}-${mm}-${dd}`
-        if (ymd > u.expiresAt) {
-          throw new Error('帳號已到期')
-        }
+      const validation = isUserValid(u)
+      if (!validation.valid) {
+        throw new Error(validation.reason || '帳號無效')
       }
     }
   } catch (err) {

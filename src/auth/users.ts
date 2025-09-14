@@ -106,4 +106,35 @@ export function ensureUser(email: string, password: string, expiresAt?: string) 
   return createUser({ email, password, expiresAt, mustChangePassword: false, enabled: true })
 }
 
+export function isUserValid(user: AppUser): { valid: boolean; reason?: string } {
+  // 檢查是否啟用
+  if (user.enabled === false) {
+    return { valid: false, reason: '帳號已被停用' }
+  }
+  
+  // 檢查時間範圍
+  const today = new Date()
+  const yyyy = today.getFullYear()
+  const mm = String(today.getMonth()+1).padStart(2,'0')
+  const dd = String(today.getDate()).padStart(2,'0')
+  const todayStr = `${yyyy}-${mm}-${dd}`
+  
+  // 檢查 validFrom（開始日期）
+  if (user.validFrom && todayStr < user.validFrom) {
+    return { valid: false, reason: `帳號尚未生效，生效日期：${user.validFrom}` }
+  }
+  
+  // 檢查 validTo（結束日期）
+  if (user.validTo && todayStr > user.validTo) {
+    return { valid: false, reason: `帳號已到期，到期日期：${user.validTo}` }
+  }
+  
+  // 檢查舊版 expiresAt（向後相容）
+  if (user.expiresAt && todayStr > user.expiresAt) {
+    return { valid: false, reason: `帳號已到期，到期日期：${user.expiresAt}` }
+  }
+  
+  return { valid: true }
+}
+
 
