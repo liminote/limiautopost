@@ -95,6 +95,7 @@ export default function LoginDebugger() {
       ensureUser('vannyma@gmail.com', 'admin123')
       ensureUser('operatic', 'operatic123')
       ensureUser('operatic@gmail.com', 'operatic123')
+      ensureUser('guest@gmail.com', 'guest123')
       setMessage('已修復預設帳號')
       runDiagnostics()
     } catch (error) {
@@ -234,6 +235,12 @@ export default function LoginDebugger() {
             className="px-3 py-1 bg-gray-200 rounded hover:bg-yellow-300 text-sm ml-2"
           >
             測試 operatic@gmail.com / operatic123
+          </button>
+          <button 
+            onClick={() => testLogin('guest@gmail.com', 'guest123')}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-green-300 text-sm ml-2"
+          >
+            測試 guest@gmail.com / guest123
           </button>
         </div>
       </div>
